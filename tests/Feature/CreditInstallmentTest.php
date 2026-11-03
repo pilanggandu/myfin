@@ -688,4 +688,111 @@ class CreditInstallmentTest extends TestCase
         $showResponse->assertStatus(200);
         $showResponse->assertSee('Cicilan yang Sudah Lunas');
     }
+
+    public function test_flexible_payment_absorbs_rounding_difference_as_credit_note(): void
+    {
+        // Pembelian 1.802.000 tenor 12: cicilan #1 = 150.174, cicilan #2..#12 = 150.166
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Handphone Baru',
+            'total_amount' => 1802000,
+            'tenor' => 12,
+            'start_date' => '2026-11-01',
+        ]);
+
+        $firstInst = $plan->installments()->where('installment_number', 1)->first();
+        $this->assertEquals(150174, $firstInst->principal_amount);
+
+        $initialBankBalance = $this->bankAccount->currentBalance();
+
+        // Bayar cicilan #1 sesuai nominal ril di tagihan m-banking (150.166 alih-alih 150.174, selisih 8)
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.installments.pay', $firstInst), [
+                'source_account_id' => $this->bankAccount->id,
+                'amount' => 150166,
+                'payment_date' => '2026-11-04',
+            ])
+            ->assertRedirect(route('credit.plans.show', $plan));
+
+        $firstInst->refresh();
+        $this->assertTrue($firstInst->isPaid());
+        $this->assertEquals(150166, $firstInst->principal_amount);
+
+        // Saldo bank terpotong persis nominal ril
+        $this->assertEquals($initialBankBalance - 150166, $this->bankAccount->currentBalance());
+
+        // Terbentuk nota kredit selisih pembulatan Rp 8
+        $this->assertDatabaseHas('credit_debit_notes', [
+            'space_id' => $this->space->id,
+            'installment_id' => $firstInst->id,
+            'type' => 'credit_note',
+            'amount' => 8,
+        ]);
+
+        $plan->refresh();
+        $this->assertEquals(1801992, $plan->total_amount);
+    }
+
+    public function test_manual_credit_and_debit_notes_endpoint(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli AC Kantor',
+            'total_amount' => 1000000,
+            'tenor' => 2,
+            'start_date' => '2026-11-01',
+        ]);
+
+        $inst = $plan->installments()->first();
+        $this->assertEquals(500000, $inst->principal_amount);
+
+        // 1. Simpan Nota Kredit Rp 10.000 pada cicilan #1
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.notes.store'), [
+                'credit_account_id' => $this->creditCard->id,
+                'installment_plan_id' => $plan->id,
+                'installment_id' => $inst->id,
+                'type' => 'credit_note',
+                'amount' => 10000,
+                'note_date' => '2026-11-04',
+                'description' => 'Diskon promo merchant cicilan #1',
+            ])
+            ->assertRedirect(route('credit.plans.show', $plan));
+
+        $inst->refresh();
+        $this->assertEquals(490000, $inst->principal_amount);
+
+        $this->assertDatabaseHas('credit_debit_notes', [
+            'type' => 'credit_note',
+            'amount' => 10000,
+            'installment_id' => $inst->id,
+        ]);
+
+        // 2. Simpan Nota Debit Rp 5.000 pada cicilan #1 (misal biaya penyesuaian)
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.notes.store'), [
+                'credit_account_id' => $this->creditCard->id,
+                'installment_plan_id' => $plan->id,
+                'installment_id' => $inst->id,
+                'type' => 'debit_note',
+                'amount' => 5000,
+                'note_date' => '2026-11-04',
+                'description' => 'Biaya materai / administrasi tambahan',
+            ])
+            ->assertRedirect(route('credit.plans.show', $plan));
+
+        $inst->refresh();
+        $this->assertEquals(495000, $inst->principal_amount);
+
+        $this->assertDatabaseHas('credit_debit_notes', [
+            'type' => 'debit_note',
+            'amount' => 5000,
+            'installment_id' => $inst->id,
+        ]);
+    }
 }

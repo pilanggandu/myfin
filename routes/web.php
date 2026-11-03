@@ -124,4 +124,5 @@ Route::middleware('auth')->group(function () {
     Route::post('/credit/plans/{plan}/mark-overdue-paid', [InstallmentController::class, 'markOverduePaidWithoutCash'])->name('credit.plans.markOverduePaidWithoutCash');
     Route::post('/credit/plans/{plan}/payoff', [InstallmentController::class, 'payoff'])->name('credit.plans.payoff');
     Route::post('/credit/plans/{plan}/void', [InstallmentController::class, 'void'])->name('credit.plans.void');
+    Route::post('/credit/notes', [InstallmentController::class, 'storeNote'])->name('credit.notes.store');
 });

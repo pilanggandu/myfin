@@ -18,6 +18,17 @@
         </div>
 
         <div class="flex items-center gap-2">
+            @if ($plan->isActive())
+                <button 
+                    type="button" 
+                    onclick="openNoteModal()" 
+                    class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
+                    title="Tambah Nota Kredit atau Nota Debit untuk penyesuaian selisih nominal/pembulatan"
+                >
+                    <span>⚖️ Nota Kredit / Debit</span>
+                </button>
+            @endif
+
             @if ($plan->purchaseTransaction)
                 <a 
                     href="{{ route('transactions.show', $plan->purchaseTransaction) }}" 
@@ -317,6 +328,14 @@
                                         >
                                             <span>Tanpa Kas</span>
                                         </button>
+                                        <button 
+                                            type="button" 
+                                            onclick="openNoteModal({{ json_encode($inst) }})" 
+                                            class="min-h-[36px] inline-flex items-center justify-center px-2 py-1.5 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer shadow-xs whitespace-nowrap"
+                                            title="Sesuaikan selisih pembulatan dengan Nota Kredit / Debit"
+                                        >
+                                            <span>± Nota</span>
+                                        </button>
                                     @elseif ($inst->isPaid())
                                         <div class="inline-flex items-center gap-2">
                                             <span class="text-xs text-muted font-mono">Tuntas</span>
@@ -338,6 +357,74 @@
             </table>
         </div>
     </div>
+
+    @if (\Illuminate\Support\Facades\Schema::hasTable('credit_debit_notes') && $plan->creditDebitNotes->isNotEmpty())
+        <!-- Riwayat Nota Kredit & Debit -->
+        <div class="panel-card p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-line mb-4">
+                <div>
+                    <h3 class="font-serif text-lg text-charcoal font-medium">Riwayat Nota Kredit & Debit</h3>
+                    <p class="text-xs text-muted">
+                        Penyesuaian selisih pembulatan nominal, diskon, atau biaya tambahan agar saldo kas dan kewajiban tetap presisi.
+                    </p>
+                </div>
+                <button 
+                    type="button" 
+                    onclick="openNoteModal()" 
+                    class="min-h-[36px] px-3 py-1.5 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-semibold cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                >
+                    <span>+ Tambah Nota</span>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-line text-muted">
+                            <th class="py-2.5 px-3 font-semibold">Tanggal</th>
+                            <th class="py-2.5 px-3 font-semibold">Jenis</th>
+                            <th class="py-2.5 px-3 font-semibold">Terkait Cicilan</th>
+                            <th class="py-2.5 px-3 font-semibold text-right">Nominal</th>
+                            <th class="py-2.5 px-3 font-semibold">Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line/60">
+                        @foreach ($plan->creditDebitNotes as $note)
+                            <tr class="hover:bg-cream/40 transition">
+                                <td class="py-2.5 px-3 whitespace-nowrap font-mono text-muted">
+                                    {{ $note->note_date->format('d M Y') }}
+                                </td>
+                                <td class="py-2.5 px-3 whitespace-nowrap">
+                                    @if ($note->isCreditNote())
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                            <span>▼</span> Nota Kredit
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                                            <span>▲</span> Nota Debit
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3 whitespace-nowrap">
+                                    @if ($note->installment)
+                                        <span class="font-semibold text-charcoal">Cicilan #{{ $note->installment->installment_number }}</span>
+                                    @else
+                                        <span class="text-muted italic">Total Rencana</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-bold {{ $note->isCreditNote() ? 'text-forest' : 'text-amber-700 dark:text-amber-400' }}">
+                                    {{ $note->isCreditNote() ? '-' : '+' }} {{ $note->formatted_amount }}
+                                </td>
+                                <td class="py-2.5 px-3 text-muted">
+                                    {{ $note->description }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     <!-- Modal Pembayaran Cicilan -->
     <div id="paymentModal" onclick="if (event.target === this) closePaymentModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
@@ -592,8 +679,170 @@
         </div>
     </div>
 
+    <!-- Modal Catat Nota Kredit / Debit -->
+    <div id="noteModal" onclick="if (event.target === this) closeNoteModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-lg rounded-2xl border border-line shadow-2xl p-6 relative">
+            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+                <div>
+                    <h3 id="noteModalTitle" class="font-serif text-lg text-charcoal font-medium">Nota Kredit / Debit</h3>
+                    <p id="noteModalSubtitle" class="text-xs text-muted">{{ $plan->name }}</p>
+                </div>
+                <button type="button" onclick="closeNoteModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+            </div>
+
+            <form id="noteForm" method="POST" action="{{ route('credit.notes.store') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="credit_account_id" value="{{ $plan->credit_account_id }}">
+                <input type="hidden" name="installment_plan_id" value="{{ $plan->id }}">
+
+                <div>
+                    <label for="note_installment_id" class="block text-xs font-semibold text-charcoal mb-1">
+                        Target Penyesuaian (Cicilan)
+                    </label>
+                    <select 
+                        name="installment_id" 
+                        id="note_installment_id" 
+                        class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                    >
+                        <option value="">-- Seluruh Rencana Cicilan (Global) --</option>
+                        @foreach ($plan->installments as $inst)
+                            <option value="{{ $inst->id }}">
+                                Cicilan #{{ $inst->installment_number }} (Jatuh tempo {{ $inst->due_date->format('d M Y') }} - {{ $inst->formatted_principal }}) {{ $inst->isPaid() ? '[Lunas]' : '[Pending]' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <span class="text-[10px] text-muted">Pilih cicilan spesifik jika ingin langsung menyesuaikan pokok tagihan bulan tersebut (misal selisih pembulatan).</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-charcoal mb-2">Jenis Nota <span class="text-red">*</span></label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 text-forest" id="labelNoteTypeCredit">
+                            <div class="flex items-center gap-2 mb-1">
+                                <input type="radio" name="type" value="credit_note" checked onchange="onNoteTypeChange(this.value)" class="text-forest focus:ring-forest">
+                                <span class="font-bold text-xs">▼ Nota Kredit</span>
+                            </div>
+                            <span class="text-[11px] text-muted leading-tight">Mengurangi hutang pokok (diskon, potongan, selisih bayar lebih kecil).</span>
+                        </label>
+
+                        <label class="relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-amber-500 transition border-line text-muted" id="labelNoteTypeDebit">
+                            <div class="flex items-center gap-2 mb-1">
+                                <input type="radio" name="type" value="debit_note" onchange="onNoteTypeChange(this.value)" class="text-amber-600 focus:ring-amber-500">
+                                <span class="font-bold text-xs text-charcoal">▲ Nota Debit</span>
+                            </div>
+                            <span class="text-[11px] text-muted leading-tight">Menambah hutang pokok (biaya tambahan, pembulatan ke atas, selisih lebih besar).</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="note_amount" class="block text-xs font-semibold text-charcoal mb-1">
+                        Nominal Nota (Rp) <span class="text-red">*</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        name="amount" 
+                        id="note_amount" 
+                        required 
+                        min="1"
+                        placeholder="Contoh: 8"
+                        class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono font-bold text-base focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                    <span id="noteAmountHelp" class="text-[10px] text-muted">Nominal selisih atau penyesuaian yang akan dicatat.</span>
+                </div>
+
+                <div>
+                    <label for="note_date" class="block text-xs font-semibold text-charcoal mb-1">
+                        Tanggal Nota <span class="text-red">*</span>
+                    </label>
+                    <input 
+                        type="date" 
+                        name="note_date" 
+                        id="note_date" 
+                        required 
+                        value="{{ (app('currentSpace') ? app('currentSpace')->now() : now())->toDateString() }}"
+                        class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                </div>
+
+                <div>
+                    <label for="note_description" class="block text-xs font-semibold text-charcoal mb-1">
+                        Keterangan / Alasan <span class="text-red">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="description" 
+                        id="note_description" 
+                        required 
+                        placeholder="Contoh: Selisih pembulatan cicilan pertama Rp 8"
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                    <button 
+                        type="button" 
+                        onclick="closeNoteModal()" 
+                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        id="btnSubmitNote"
+                        class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2"
+                    >
+                        <span id="btnSubmitNoteText">Simpan Nota</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentPayingInstallment = null;
+
+        function openNoteModal(installment = null) {
+            const select = document.getElementById('note_installment_id');
+            const desc = document.getElementById('note_description');
+            const amt = document.getElementById('note_amount');
+
+            if (installment) {
+                select.value = installment.id;
+                document.getElementById('noteModalTitle').textContent = 'Nota Penyesuaian Cicilan #' + installment.installment_number;
+                desc.value = 'Penyesuaian selisih pembulatan cicilan #' + installment.installment_number;
+            } else {
+                select.value = '';
+                document.getElementById('noteModalTitle').textContent = 'Nota Kredit / Debit';
+                desc.value = '';
+            }
+
+            amt.value = '';
+            onNoteTypeChange('credit_note');
+            const radioCredit = document.querySelector('input[name="type"][value="credit_note"]');
+            if (radioCredit) radioCredit.checked = true;
+
+            document.getElementById('noteModal').classList.remove('hidden');
+            setTimeout(() => (installment ? amt.focus() : select.focus()), 50);
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModal').classList.add('hidden');
+        }
+
+        function onNoteTypeChange(type) {
+            const labelCredit = document.getElementById('labelNoteTypeCredit');
+            const labelDebit = document.getElementById('labelNoteTypeDebit');
+            if (!labelCredit || !labelDebit) return;
+
+            if (type === 'credit_note') {
+                labelCredit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 text-forest';
+                labelDebit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-amber-500 transition border-line text-muted';
+            } else {
+                labelDebit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-amber-500 transition bg-amber-50/50 dark:bg-amber-950/20 border-amber-500 text-amber-800 dark:text-amber-300';
+                labelCredit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition border-line text-muted';
+            }
+        }
 
         function openPayoffModal() {
             document.getElementById('payoffModal').classList.remove('hidden');
@@ -685,6 +934,14 @@
             txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Melunasi...';
         });
 
+        document.getElementById('noteForm')?.addEventListener('submit', function() {
+            const btn = document.getElementById('btnSubmitNote');
+            const txt = document.getElementById('btnSubmitNoteText');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Menyimpan...';
+        });
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 if (!document.getElementById('paymentModal').classList.contains('hidden')) {
@@ -695,6 +952,9 @@
                 }
                 if (!document.getElementById('payoffModal').classList.contains('hidden')) {
                     closePayoffModal();
+                }
+                if (!document.getElementById('noteModal').classList.contains('hidden')) {
+                    closeNoteModal();
                 }
             }
         });

@@ -59,6 +59,11 @@ class Installment extends Model
         return $this->hasMany(CreditPayment::class);
     }
 
+    public function creditDebitNotes(): HasMany
+    {
+        return $this->hasMany(CreditDebitNote::class)->orderBy('note_date', 'desc')->orderBy('id', 'desc');
+    }
+
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\CreditAccount;
+use App\Models\CreditDebitNote;
 use App\Models\CreditPayment;
 use App\Models\FinancialTransaction;
 use App\Models\Installment;
@@ -266,7 +267,7 @@ class CreditService
 
         if ($paymentAmount > $installment->principal_amount) {
             throw ValidationException::withMessages([
-                'amount' => 'Nominal pembayaran tidak boleh melebihi sisa pokok cicilan ('.$installment->formatted_principal.').',
+                'amount' => 'Nominal pembayaran tidak boleh melebihi sisa pokok cicilan ini (Rp '.number_format($installment->principal_amount, 0, ',', '.').'). Gunakan Nota Debit jika ada penambahan pokok atau biaya penyesuaian.',
             ]);
         }
 
@@ -279,6 +280,7 @@ class CreditService
             }
 
             $creditAccount = $lockedInstallment->installmentPlan->creditAccount;
+            $diff = $paymentAmount - (int) $lockedInstallment->principal_amount;
 
             $accountIds = [$sourceAccount->id, $creditAccount->account_id];
             sort($accountIds);
@@ -307,11 +309,53 @@ class CreditService
                 'amount_signed' => $paymentAmount,
             ]);
 
+            if ($diff !== 0 && Schema::hasTable('credit_debit_notes')) {
+                $noteTx = FinancialTransaction::create([
+                    'space_id' => $space->id,
+                    'type' => 'adjustment',
+                    'transaction_date' => $data['payment_date'],
+                    'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                    'description' => ($diff < 0 ? 'Nota Kredit (Selisih Pembulatan): ' : 'Nota Debit (Selisih Biaya/Pembulatan): ').'Cicilan #'.$lockedInstallment->installment_number.' - '.$lockedInstallment->installmentPlan->name,
+                    'category_id' => null,
+                    'member_id' => $lockedInstallment->installmentPlan->member_id,
+                    'status' => 'posted',
+                    'created_by' => $actor->id,
+                    'version' => 1,
+                ]);
+
+                if ($creditAccount->account_id) {
+                    $noteTx->entries()->create([
+                        'account_id' => $creditAccount->account_id,
+                        'amount_signed' => $diff < 0 ? abs($diff) : -$diff,
+                    ]);
+                }
+
+                CreditDebitNote::create([
+                    'space_id' => $space->id,
+                    'credit_account_id' => $creditAccount->id,
+                    'installment_plan_id' => $lockedInstallment->installment_plan_id,
+                    'installment_id' => $lockedInstallment->id,
+                    'financial_transaction_id' => $noteTx->id,
+                    'type' => $diff < 0 ? 'credit_note' : 'debit_note',
+                    'amount' => abs($diff),
+                    'note_date' => $data['payment_date'],
+                    'description' => ($diff < 0 ? 'Nota Kredit (Selisih Pembulatan) Pembayaran Cicilan #' : 'Nota Debit (Selisih Biaya/Pembulatan) Pembayaran Cicilan #').$lockedInstallment->installment_number,
+                ]);
+            }
+
             $lockedInstallment->update([
+                'principal_amount' => $paymentAmount,
+                'total_amount' => $paymentAmount + (int) $lockedInstallment->interest_amount + (int) $lockedInstallment->fee_amount,
                 'status' => 'paid',
                 'paid_at' => now(),
                 'payment_transaction_id' => $transaction->id,
             ]);
+
+            if ($diff !== 0) {
+                $lockedInstallment->installmentPlan->update([
+                    'total_amount' => (int) $lockedInstallment->installmentPlan->installments()->sum('principal_amount'),
+                ]);
+            }
 
             $payment = CreditPayment::create([
                 'space_id' => $space->id,
@@ -324,7 +368,7 @@ class CreditService
                 'fee_amount' => (int) $lockedInstallment->fee_amount,
                 'total_amount' => $paymentAmount + (int) $lockedInstallment->interest_amount + (int) $lockedInstallment->fee_amount,
                 'payment_date' => $data['payment_date'],
-                'notes' => $data['notes'] ?? null,
+                'notes' => $data['notes'] ?? ($diff !== 0 ? 'Pembayaran dengan penyesuaian selisih '.($diff < 0 ? '- Rp '.number_format(abs($diff), 0, ',', '.') : '+ Rp '.number_format($diff, 0, ',', '.')) : null),
             ]);
 
             $lockedInstallment->installmentPlan->checkCompletion();
@@ -626,6 +670,142 @@ class CreditService
             }
 
             return $locked;
+        });
+    }
+
+    public function recordCreditDebitNote(Space $space, User $actor, array $data): CreditDebitNote
+    {
+        $creditAccount = CreditAccount::where('space_id', $space->id)
+            ->where('id', $data['credit_account_id'])
+            ->first();
+
+        if (! $creditAccount) {
+            throw ValidationException::withMessages([
+                'credit_account_id' => 'Akun kredit tidak ditemukan.',
+            ]);
+        }
+
+        $amount = (int) $data['amount'];
+        if ($amount <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => 'Nominal nota harus lebih dari 0.',
+            ]);
+        }
+
+        $type = $data['type'] ?? 'credit_note';
+        if (! in_array($type, ['credit_note', 'debit_note'])) {
+            throw ValidationException::withMessages([
+                'type' => 'Tipe nota harus berupa credit_note atau debit_note.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $creditAccount, $type, $amount, $data) {
+            $installment = null;
+            $installmentPlan = null;
+
+            if (! empty($data['installment_id'])) {
+                $installment = Installment::where('space_id', $space->id)
+                    ->where('id', $data['installment_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($installment) {
+                    $installmentPlan = $installment->installmentPlan;
+                }
+            } elseif (! empty($data['installment_plan_id'])) {
+                $installmentPlan = InstallmentPlan::where('space_id', $space->id)
+                    ->where('id', $data['installment_plan_id'])
+                    ->first();
+            }
+
+            $sourceAccount = null;
+            if (! empty($data['source_account_id'])) {
+                $sourceAccount = Account::where('space_id', $space->id)
+                    ->where('id', $data['source_account_id'])
+                    ->first();
+            }
+
+            $description = $data['description'] ?? ($type === 'credit_note' ? 'Nota Kredit' : 'Nota Debit');
+            $noteDate = $data['note_date'] ?? now()->toDateString();
+
+            $transaction = FinancialTransaction::create([
+                'space_id' => $space->id,
+                'type' => $sourceAccount ? 'expense' : 'adjustment',
+                'transaction_date' => $noteDate,
+                'transaction_time' => now()->format('H:i:s'),
+                'description' => ($type === 'credit_note' ? 'Nota Kredit: ' : 'Nota Debit: ').$description,
+                'category_id' => $data['category_id'] ?? null,
+                'member_id' => $installmentPlan?->member_id,
+                'status' => 'posted',
+                'created_by' => $actor->id,
+                'version' => 1,
+            ]);
+
+            if ($type === 'credit_note') {
+                if ($sourceAccount) {
+                    $transaction->entries()->create([
+                        'account_id' => $sourceAccount->id,
+                        'amount_signed' => $amount,
+                    ]);
+                } elseif ($creditAccount->account_id) {
+                    $transaction->entries()->create([
+                        'account_id' => $creditAccount->account_id,
+                        'amount_signed' => $amount,
+                    ]);
+                }
+
+                if ($installment && ! $installment->isPaid()) {
+                    $newPrincipal = max(0, $installment->principal_amount - $amount);
+                    $installment->update([
+                        'principal_amount' => $newPrincipal,
+                        'total_amount' => $newPrincipal + (int) $installment->interest_amount + (int) $installment->fee_amount,
+                    ]);
+                    $installmentPlan?->update([
+                        'total_amount' => (int) $installmentPlan->installments()->sum('principal_amount'),
+                    ]);
+                }
+            } else {
+                if ($sourceAccount) {
+                    $transaction->entries()->create([
+                        'account_id' => $sourceAccount->id,
+                        'amount_signed' => -$amount,
+                    ]);
+                } elseif ($creditAccount->account_id) {
+                    $transaction->entries()->create([
+                        'account_id' => $creditAccount->account_id,
+                        'amount_signed' => -$amount,
+                    ]);
+                }
+
+                if ($installment && ! $installment->isPaid()) {
+                    $newPrincipal = $installment->principal_amount + $amount;
+                    $installment->update([
+                        'principal_amount' => $newPrincipal,
+                        'total_amount' => $newPrincipal + (int) $installment->interest_amount + (int) $installment->fee_amount,
+                    ]);
+                    $installmentPlan?->update([
+                        'total_amount' => (int) $installmentPlan->installments()->sum('principal_amount'),
+                    ]);
+                }
+            }
+
+            $note = new CreditDebitNote([
+                'space_id' => $space->id,
+                'credit_account_id' => $creditAccount->id,
+                'installment_plan_id' => $installmentPlan?->id,
+                'installment_id' => $installment?->id,
+                'financial_transaction_id' => $transaction->id,
+                'type' => $type,
+                'amount' => $amount,
+                'note_date' => $noteDate,
+                'description' => $description,
+            ]);
+
+            if (Schema::hasTable('credit_debit_notes')) {
+                $note->save();
+            }
+
+            return $note;
         });
     }
 

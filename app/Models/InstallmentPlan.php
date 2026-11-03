@@ -79,6 +79,11 @@ class InstallmentPlan extends Model
         return $this->hasMany(Installment::class)->where('status', 'paid')->orderBy('installment_number', 'asc');
     }
 
+    public function creditDebitNotes(): HasMany
+    {
+        return $this->hasMany(CreditDebitNote::class)->orderBy('note_date', 'desc')->orderBy('id', 'desc');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', 'active');

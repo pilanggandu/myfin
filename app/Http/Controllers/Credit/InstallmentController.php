@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Credit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Credit\PayInstallmentRequest;
 use App\Http\Requests\Credit\PayoffPlanRequest;
+use App\Http\Requests\Credit\StoreCreditDebitNoteRequest;
 use App\Http\Requests\Credit\StoreCreditPurchaseRequest;
 use App\Models\Installment;
 use App\Models\InstallmentPlan;
@@ -12,6 +13,7 @@ use App\Services\CreditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class InstallmentController extends Controller
@@ -48,13 +50,19 @@ class InstallmentController extends Controller
         Gate::authorize('view', $plan);
         $space = app('currentSpace');
 
-        $plan->load([
+        $relations = [
             'creditAccount',
             'category',
             'member',
             'purchaseTransaction',
             'installments.payments.sourceAccount',
-        ]);
+        ];
+
+        if (Schema::hasTable('credit_debit_notes')) {
+            $relations[] = 'creditDebitNotes';
+        }
+
+        $plan->load($relations);
 
         $cashAccounts = $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->orderBy('name')->get();
 
@@ -125,5 +133,17 @@ class InstallmentController extends Controller
 
         return redirect()->route('credit.index', ['tab' => 'plans'])
             ->with('status', 'Rencana cicilan dan transaksi pembelian berhasil dibatalkan (void).');
+    }
+
+    public function storeNote(StoreCreditDebitNoteRequest $request): RedirectResponse
+    {
+        $space = app('currentSpace');
+        $note = $this->creditService->recordCreditDebitNote($space, auth()->user(), $request->validated());
+
+        $redirect = $note->installmentPlan
+            ? redirect()->route('credit.plans.show', $note->installmentPlan)
+            : redirect()->route('credit.index', ['tab' => 'accounts']);
+
+        return $redirect->with('status', $note->typeLabel().' sebesar Rp '.number_format($note->amount, 0, ',', '.').' berhasil diposting.');
     }
 }

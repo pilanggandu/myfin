@@ -53,6 +53,11 @@ class CreditAccount extends Model
         return $this->hasMany(CreditPayment::class);
     }
 
+    public function creditDebitNotes(): HasMany
+    {
+        return $this->hasMany(CreditDebitNote::class)->orderBy('note_date', 'desc')->orderBy('id', 'desc');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
