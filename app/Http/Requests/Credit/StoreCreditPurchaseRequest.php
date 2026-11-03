@@ -24,6 +24,7 @@ class StoreCreditPurchaseRequest extends FormRequest
             'admin_fee' => ['nullable', 'integer', 'min:0'],
             'start_date' => ['required', 'date'],
             'first_due_date' => ['nullable', 'date'],
+            'mark_past_paid' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

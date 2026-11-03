@@ -163,13 +163,21 @@ class CreditService
                     ? $startDate->copy()->addMonth()->setDay(min($lockedCreditAccount->due_day, $startDate->copy()->addMonth()->daysInMonth))
                     : $startDate->copy()->addMonth());
 
+            $markPastPaid = ! empty($data['mark_past_paid']);
+            $pastPaidPrincipal = 0;
+            $pastPaidInstallments = [];
+
             for ($i = 1; $i <= $tenor; $i++) {
                 $principal = $basePrincipal + ($i === 1 ? $remainderPrincipal : 0);
                 $fee = $baseFee + ($i === 1 ? $remainderFee : 0);
                 $dueDate = $firstDueDate->copy()->addMonths($i - 1);
                 $totalInst = $principal + $monthlyInterest + $fee;
 
-                Installment::create([
+                $isPast = $markPastPaid && $dueDate->copy()->startOfDay()->isPast() && ! $dueDate->isToday();
+                $status = $isPast ? 'paid' : 'pending';
+                $paidAt = $isPast ? now() : null;
+
+                $inst = Installment::create([
                     'space_id' => $space->id,
                     'installment_plan_id' => $plan->id,
                     'installment_number' => $i,
@@ -178,8 +186,40 @@ class CreditService
                     'interest_amount' => $monthlyInterest,
                     'fee_amount' => $fee,
                     'total_amount' => $totalInst,
-                    'status' => 'pending',
+                    'status' => $status,
+                    'paid_at' => $paidAt,
                 ]);
+
+                if ($isPast) {
+                    $pastPaidPrincipal += $principal;
+                    $pastPaidInstallments[] = $inst;
+                }
+            }
+
+            if ($pastPaidPrincipal > 0 && $lockedCreditAccount->account_id) {
+                $adjTx = FinancialTransaction::create([
+                    'space_id' => $space->id,
+                    'type' => 'adjustment',
+                    'transaction_date' => now()->toDateString(),
+                    'transaction_time' => now()->format('H:i:s'),
+                    'description' => 'Pelunasan Pra-Pencatatan ARUS ('.count($pastPaidInstallments).' cicilan lampau) - '.$plan->name,
+                    'category_id' => null,
+                    'member_id' => $plan->member_id,
+                    'status' => 'posted',
+                    'created_by' => $actor->id,
+                    'version' => 1,
+                ]);
+
+                $adjTx->entries()->create([
+                    'account_id' => $lockedCreditAccount->account_id,
+                    'amount_signed' => $pastPaidPrincipal,
+                ]);
+
+                foreach ($pastPaidInstallments as $pastInst) {
+                    $pastInst->update(['payment_transaction_id' => $adjTx->id]);
+                }
+
+                $plan->checkCompletion();
             }
 
             return $plan;
@@ -422,6 +462,170 @@ class CreditService
                 'settled_count' => $settledCount,
                 'total_paid' => $totalRemainingPrincipal,
             ];
+        });
+    }
+
+    public function markInstallmentPaidWithoutCash(Space $space, User $actor, Installment $installment, ?string $notes = null): Installment
+    {
+        if ($installment->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'installment' => 'Cicilan bukan milik ruang aktif.',
+            ]);
+        }
+
+        if ($installment->isPaid()) {
+            throw ValidationException::withMessages([
+                'installment' => 'Cicilan ini sudah lunas.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $installment, $notes) {
+            $lockedInstallment = Installment::where('id', $installment->id)->lockForUpdate()->first();
+            if ($lockedInstallment->isPaid()) {
+                throw ValidationException::withMessages([
+                    'installment' => 'Cicilan ini sudah lunas.',
+                ]);
+            }
+
+            $creditAccount = $lockedInstallment->installmentPlan->creditAccount;
+
+            $lockedInstallment->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+            ]);
+
+            if ($creditAccount && $creditAccount->account_id) {
+                $transaction = FinancialTransaction::create([
+                    'space_id' => $space->id,
+                    'type' => 'adjustment',
+                    'transaction_date' => $lockedInstallment->due_date->toDateString(),
+                    'transaction_time' => now()->format('H:i:s'),
+                    'description' => 'Pelunasan Pra-Pencatatan ARUS: Cicilan #'.$lockedInstallment->installment_number.' - '.$lockedInstallment->installmentPlan->name.($notes ? ' ('.$notes.')' : ''),
+                    'category_id' => null,
+                    'member_id' => $lockedInstallment->installmentPlan->member_id,
+                    'status' => 'posted',
+                    'created_by' => $actor->id,
+                    'version' => 1,
+                ]);
+
+                $transaction->entries()->create([
+                    'account_id' => $creditAccount->account_id,
+                    'amount_signed' => $lockedInstallment->principal_amount,
+                ]);
+
+                $lockedInstallment->update([
+                    'payment_transaction_id' => $transaction->id,
+                ]);
+            }
+
+            $lockedInstallment->installmentPlan->checkCompletion();
+
+            return $lockedInstallment;
+        });
+    }
+
+    public function markOverdueInstallmentsPaidWithoutCash(Space $space, User $actor, InstallmentPlan $plan, ?string $notes = null): int
+    {
+        if ($plan->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'plan' => 'Rencana cicilan bukan milik ruang aktif.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $plan, $notes) {
+            $overdueInstallments = $plan->installments()
+                ->where('status', 'pending')
+                ->where('due_date', '<', now()->startOfDay())
+                ->lockForUpdate()
+                ->get();
+
+            if ($overdueInstallments->isEmpty()) {
+                return 0;
+            }
+
+            $creditAccount = $plan->creditAccount;
+            $totalPrincipal = 0;
+
+            foreach ($overdueInstallments as $installment) {
+                $installment->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                ]);
+                $totalPrincipal += $installment->principal_amount;
+            }
+
+            if ($totalPrincipal > 0 && $creditAccount && $creditAccount->account_id) {
+                $transaction = FinancialTransaction::create([
+                    'space_id' => $space->id,
+                    'type' => 'adjustment',
+                    'transaction_date' => now()->toDateString(),
+                    'transaction_time' => now()->format('H:i:s'),
+                    'description' => 'Pelunasan Pra-Pencatatan ARUS ('.$overdueInstallments->count().' cicilan lampau) - '.$plan->name.($notes ? ' ('.$notes.')' : ''),
+                    'category_id' => null,
+                    'member_id' => $plan->member_id,
+                    'status' => 'posted',
+                    'created_by' => $actor->id,
+                    'version' => 1,
+                ]);
+
+                $transaction->entries()->create([
+                    'account_id' => $creditAccount->account_id,
+                    'amount_signed' => $totalPrincipal,
+                ]);
+
+                foreach ($overdueInstallments as $installment) {
+                    $installment->update(['payment_transaction_id' => $transaction->id]);
+                }
+            }
+
+            $plan->checkCompletion();
+
+            return $overdueInstallments->count();
+        });
+    }
+
+    public function resetInstallmentToPending(Space $space, User $actor, Installment $installment): Installment
+    {
+        if ($installment->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'installment' => 'Cicilan bukan milik ruang aktif.',
+            ]);
+        }
+
+        if (! $installment->isPaid()) {
+            throw ValidationException::withMessages([
+                'installment' => 'Cicilan belum lunas.',
+            ]);
+        }
+
+        if ($installment->payments()->exists()) {
+            throw ValidationException::withMessages([
+                'installment' => 'Cicilan yang dibayar dengan kas/bank harus dibatalkan melalui transaksi pembayarannya.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($actor, $installment) {
+            $locked = Installment::where('id', $installment->id)->lockForUpdate()->first();
+
+            if ($locked->paymentTransaction && $locked->paymentTransaction->type === 'adjustment') {
+                $locked->paymentTransaction->update([
+                    'status' => 'void',
+                    'updated_by' => $actor->id,
+                ]);
+            }
+
+            $locked->update([
+                'status' => 'pending',
+                'paid_at' => null,
+                'payment_transaction_id' => null,
+            ]);
+
+            $plan = $locked->installmentPlan;
+            if ($plan->status === 'completed') {
+                $plan->update(['status' => 'active']);
+            }
+
+            return $locked;
         });
     }
 

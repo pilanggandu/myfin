@@ -264,6 +264,26 @@
                         </div>
                     </div>
 
+                    <!-- Checkbox Lunas Pra-Pencatatan -->
+                    <div class="p-3.5 rounded-xl border border-line bg-cream/40">
+                        <label class="flex items-start gap-2.5 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                name="mark_past_paid" 
+                                id="mark_past_paid" 
+                                value="1" 
+                                {{ old('mark_past_paid') ? 'checked' : '' }}
+                                class="mt-0.5 rounded border-line text-forest focus:ring-forest cursor-pointer"
+                            >
+                            <div>
+                                <span class="text-xs font-bold text-charcoal block">Tandai Cicilan Lampau Sebagai Lunas (Pra-Pencatatan ARUS)</span>
+                                <span class="text-[11px] text-muted block leading-relaxed mt-0.5">
+                                    Centang jika transaksi ini dimulai beberapa bulan lalu dan cicilan sebelum bulan ini sebenarnya telah Anda lunasi di dunia nyata. Cicilan lampau akan langsung berstatus lunas tanpa mengurangi saldo rekening kas/bank Anda saat ini.
+                                </span>
+                            </div>
+                        </label>
+                    </div>
+
                     <div>
                         <label for="notes" class="block text-xs font-semibold text-charcoal mb-1">Catatan Tambahan (Opsional)</label>
                         <textarea 

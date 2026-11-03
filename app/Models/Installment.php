@@ -79,6 +79,11 @@ class Installment extends Model
         return $this->status === 'paid';
     }
 
+    public function isPaidWithoutCash(): bool
+    {
+        return $this->isPaid() && $this->payments->isEmpty();
+    }
+
     public function isOverdue(): bool
     {
         return $this->isPending() && $this->due_date->isPast() && ! $this->due_date->isToday();

@@ -556,4 +556,128 @@ class CreditInstallmentTest extends TestCase
             'payment_date' => '2026-12-06',
         ]);
     }
+
+    public function test_mark_installment_paid_without_cash_does_not_deduct_bank_balance(): void
+    {
+        $initialBankBalance = $this->bankAccount->currentBalance();
+
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Blender Portable',
+            'total_amount' => 500000,
+            'tenor' => 5,
+            'start_date' => '2026-06-01',
+        ]);
+
+        $this->assertEquals(500000, $this->creditCard->currentLiability());
+
+        $firstInst = $plan->installments()->first();
+        $this->assertTrue($firstInst->isPending());
+
+        $this->creditService->markInstallmentPaidWithoutCash($this->space, $this->user, $firstInst, 'Lunas sebelum pakai ARUS');
+
+        $firstInst->refresh();
+        $this->assertTrue($firstInst->isPaid());
+        $this->assertTrue($firstInst->isPaidWithoutCash());
+
+        // Saldo bank TIDAK boleh berkurang sama sekali
+        $this->assertEquals($initialBankBalance, $this->bankAccount->currentBalance());
+
+        // Sisa kewajiban kartu kredit berkurang sebesar 100.000
+        $this->assertEquals(400000, $this->creditCard->currentLiability());
+        $this->assertEquals(9600000, $this->creditCard->availableLimit());
+    }
+
+    public function test_mark_overdue_installments_paid_without_cash_bulk(): void
+    {
+        $initialBankBalance = $this->bankAccount->currentBalance();
+
+        // Buat pembelian cicilan mundur 4 bulan lalu
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Meja Belajar',
+            'total_amount' => 1000000,
+            'tenor' => 5,
+            'start_date' => now()->subMonths(3)->toDateString(),
+            'first_due_date' => now()->subMonths(2)->toDateString(),
+        ]);
+
+        $count = $this->creditService->markOverdueInstallmentsPaidWithoutCash($this->space, $this->user, $plan);
+
+        $this->assertGreaterThan(0, $count);
+        $this->assertEquals($initialBankBalance, $this->bankAccount->currentBalance());
+
+        // Cicilan lampau berstatus lunas
+        $paidCount = $plan->installments()->where('status', 'paid')->count();
+        $this->assertEquals($count, $paidCount);
+    }
+
+    public function test_reset_unmark_paid_installment_back_to_pending(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Kursi Ergonomis',
+            'total_amount' => 600000,
+            'tenor' => 3,
+            'start_date' => '2026-08-01',
+        ]);
+
+        $inst = $plan->installments()->first();
+        $this->creditService->markInstallmentPaidWithoutCash($this->space, $this->user, $inst);
+
+        $inst->refresh();
+        $this->assertTrue($inst->isPaid());
+
+        // Reset kembali ke pending
+        $this->creditService->resetInstallmentToPending($this->space, $this->user, $inst);
+
+        $inst->refresh();
+        $this->assertTrue($inst->isPending());
+        $this->assertNull($inst->paid_at);
+        $this->assertNull($inst->payment_transaction_id);
+    }
+
+    public function test_http_endpoints_for_mark_paid_without_cash(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Lampu Meja',
+            'total_amount' => 300000,
+            'tenor' => 3,
+            'start_date' => '2026-07-01',
+        ]);
+
+        $inst = $plan->installments()->first();
+
+        // 1. Mark single paid without cash
+        $responseSingle = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.installments.markPaidWithoutCash', $inst), [
+                'notes' => 'Pra-pencatatan m-banking',
+            ]);
+
+        $responseSingle->assertRedirect(route('credit.plans.show', $plan));
+        $inst->refresh();
+        $this->assertTrue($inst->isPaid());
+
+        // 2. Reset back to pending
+        $responseReset = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.installments.resetToPending', $inst));
+
+        $responseReset->assertRedirect(route('credit.plans.show', $plan));
+        $inst->refresh();
+        $this->assertTrue($inst->isPending());
+
+        // 3. Mark overdue paid bulk
+        $responseBulk = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.plans.markOverduePaidWithoutCash', $plan));
+
+        $responseBulk->assertRedirect(route('credit.plans.show', $plan));
+    }
 }

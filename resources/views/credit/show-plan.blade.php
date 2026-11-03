@@ -160,6 +160,31 @@
             </div>
         </div>
 
+        @php
+            $overduePending = $plan->installments->where('status', 'pending')->filter(fn($i) => $i->isOverdue());
+        @endphp
+
+        @if ($overduePending->isNotEmpty() && $plan->isActive())
+            <div class="mb-5 p-4 rounded-xl border border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl">💡</span>
+                    <div>
+                        <span class="font-bold text-amber-900 dark:text-amber-200 text-sm block">Pencatatan Baru Dimulai Bulan Ini?</span>
+                        <span class="text-muted leading-relaxed block mt-0.5">
+                            Ada <strong>{{ $overduePending->count() }} cicilan</strong> jatuh tempo masa lampau. Jika cicilan ini sebenarnya sudah Anda lunasi di dunia nyata sebelum mulai mencatat di ARUS, Anda dapat menandainya lunas sekaligus tanpa memotong saldo rekening kas/bank saat ini.
+                        </span>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('credit.plans.markOverduePaidWithoutCash', $plan) }}" onsubmit="return confirm('Tandai seluruh {{ $overduePending->count() }} cicilan lampau sebagai lunas tanpa memotong saldo kas/bank?')">
+                    @csrf
+                    <button type="submit" class="min-h-[40px] px-4 py-2 bg-charcoal text-white hover:bg-charcoal/90 rounded-lg font-bold text-xs whitespace-nowrap shadow-xs cursor-pointer flex items-center gap-1.5">
+                        <span>⚡</span>
+                        <span>Tandai {{ $overduePending->count() }} Cicilan Lampau Lunas Sekaligus</span>
+                    </button>
+                </form>
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="w-full text-xs text-left border-collapse">
                 <thead>
@@ -203,9 +228,15 @@
                             </td>
                             <td class="py-3.5 px-3 text-center whitespace-nowrap">
                                 @if ($inst->isPaid())
-                                    <span class="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded">
-                                        <span>✓</span> Lunas
-                                    </span>
+                                    @if ($inst->isPaidWithoutCash())
+                                        <span class="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded" title="Lunas di luar sistem sebelum pencatatan ARUS">
+                                            <span>✓</span> Lunas (Pra-Pencatatan)
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded">
+                                            <span>✓</span> Lunas
+                                        </span>
+                                    @endif
                                 @elseif ($inst->isOverdue())
                                     <span class="inline-flex items-center gap-1 text-[11px] bg-red/15 text-red font-bold px-2 py-0.5 rounded">
                                         <span>⚠️</span> Terlambat
@@ -231,6 +262,11 @@
                                         <span>Dibayar: <strong>{{ $lastPay->payment_date->format('d M Y') }}</strong></span>
                                         <span class="block text-charcoal font-semibold">Sumber: {{ $lastPay->sourceAccount->name }}</span>
                                     </div>
+                                @elseif ($inst->isPaid())
+                                    <div class="text-[11px]">
+                                        <span class="text-emerald-700 dark:text-emerald-400 font-semibold">Lunas di luar sistem</span>
+                                        <span class="block text-muted text-[10px]">Pra-pencatatan ARUS (Tanpa potong kas)</span>
+                                    </div>
                                 @else
                                     <span class="text-[11px] text-muted">Menunggu pembayaran</span>
                                 @endif
@@ -253,8 +289,26 @@
                                         >
                                             Bayar Cicilan
                                         </button>
+                                        <button 
+                                            type="button" 
+                                            onclick="openMarkPaidModal({{ json_encode($inst) }})" 
+                                            class="min-h-[36px] inline-flex items-center justify-center px-2.5 py-1.5 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer shadow-xs whitespace-nowrap"
+                                            title="Tandai cicilan ini lunas di masa lampau tanpa memotong kas/bank"
+                                        >
+                                            <span>Tanpa Kas</span>
+                                        </button>
                                     @elseif ($inst->isPaid())
-                                        <span class="text-xs text-muted font-mono">Tuntas</span>
+                                        <div class="inline-flex items-center gap-2">
+                                            <span class="text-xs text-muted font-mono">Tuntas</span>
+                                            @if ($inst->isPaidWithoutCash() && $plan->isActive())
+                                                <form method="POST" action="{{ route('credit.installments.resetToPending', $inst) }}" onsubmit="return confirm('Kembalikan status cicilan #{{ $inst->installment_number }} menjadi menunggu pembayaran?')">
+                                                    @csrf
+                                                    <button type="submit" class="text-[10px] text-muted hover:text-red underline cursor-pointer" title="Batalkan status lunas pra-pencatatan">
+                                                        Reset
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
                                     @endif
                                 </div>
                             </td>
@@ -279,7 +333,26 @@
             <form id="paymentForm" method="POST" action="" class="space-y-4">
                 @csrf
 
-                <div>
+                <div class="p-3 rounded-lg border border-line bg-cream/40 space-y-1">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            name="without_cash" 
+                            id="payment_without_cash" 
+                            value="1" 
+                            onchange="toggleWithoutCashMode(this.checked)"
+                            class="mt-0.5 rounded border-line text-forest focus:ring-forest cursor-pointer"
+                        >
+                        <div>
+                            <span class="text-xs font-bold text-charcoal block">Lunas Sebelum Pakai ARUS (Tanpa Kas)</span>
+                            <span class="text-[11px] text-muted block leading-relaxed">
+                                Centang jika cicilan ini telah dibayar di masa lampau. Saldo kas/bank tidak akan dipotong.
+                            </span>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="sourceAccountWrapper">
                     <label for="source_account_id" class="block text-xs font-semibold text-charcoal mb-1">
                         Rekening Kas / Bank Sumber Dana <span class="text-red">*</span>
                     </label>
@@ -299,7 +372,7 @@
                     <span class="text-[10px] text-muted">Saldo rekening ini akan berkurang sebesar nominal pembayaran pokok.</span>
                 </div>
 
-                <div>
+                <div id="paymentAmountWrapper">
                     <label for="payment_amount" class="block text-xs font-semibold text-charcoal mb-1">
                         Nominal Pembayaran Pokok (Rp) <span class="text-red">*</span>
                     </label>
@@ -355,6 +428,57 @@
                         class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2"
                     >
                         <span id="btnSubmitPaymentText">Konfirmasi Pembayaran</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tandai Lunas Tanpa Potong Kas -->
+    <div id="markPaidModal" onclick="if (event.target === this) closeMarkPaidModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
+            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+                <div>
+                    <h3 id="markPaidModalTitle" class="font-serif text-lg text-charcoal font-medium">Tandai Lunas Tanpa Kas</h3>
+                    <p id="markPaidModalSubtitle" class="text-xs text-muted">{{ $plan->name }}</p>
+                </div>
+                <button type="button" onclick="closeMarkPaidModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+            </div>
+
+            <div class="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
+                <span class="block font-bold mb-1">💡 Pelunasan Pra-Pencatatan ARUS</span>
+                <span class="leading-relaxed block">
+                    Gunakan opsi ini jika cicilan ini sebenarnya sudah Anda lunasi di masa lampau sebelum mulai mencatat di ARUS. Pokok cicilan akan ditandai lunas dan sisa hutang kartu kredit berkurang, <strong>tanpa ada pemotongan saldo kas atau bank</strong> Anda saat ini.
+                </span>
+            </div>
+
+            <form id="markPaidForm" method="POST" action="" class="space-y-4">
+                @csrf
+                <div>
+                    <label for="mark_paid_notes" class="block text-xs font-semibold text-charcoal mb-1">Catatan (Opsional)</label>
+                    <input 
+                        type="text" 
+                        name="notes" 
+                        id="mark_paid_notes" 
+                        placeholder="Contoh: Lunas di m-banking sebelum migrasi ke ARUS"
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                    <button 
+                        type="button" 
+                        onclick="closeMarkPaidModal()" 
+                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        id="btnSubmitMarkPaid"
+                        class="min-h-[44px] px-5 py-2 border border-emerald-600/30 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-2 shadow-xs"
+                    >
+                        <span id="btnSubmitMarkPaidText">Konfirmasi Lunas Tanpa Kas</span>
                     </button>
                 </div>
             </form>
@@ -449,6 +573,8 @@
     </div>
 
     <script>
+        let currentPayingInstallment = null;
+
         function openPayoffModal() {
             document.getElementById('payoffModal').classList.remove('hidden');
             setTimeout(() => document.getElementById('payoff_source_account_id').focus(), 50);
@@ -457,8 +583,13 @@
         function closePayoffModal() {
             document.getElementById('payoffModal').classList.add('hidden');
         }
+
         function openPaymentModal(installment) {
+            currentPayingInstallment = installment;
             document.getElementById('paymentModalTitle').textContent = 'Bayar Cicilan #' + installment.installment_number;
+            document.getElementById('payment_without_cash').checked = false;
+            toggleWithoutCashMode(false);
+
             document.getElementById('paymentForm').action = "/credit/installments/" + installment.id + "/pay";
             document.getElementById('payment_amount').value = installment.principal_amount;
             document.getElementById('maxAmountHint').textContent = 'Maksimal pembayaran pokok cicilan: Rp ' + parseInt(installment.principal_amount, 10).toLocaleString('id-ID');
@@ -466,8 +597,48 @@
             setTimeout(() => document.getElementById('source_account_id').focus(), 50);
         }
 
+        function toggleWithoutCashMode(isChecked) {
+            const srcWrap = document.getElementById('sourceAccountWrapper');
+            const amtWrap = document.getElementById('paymentAmountWrapper');
+            const srcInput = document.getElementById('source_account_id');
+            const amtInput = document.getElementById('payment_amount');
+            const btnText = document.getElementById('btnSubmitPaymentText');
+
+            if (isChecked) {
+                srcWrap.classList.add('hidden');
+                srcInput.required = false;
+                amtWrap.classList.add('hidden');
+                amtInput.required = false;
+                btnText.textContent = 'Konfirmasi Lunas Tanpa Kas';
+                if (currentPayingInstallment) {
+                    document.getElementById('paymentForm').action = "/credit/installments/" + currentPayingInstallment.id + "/mark-paid";
+                }
+            } else {
+                srcWrap.classList.remove('hidden');
+                srcInput.required = true;
+                amtWrap.classList.remove('hidden');
+                amtInput.required = true;
+                btnText.textContent = 'Konfirmasi Pembayaran';
+                if (currentPayingInstallment) {
+                    document.getElementById('paymentForm').action = "/credit/installments/" + currentPayingInstallment.id + "/pay";
+                }
+            }
+        }
+
         function closePaymentModal() {
             document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        function openMarkPaidModal(installment) {
+            document.getElementById('markPaidModalTitle').textContent = 'Tandai Lunas Cicilan #' + installment.installment_number;
+            document.getElementById('markPaidForm').action = "/credit/installments/" + installment.id + "/mark-paid";
+            document.getElementById('mark_paid_notes').value = '';
+            document.getElementById('markPaidModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('mark_paid_notes').focus(), 50);
+        }
+
+        function closeMarkPaidModal() {
+            document.getElementById('markPaidModal').classList.add('hidden');
         }
 
         document.getElementById('paymentForm')?.addEventListener('submit', function() {
@@ -475,7 +646,15 @@
             const txt = document.getElementById('btnSubmitPaymentText');
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
-            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Memproses Pembayaran...';
+            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Memproses...';
+        });
+
+        document.getElementById('markPaidForm')?.addEventListener('submit', function() {
+            const btn = document.getElementById('btnSubmitMarkPaid');
+            const txt = document.getElementById('btnSubmitMarkPaidText');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Memproses...';
         });
 
         document.getElementById('payoffForm')?.addEventListener('submit', function() {
@@ -490,6 +669,9 @@
             if (e.key === 'Escape') {
                 if (!document.getElementById('paymentModal').classList.contains('hidden')) {
                     closePaymentModal();
+                }
+                if (!document.getElementById('markPaidModal').classList.contains('hidden')) {
+                    closeMarkPaidModal();
                 }
                 if (!document.getElementById('payoffModal').classList.contains('hidden')) {
                     closePayoffModal();

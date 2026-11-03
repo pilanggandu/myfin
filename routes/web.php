@@ -119,6 +119,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/credit/purchases', [InstallmentController::class, 'store'])->name('credit.purchases.store');
     Route::get('/credit/plans/{plan}', [InstallmentController::class, 'show'])->name('credit.plans.show');
     Route::post('/credit/installments/{installment}/pay', [InstallmentController::class, 'pay'])->name('credit.installments.pay');
+    Route::post('/credit/installments/{installment}/mark-paid', [InstallmentController::class, 'markPaidWithoutCash'])->name('credit.installments.markPaidWithoutCash');
+    Route::post('/credit/installments/{installment}/reset-to-pending', [InstallmentController::class, 'resetToPending'])->name('credit.installments.resetToPending');
+    Route::post('/credit/plans/{plan}/mark-overdue-paid', [InstallmentController::class, 'markOverduePaidWithoutCash'])->name('credit.plans.markOverduePaidWithoutCash');
     Route::post('/credit/plans/{plan}/payoff', [InstallmentController::class, 'payoff'])->name('credit.plans.payoff');
     Route::post('/credit/plans/{plan}/void', [InstallmentController::class, 'void'])->name('credit.plans.void');
 });

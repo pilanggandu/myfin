@@ -72,6 +72,39 @@ class InstallmentController extends Controller
             ->with('status', 'Pembayaran cicilan ke-'.$installment->installment_number.' berhasil diposting.');
     }
 
+    public function markPaidWithoutCash(Request $request, Installment $installment): RedirectResponse
+    {
+        Gate::authorize('view', $installment->installmentPlan);
+        $space = app('currentSpace');
+
+        $this->creditService->markInstallmentPaidWithoutCash($space, auth()->user(), $installment, $request->input('notes'));
+
+        return redirect()->route('credit.plans.show', $installment->installmentPlan)
+            ->with('status', 'Cicilan ke-'.$installment->installment_number.' berhasil ditandai lunas tanpa memotong saldo kas/bank.');
+    }
+
+    public function markOverduePaidWithoutCash(Request $request, InstallmentPlan $plan): RedirectResponse
+    {
+        Gate::authorize('view', $plan);
+        $space = app('currentSpace');
+
+        $count = $this->creditService->markOverdueInstallmentsPaidWithoutCash($space, auth()->user(), $plan, $request->input('notes'));
+
+        return redirect()->route('credit.plans.show', $plan)
+            ->with('status', $count.' cicilan lampau berhasil ditandai lunas tanpa memotong saldo kas/bank.');
+    }
+
+    public function resetToPending(Request $request, Installment $installment): RedirectResponse
+    {
+        Gate::authorize('view', $installment->installmentPlan);
+        $space = app('currentSpace');
+
+        $this->creditService->resetInstallmentToPending($space, auth()->user(), $installment);
+
+        return redirect()->route('credit.plans.show', $installment->installmentPlan)
+            ->with('status', 'Status cicilan ke-'.$installment->installment_number.' berhasil dikembalikan menjadi menunggu pembayaran.');
+    }
+
     public function payoff(PayoffPlanRequest $request, InstallmentPlan $plan): RedirectResponse
     {
         Gate::authorize('view', $plan);
