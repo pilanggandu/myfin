@@ -134,12 +134,47 @@ class CreditAccountController extends Controller
         ));
     }
 
+    public function statement(Request $request, CreditAccount $creditAccount): View
+    {
+        Gate::authorize('view', $creditAccount);
+        $space = app('currentSpace');
+
+        $month = $request->query('month', now()->format('Y-m'));
+        $statement = $creditAccount->getStatementBill($month);
+
+        $cashAccounts = $space->accounts()
+            ->whereNull('archived_at')
+            ->whereIn('type', ['bank', 'cash', 'e-wallet'])
+            ->orderBy('name')
+            ->get();
+
+        $availableMonths = [];
+        $currentMonth = now()->startOfMonth();
+        for ($i = -6; $i <= 5; $i++) {
+            $m = $currentMonth->copy()->addMonths($i);
+            $availableMonths[] = [
+                'key' => $m->format('Y-m'),
+                'label' => $m->translatedFormat('F Y'),
+                'is_current' => $m->format('Y-m') === now()->format('Y-m'),
+            ];
+        }
+
+        return view('credit.statement', compact('creditAccount', 'statement', 'month', 'cashAccounts', 'availableMonths'));
+    }
+
     public function payBill(PayCreditBillRequest $request, CreditAccount $creditAccount): RedirectResponse
     {
         Gate::authorize('update', $creditAccount);
         $space = app('currentSpace');
 
         $payment = $this->creditService->payCreditAccountBill($space, auth()->user(), $creditAccount, $request->validated());
+
+        if ($request->input('redirect_to') === 'statement') {
+            return redirect()->route('credit.accounts.statement', [
+                'creditAccount' => $creditAccount,
+                'month' => $request->input('month', now()->format('Y-m')),
+            ])->with('status', 'Pembayaran lembar tagihan kartu '.$creditAccount->name.' sebesar Rp '.number_format($payment->total_amount, 0, ',', '.').' berhasil diposting.');
+        }
 
         return redirect()->route('credit.index', ['tab' => 'accounts'])
             ->with('status', 'Pembayaran tagihan kartu '.$creditAccount->name.' sebesar Rp '.number_format($payment->total_amount, 0, ',', '.').' berhasil diposting.');

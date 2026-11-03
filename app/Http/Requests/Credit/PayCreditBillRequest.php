@@ -18,6 +18,10 @@ class PayCreditBillRequest extends FormRequest
             'amount' => ['required', 'integer', 'min:1'],
             'payment_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'installment_ids' => ['nullable', 'array'],
+            'installment_ids.*' => ['integer', 'exists:installments,id'],
+            'redirect_to' => ['nullable', 'string', 'in:accounts,statement'],
+            'month' => ['nullable', 'string', 'max:7'],
         ];
     }
 

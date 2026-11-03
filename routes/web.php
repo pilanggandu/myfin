@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/recurring/{recurring}/skip', [RecurringScheduleController::class, 'skip'])->name('recurring.skip');
 
     Route::get('/credit', [CreditAccountController::class, 'index'])->name('credit.index');
+    Route::get('/credit/accounts/{creditAccount}/statement', [CreditAccountController::class, 'statement'])->name('credit.accounts.statement');
     Route::post('/credit/accounts', [CreditAccountController::class, 'store'])->name('credit.accounts.store');
     Route::post('/credit/accounts/{creditAccount}/pay-bill', [CreditAccountController::class, 'payBill'])->name('credit.accounts.payBill');
     Route::put('/credit/accounts/{creditAccount}', [CreditAccountController::class, 'update'])->name('credit.accounts.update');

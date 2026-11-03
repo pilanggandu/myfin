@@ -887,23 +887,83 @@ class CreditService
                 'amount_signed' => $paymentAmount,
             ]);
 
-            $remainingToAllocate = $paymentAmount;
-            $pendingInstallments = Installment::whereHas('installmentPlan', function ($q) use ($creditAccount) {
-                $q->where('credit_account_id', $creditAccount->id)->where('status', 'active');
-            })->where('status', 'pending')->orderBy('due_date', 'asc')->orderBy('id', 'asc')->lockForUpdate()->get();
+            $targetInstallments = collect();
+            if (! empty($data['installment_ids']) && is_array($data['installment_ids'])) {
+                $targetInstallments = Installment::whereHas('installmentPlan', function ($q) use ($creditAccount) {
+                    $q->where('credit_account_id', $creditAccount->id)->where('status', 'active');
+                })->whereIn('id', $data['installment_ids'])
+                    ->where('status', 'pending')
+                    ->orderBy('due_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->lockForUpdate()
+                    ->get();
+            }
 
-            foreach ($pendingInstallments as $inst) {
-                if ($remainingToAllocate <= 0) {
-                    break;
-                }
-                if ($remainingToAllocate >= $inst->principal_amount) {
+            if ($targetInstallments->isNotEmpty()) {
+                $totalTargetPrincipal = (int) $targetInstallments->sum('principal_amount');
+                $diff = $paymentAmount - $totalTargetPrincipal;
+
+                foreach ($targetInstallments as $inst) {
                     $inst->update([
                         'status' => 'paid',
                         'paid_at' => now(),
                         'payment_transaction_id' => $transaction->id,
                     ]);
-                    $remainingToAllocate -= $inst->principal_amount;
                     $inst->installmentPlan->checkCompletion();
+                }
+
+                if ($diff !== 0 && Schema::hasTable('credit_debit_notes')) {
+                    $noteTx = FinancialTransaction::create([
+                        'space_id' => $space->id,
+                        'type' => 'adjustment',
+                        'transaction_date' => $data['payment_date'],
+                        'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                        'description' => ($diff < 0 ? 'Nota Kredit (Selisih Pembayaran Tagihan): ' : 'Nota Debit (Biaya/Penyesuaian Tagihan): ').$creditAccount->name,
+                        'category_id' => null,
+                        'member_id' => null,
+                        'status' => 'posted',
+                        'created_by' => $actor->id,
+                        'version' => 1,
+                    ]);
+
+                    if ($creditAccount->account_id) {
+                        $noteTx->entries()->create([
+                            'account_id' => $creditAccount->account_id,
+                            'amount_signed' => $diff < 0 ? abs($diff) : -$diff,
+                        ]);
+                    }
+
+                    CreditDebitNote::create([
+                        'space_id' => $space->id,
+                        'credit_account_id' => $creditAccount->id,
+                        'installment_plan_id' => null,
+                        'installment_id' => null,
+                        'financial_transaction_id' => $noteTx->id,
+                        'type' => $diff < 0 ? 'credit_note' : 'debit_note',
+                        'amount' => abs($diff),
+                        'note_date' => $data['payment_date'],
+                        'description' => ($diff < 0 ? 'Nota Kredit (Selisih Pembayaran Tagihan) ' : 'Nota Debit (Biaya/Penyesuaian Tagihan) ').$creditAccount->name,
+                    ]);
+                }
+            } else {
+                $remainingToAllocate = $paymentAmount;
+                $pendingInstallments = Installment::whereHas('installmentPlan', function ($q) use ($creditAccount) {
+                    $q->where('credit_account_id', $creditAccount->id)->where('status', 'active');
+                })->where('status', 'pending')->orderBy('due_date', 'asc')->orderBy('id', 'asc')->lockForUpdate()->get();
+
+                foreach ($pendingInstallments as $inst) {
+                    if ($remainingToAllocate <= 0) {
+                        break;
+                    }
+                    if ($remainingToAllocate >= $inst->principal_amount) {
+                        $inst->update([
+                            'status' => 'paid',
+                            'paid_at' => now(),
+                            'payment_transaction_id' => $transaction->id,
+                        ]);
+                        $remainingToAllocate -= $inst->principal_amount;
+                        $inst->installmentPlan->checkCompletion();
+                    }
                 }
             }
 

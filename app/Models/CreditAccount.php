@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -147,5 +148,88 @@ class CreditAccount extends Model
     public function getFormattedAvailableLimitAttribute(): string
     {
         return 'Rp '.number_format($this->availableLimit(), 0, ',', '.');
+    }
+
+    public function getStatementBill(?string $monthYear = null): array
+    {
+        try {
+            $date = $monthYear ? Carbon::createFromFormat('Y-m', $monthYear)->startOfMonth() : now()->startOfMonth();
+        } catch (\Throwable) {
+            $date = now()->startOfMonth();
+        }
+
+        $startOfMonth = $date->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $date->copy()->endOfMonth()->toDateString();
+
+        $installments = Installment::query()
+            ->whereHas('installmentPlan', function ($q) {
+                $q->where('credit_account_id', $this->id)
+                    ->where('status', 'active');
+            })
+            ->where(function ($query) use ($startOfMonth, $endOfMonth) {
+                $query->where(function ($sub) use ($startOfMonth) {
+                    $sub->where('status', 'pending')
+                        ->where('due_date', '<', $startOfMonth);
+                })->orWhereBetween('due_date', [$startOfMonth, $endOfMonth]);
+            })
+            ->with(['installmentPlan.category', 'installmentPlan.member', 'payments'])
+            ->orderBy('due_date', 'asc')
+            ->orderBy('installment_number', 'asc')
+            ->get();
+
+        $totalBilled = (int) $installments->sum('total_amount');
+        $totalPending = (int) $installments->where('status', 'pending')->sum('total_amount');
+        $totalPaid = (int) $installments->where('status', 'paid')->sum('total_amount');
+
+        $cycleDate = null;
+        if (! empty($this->billing_cycle_day)) {
+            $prevMonth = $date->copy()->subMonth();
+            $maxDay = $prevMonth->daysInMonth;
+            $cycleDate = $prevMonth->day(min($this->billing_cycle_day, $maxDay));
+        }
+
+        $dueDate = null;
+        if (! empty($this->due_day)) {
+            $maxDay = $date->daysInMonth;
+            $dueDate = $date->copy()->day(min($this->due_day, $maxDay));
+        } else {
+            $dueDate = $date->copy()->endOfMonth();
+        }
+
+        $pendingCount = $installments->where('status', 'pending')->count();
+        $isFullyPaid = $installments->isNotEmpty() && $pendingCount === 0;
+
+        return [
+            'month_year' => $date->format('Y-m'),
+            'month_name' => $date->translatedFormat('F Y'),
+            'date' => $date,
+            'cycle_date' => $cycleDate,
+            'due_date' => $dueDate,
+            'total_billed' => $totalBilled,
+            'total_pending' => $totalPending,
+            'total_paid' => $totalPaid,
+            'formatted_total_billed' => 'Rp '.number_format($totalBilled, 0, ',', '.'),
+            'formatted_total_pending' => 'Rp '.number_format($totalPending, 0, ',', '.'),
+            'formatted_total_paid' => 'Rp '.number_format($totalPaid, 0, ',', '.'),
+            'is_fully_paid' => $isFullyPaid,
+            'item_count' => $installments->count(),
+            'pending_count' => $pendingCount,
+            'installments' => $installments,
+        ];
+    }
+
+    public function getStatementDueAmountAttribute(): int
+    {
+        return $this->getStatementBill()['total_pending'];
+    }
+
+    public function getFormattedStatementDueAttribute(): string
+    {
+        return 'Rp '.number_format($this->statement_due_amount, 0, ',', '.');
+    }
+
+    public function getStatementPendingCountAttribute(): int
+    {
+        return $this->getStatementBill()['pending_count'];
     }
 }

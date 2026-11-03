@@ -268,6 +268,29 @@
                                     </div>
                                 @endif
                             </div>
+
+                            @php
+                                $statement = $account->getStatementBill();
+                            @endphp
+                            <!-- Box Lembar Tagihan Bulan Ini -->
+                            <div class="mt-3 p-3 rounded-xl border border-line bg-cream/40 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Tagihan Bulan Ini</span>
+                                    <span class="font-serif font-bold text-sm text-charcoal block">
+                                        {{ $statement['formatted_total_pending'] }}
+                                    </span>
+                                    <span class="text-[10px] text-muted block">
+                                        {{ $statement['pending_count'] }} item belum lunas
+                                    </span>
+                                </div>
+                                <a 
+                                    href="{{ route('credit.accounts.statement', $account) }}" 
+                                    class="min-h-[34px] px-2.5 py-1.5 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-xs transition"
+                                    title="Buka Lembar Tagihan (Statement) Bulan Ini"
+                                >
+                                    <span>📄 Tagihan</span>
+                                </a>
+                            </div>
                         </div>
 
                         <!-- Actions Bar -->
@@ -283,7 +306,7 @@
                                 @if (!$account->isArchived() && $liability > 0)
                                     <button 
                                         type="button" 
-                                        onclick="openPayBillModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $liability }}, '{{ $account->formatted_liability }}')" 
+                                        onclick="openPayBillModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $statement['total_pending'] }}, '{{ $statement['formatted_total_pending'] }}', {{ $liability }}, '{{ $account->formatted_liability }}', {{ json_encode($statement['installments']->where('status', 'pending')->pluck('id')->values()) }})" 
                                         class="min-h-[34px] px-2.5 py-1 bg-forest text-white rounded-md text-[11px] font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
                                     >
                                         Bayar Tagihan
@@ -607,6 +630,31 @@
 
             <form id="payBillForm" method="POST" action="" class="space-y-4">
                 @csrf
+                <div id="payBillInstallmentIdsContainer"></div>
+
+                <div id="quickAmountOptions" class="p-2.5 rounded-lg border border-line bg-cream/30 space-y-1.5">
+                    <span class="text-[10px] uppercase font-bold text-muted block">Pilihan Pembayaran:</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button 
+                            type="button" 
+                            id="btnQuickStatement" 
+                            onclick="selectQuickAmount('statement')" 
+                            class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-forest bg-forest/10 text-forest text-left transition cursor-pointer"
+                        >
+                            <span class="block text-[10px] text-muted font-normal">Tagihan Bulan Ini</span>
+                            <span id="quickStatementAmountText" class="block font-mono">Rp 0</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            id="btnQuickTotal" 
+                            onclick="selectQuickAmount('total')" 
+                            class="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-line bg-panel text-muted hover:text-charcoal text-left transition cursor-pointer"
+                        >
+                            <span class="block text-[10px] text-muted font-normal">Total Seluruh Kewajiban</span>
+                            <span id="quickTotalAmountText" class="block font-mono">Rp 0</span>
+                        </button>
+                    </div>
+                </div>
 
                 <div>
                     <label for="pay_bill_source_account_id" class="block text-xs font-semibold text-charcoal mb-1">
@@ -690,13 +738,56 @@
     </div>
 
     <script>
-        function openPayBillModal(id, name, liability, formattedLiability) {
+        let currentModalStatementAmount = 0;
+        let currentModalTotalLiability = 0;
+        let currentModalPendingIds = [];
+
+        function openPayBillModal(id, name, statementAmount, formattedStatementAmount, totalLiability, formattedTotalLiability, pendingIds = []) {
             document.getElementById('payBillModalTitle').textContent = 'Bayar Tagihan ' + name;
             document.getElementById('payBillForm').action = "/credit/accounts/" + id + "/pay-bill";
-            document.getElementById('pay_bill_amount').value = liability;
-            document.getElementById('payBillLiabilityHint').textContent = 'Kewajiban aktif saat ini: ' + formattedLiability;
+
+            currentModalStatementAmount = Number(statementAmount) || 0;
+            currentModalTotalLiability = Number(totalLiability) || 0;
+            currentModalPendingIds = Array.isArray(pendingIds) ? pendingIds : [];
+
+            document.getElementById('quickStatementAmountText').textContent = formattedStatementAmount || 'Rp 0';
+            document.getElementById('quickTotalAmountText').textContent = formattedTotalLiability || 'Rp 0';
+
+            if (currentModalStatementAmount > 0) {
+                selectQuickAmount('statement');
+            } else {
+                selectQuickAmount('total');
+            }
+
+            document.getElementById('payBillLiabilityHint').textContent = 'Kewajiban aktif total: ' + formattedTotalLiability;
             document.getElementById('payBillModal').classList.remove('hidden');
             setTimeout(() => document.getElementById('pay_bill_source_account_id').focus(), 50);
+        }
+
+        function selectQuickAmount(type) {
+            const btnStatement = document.getElementById('btnQuickStatement');
+            const btnTotal = document.getElementById('btnQuickTotal');
+            const inputAmount = document.getElementById('pay_bill_amount');
+            const container = document.getElementById('payBillInstallmentIdsContainer');
+            container.innerHTML = '';
+
+            if (type === 'statement') {
+                btnStatement.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold border border-forest bg-forest/10 text-forest text-left transition cursor-pointer';
+                btnTotal.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold border border-line bg-panel text-muted hover:text-charcoal text-left transition cursor-pointer';
+                inputAmount.value = currentModalStatementAmount;
+
+                currentModalPendingIds.forEach(id => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'installment_ids[]';
+                    input.value = id;
+                    container.appendChild(input);
+                });
+            } else {
+                btnTotal.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold border border-forest bg-forest/10 text-forest text-left transition cursor-pointer';
+                btnStatement.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold border border-line bg-panel text-muted hover:text-charcoal text-left transition cursor-pointer';
+                inputAmount.value = currentModalTotalLiability;
+            }
         }
 
         function closePayBillModal() {
