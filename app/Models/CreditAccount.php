@@ -92,6 +92,25 @@ class CreditAccount extends Model
 
     public function currentLiability(): float
     {
+        $installmentLiability = (float) Installment::query()
+            ->whereHas('installmentPlan', function ($q) {
+                $q->where('credit_account_id', $this->id)
+                    ->where('status', 'active');
+            })
+            ->where('status', 'pending')
+            ->sum('principal_amount');
+
+        if ($this->ledgerAccount) {
+            $ledgerDebt = max(0.0, -$this->ledgerAccount->currentBalance());
+
+            return round(max($installmentLiability, $ledgerDebt), 2);
+        }
+
+        return round($installmentLiability, 2);
+    }
+
+    public function installmentLiability(): float
+    {
         return round((float) Installment::query()
             ->whereHas('installmentPlan', function ($q) {
                 $q->where('credit_account_id', $this->id)
@@ -99,6 +118,14 @@ class CreditAccount extends Model
             })
             ->where('status', 'pending')
             ->sum('principal_amount'), 2);
+    }
+
+    public function nonInstallmentLiability(): float
+    {
+        $total = $this->currentLiability();
+        $installment = $this->installmentLiability();
+
+        return round(max(0.0, $total - $installment), 2);
     }
 
     public function availableLimit(): float

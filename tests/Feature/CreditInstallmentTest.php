@@ -855,4 +855,47 @@ class CreditInstallmentTest extends TestCase
             'amount' => 7.33,
         ]);
     }
+
+    public function test_credit_account_liability_and_available_limit_include_non_installment_regular_transactions(): void
+    {
+        // 1. Credit card dengan limit 5.000.000
+        $this->creditCard->update(['credit_limit' => 5000000]);
+
+        // 2. Belanja cicilan 2.174.000 (tenor 1 bulan)
+        $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Cicilan HP',
+            'total_amount' => 2174000,
+            'tenor' => 1,
+            'start_date' => '2026-11-01',
+        ]);
+
+        $this->creditCard->refresh();
+        $this->assertEquals(2174000, $this->creditCard->currentLiability());
+        $this->assertEquals(2174000, $this->creditCard->installmentLiability());
+        $this->assertEquals(0, $this->creditCard->nonInstallmentLiability());
+        $this->assertEquals(2826000, $this->creditCard->availableLimit());
+
+        // 3. Catat transaksi reguler (gesek biasa non-cicilan) Rp 47.292 langsung ke rekening kartu kredit
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('transactions.store'), [
+                'type' => 'expense',
+                'account_id' => $this->creditCard->account_id,
+                'category_id' => $this->category->id,
+                'amount' => 47292,
+                'transaction_date' => '2026-11-02',
+                'description' => 'Beli Bensin / Non-Cicilan',
+            ])
+            ->assertRedirect();
+
+        // 4. Verifikasi sisa limit terpotong sesuai yang diharapkan user (2.778.708)
+        $this->creditCard->refresh();
+        $this->assertEquals(2221292, $this->creditCard->currentLiability());
+        $this->assertEquals(2174000, $this->creditCard->installmentLiability());
+        $this->assertEquals(47292, $this->creditCard->nonInstallmentLiability());
+        $this->assertEquals(2778708, $this->creditCard->availableLimit());
+        $this->assertEquals('Rp 2.778.708', $this->creditCard->formatted_available_limit);
+    }
 }

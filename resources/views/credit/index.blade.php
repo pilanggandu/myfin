@@ -257,6 +257,16 @@
                                     <span class="text-muted">Kewajiban Terpakai:</span>
                                     <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $account->formatted_liability }}</span>
                                 </div>
+                                @if ($account->nonInstallmentLiability() > 0)
+                                    <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
+                                        <span>• Cicilan Berjalan:</span>
+                                        <span>Rp {{ number_format($account->installmentLiability(), fmod($account->installmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
+                                        <span>• Transaksi Non-Cicilan:</span>
+                                        <span>Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                    </div>
+                                @endif
                                 <div class="flex justify-between items-center">
                                     <span class="text-muted">Limit Tersedia:</span>
                                     <span class="font-bold text-forest">{{ $account->formatted_available_limit }}</span>
