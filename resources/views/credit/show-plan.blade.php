@@ -201,8 +201,28 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line/60">
-                    @foreach ($plan->installments as $inst)
-                        <tr class="hover:bg-panel transition {{ $inst->isPaid() ? 'bg-cream/20' : ($inst->isOverdue() ? 'bg-red/5' : '') }}">
+                    @php
+                        $sortedInstallments = $plan->installments->sortBy(function ($inst) {
+                            return [$inst->isPaid() ? 1 : 0, $inst->installment_number];
+                        });
+                        $hasPaid = $plan->installments->contains(fn($i) => $i->isPaid());
+                        $shownPaidDivider = false;
+                    @endphp
+
+                    @foreach ($sortedInstallments as $inst)
+                        @if ($hasPaid && $inst->isPaid() && ! $shownPaidDivider)
+                            @php $shownPaidDivider = true; @endphp
+                            <tr class="bg-panel/80 border-y border-line">
+                                <td colspan="9" class="py-2.5 px-3 text-muted font-semibold text-[11px] uppercase tracking-wider">
+                                    <div class="flex items-center gap-2">
+                                        <span>✓</span>
+                                        <span>Cicilan yang Sudah Lunas ({{ $plan->installments->where('status', 'paid')->count() }} cicilan)</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
+
+                        <tr class="hover:bg-panel transition {{ $inst->isPaid() ? 'bg-cream/20 opacity-80' : ($inst->isOverdue() ? 'bg-red/5' : '') }}">
                             <td class="py-3.5 px-3 font-bold text-charcoal">
                                 #{{ $inst->installment_number }}
                             </td>

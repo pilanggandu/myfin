@@ -679,5 +679,13 @@ class CreditInstallmentTest extends TestCase
             ->post(route('credit.plans.markOverduePaidWithoutCash', $plan));
 
         $responseBulk->assertRedirect(route('credit.plans.show', $plan));
+
+        // 4. View show plan and check ordering
+        $showResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.plans.show', $plan));
+
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('Cicilan yang Sudah Lunas');
     }
 }
