@@ -1,0 +1,503 @@
+<x-layouts.app title="Kredit & Cicilan">
+    <!-- Page Heading -->
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div>
+            <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / KEWAJIBAN & HUTANG</div>
+            <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
+                Kredit & Cicilan
+            </h1>
+            <p class="text-xs text-muted">
+                Kelola kartu kredit, paylater, limit, dan jadwal pelunasan cicilan secara terisolasi dari saldo kas.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button 
+                type="button" 
+                onclick="openCreditAccountModal()" 
+                class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
+            >
+                <span>+ Tambah Kartu / Kredit</span>
+            </button>
+            <a 
+                href="{{ route('credit.purchases.create') }}" 
+                class="min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
+            >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span>Catat Belanja Cicilan</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Status Feedback -->
+    @if (session('status'))
+        <div class="mb-6 p-4 rounded-xl border border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span>✓</span>
+                <span>{{ session('status') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800 font-bold ml-4">✕</button>
+        </div>
+    @endif
+
+    <!-- Error Validation Feedback -->
+    @if ($errors->any())
+        <div class="mb-6 p-4 rounded-xl border border-red/20 bg-red/10 text-red text-xs">
+            <div class="font-bold mb-1">Terjadi kesalahan pada data:</div>
+            <ul class="list-disc list-inside space-y-0.5">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <!-- Metric Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <!-- Total Limit Kredit -->
+        <div class="panel-card p-5">
+            <div class="flex items-center justify-between text-muted text-xs mb-2">
+                <span class="font-semibold uppercase tracking-wider text-[11px]">Total Limit Kredit</span>
+                <span class="text-base">💳</span>
+            </div>
+            <div class="font-serif text-2xl sm:text-3xl font-medium text-charcoal">
+                Rp {{ number_format($totalCreditLimit, 0, ',', '.') }}
+            </div>
+            <div class="mt-2 text-xs text-muted">
+                Dari {{ $creditAccounts->whereNull('archived_at')->count() }} akun aktif
+            </div>
+        </div>
+
+        <!-- Total Kewajiban Aktif -->
+        <div class="panel-card p-5 border-l-4 border-l-amber-500">
+            <div class="flex items-center justify-between text-muted text-xs mb-2">
+                <span class="font-semibold uppercase tracking-wider text-[11px]">Total Kewajiban (Hutang)</span>
+                <span class="text-base">⏳</span>
+            </div>
+            <div class="font-serif text-2xl sm:text-3xl font-medium text-amber-600 dark:text-amber-400">
+                Rp {{ number_format($totalLiability, 0, ',', '.') }}
+            </div>
+            <div class="mt-2 text-xs text-muted">
+                {{ $activePlans->count() }} rencana cicilan berjalan
+            </div>
+        </div>
+
+        <!-- Sisa Limit Tersedia -->
+        <div class="panel-card p-5 border-l-4 border-l-forest">
+            <div class="flex items-center justify-between text-muted text-xs mb-2">
+                <span class="font-semibold uppercase tracking-wider text-[11px]">Sisa Limit Tersedia</span>
+                <span class="text-base">✨</span>
+            </div>
+            <div class="font-serif text-2xl sm:text-3xl font-medium text-forest">
+                Rp {{ number_format($totalAvailableLimit, 0, ',', '.') }}
+            </div>
+            <div class="mt-2 text-xs text-muted">
+                Dapat digunakan untuk transaksi baru
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-line mb-6">
+        <a 
+            href="{{ route('credit.index', ['tab' => 'accounts']) }}" 
+            class="px-4 py-3 text-xs font-bold border-b-2 transition {{ $tab === 'accounts' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+        >
+            Akun Kredit & Kartu ({{ $creditAccounts->count() }})
+        </a>
+        <a 
+            href="{{ route('credit.index', ['tab' => 'plans']) }}" 
+            class="px-4 py-3 text-xs font-bold border-b-2 transition {{ $tab === 'plans' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+        >
+            Cicilan Berjalan ({{ $activePlans->count() }})
+        </a>
+        <a 
+            href="{{ route('credit.index', ['tab' => 'history']) }}" 
+            class="px-4 py-3 text-xs font-bold border-b-2 transition {{ $tab === 'history' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+        >
+            Riwayat Selesai ({{ $completedPlans->count() }})
+        </a>
+    </div>
+
+    <!-- Tab 1: Akun Kredit & Kartu -->
+    @if ($tab === 'accounts')
+        @if ($creditAccounts->isEmpty())
+            <div class="panel-card p-12 text-center">
+                <div class="text-4xl mb-3">💳</div>
+                <h3 class="font-serif text-lg text-charcoal font-medium mb-1">Belum Ada Akun Kredit atau Kartu</h3>
+                <p class="text-xs text-muted max-w-md mx-auto mb-5">
+                    Tambahkan kartu kredit, layanan paylater, atau pinjaman untuk memantau limit dan memecah belanja menjadi cicilan rapi.
+                </p>
+                <button 
+                    type="button" 
+                    onclick="openCreditAccountModal()" 
+                    class="min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
+                >
+                    + Tambah Akun Kredit Pertama
+                </button>
+            </div>
+        @else
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach ($creditAccounts as $account)
+                    @php
+                        $liability = $account->currentLiability();
+                        $limit = $account->credit_limit;
+                        $available = $account->availableLimit();
+                        $usagePercent = $limit > 0 ? min(100, round(($liability / $limit) * 100)) : 0;
+                    @endphp
+                    <div class="panel-card p-5 flex flex-col justify-between {{ $account->isArchived() ? 'opacity-60 bg-cream/40' : '' }}">
+                        <div>
+                            <div class="flex items-start justify-between gap-2 mb-3">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <h3 class="font-semibold text-sm text-charcoal">{{ $account->name }}</h3>
+                                        @if ($account->isArchived())
+                                            <span class="text-[10px] bg-muted/20 text-muted px-1.5 py-0.5 rounded font-bold uppercase">Diarsipkan</span>
+                                        @endif
+                                    </div>
+                                    <span class="text-[11px] text-muted capitalize">
+                                        {{ str_replace('_', ' ', $account->type) }}
+                                    </span>
+                                </div>
+                                <span class="text-xs px-2 py-0.5 rounded font-bold {{ $usagePercent > 80 ? 'bg-red/10 text-red' : 'bg-forest/10 text-forest' }}">
+                                    {{ $usagePercent }}% Terpakai
+                                </span>
+                            </div>
+
+                            <!-- Progress Bar Limit -->
+                            <div class="w-full bg-cream rounded-full h-2 mb-4 overflow-hidden border border-line/40">
+                                <div class="h-full rounded-full transition-all duration-300 {{ $usagePercent > 80 ? 'bg-red' : 'bg-forest' }}" style="width: {{ $usagePercent }}%"></div>
+                            </div>
+
+                            <!-- Detail Angka -->
+                            <div class="space-y-2 text-xs border-t border-line/60 pt-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-muted">Batas Limit:</span>
+                                    <span class="font-semibold text-charcoal">{{ $account->formatted_limit }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-muted">Kewajiban Terpakai:</span>
+                                    <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $account->formatted_liability }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-muted">Limit Tersedia:</span>
+                                    <span class="font-bold text-forest">{{ $account->formatted_available_limit }}</span>
+                                </div>
+                                @if ($account->billing_cycle_day || $account->due_day)
+                                    <div class="flex justify-between items-center text-[11px] text-muted border-t border-dashed border-line/50 pt-2 mt-2">
+                                        <span>Cetak: Tgl {{ $account->billing_cycle_day ?? '-' }}</span>
+                                        <span>Jatuh Tempo: Tgl {{ $account->due_day ?? '-' }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Actions Bar -->
+                        <div class="flex items-center justify-between border-t border-line mt-4 pt-3 text-xs">
+                            <button 
+                                type="button" 
+                                onclick="openEditCreditAccountModal({{ json_encode($account) }})" 
+                                class="text-muted hover:text-charcoal font-bold py-1 min-h-[36px]"
+                            >
+                                Edit
+                            </button>
+                            @if ($account->isArchived())
+                                <form method="POST" action="{{ route('credit.accounts.unarchive', $account) }}">
+                                    @csrf
+                                    <button type="submit" class="text-forest hover:text-forest-hover font-bold py-1 min-h-[36px]">
+                                        Aktifkan Kembali
+                                    </button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('credit.accounts.destroy', $account) }}" onsubmit="return confirm('Arsipkan akun kredit ini? Data historis tetap tersimpan.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red hover:text-red/80 font-bold py-1 min-h-[36px]">
+                                        Arsipkan
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+    <!-- Tab 2: Cicilan Berjalan -->
+    @elseif ($tab === 'plans')
+        @if ($activePlans->isEmpty())
+            <div class="panel-card p-12 text-center">
+                <div class="text-4xl mb-3">📋</div>
+                <h3 class="font-serif text-lg text-charcoal font-medium mb-1">Tidak Ada Cicilan Aktif</h3>
+                <p class="text-xs text-muted max-w-md mx-auto mb-5">
+                    Semua transaksi cicilan Anda telah lunas atau Anda belum mencatat pembelian dengan kartu kredit/paylater.
+                </p>
+                <a 
+                    href="{{ route('credit.purchases.create') }}" 
+                    class="min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
+                >
+                    Catat Pembelian Cicilan Baru
+                </a>
+            </div>
+        @else
+            <div class="space-y-4">
+                @foreach ($activePlans as $plan)
+                    @php
+                        $paidCount = $plan->installments->where('status', 'paid')->count();
+                        $totalCount = $plan->installments->count();
+                        $percent = $plan->total_amount > 0 ? min(100, round(($plan->paidPrincipal() / $plan->total_amount) * 100)) : 0;
+                        $nextPending = $plan->installments->where('status', 'pending')->first();
+                    @endphp
+                    <div class="panel-card p-5">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-bold text-forest bg-forest/10 px-2 py-0.5 rounded">
+                                        {{ $plan->creditAccount->name }}
+                                    </span>
+                                    <span class="text-xs text-muted">
+                                        Kategori: <strong class="text-charcoal">{{ $plan->category->name }}</strong>
+                                    </span>
+                                </div>
+                                <h3 class="font-serif text-lg text-charcoal font-medium truncate">
+                                    {{ $plan->name }}
+                                </h3>
+                                <div class="text-xs text-muted mt-1 flex flex-wrap items-center gap-3">
+                                    <span>Mulai: {{ $plan->start_date->format('d M Y') }}</span>
+                                    <span>•</span>
+                                    <span>Tenor: <strong>{{ $plan->tenor }} bulan</strong></span>
+                                    <span>•</span>
+                                    <span>Progress: <strong>{{ $paidCount }} / {{ $totalCount }} lunas</strong> ({{ $percent }}%)</span>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4 border-t md:border-t-0 md:border-l border-line pt-4 md:pt-0 md:pl-6">
+                                <div class="text-right sm:text-left">
+                                    <div class="text-[11px] text-muted uppercase tracking-wider font-semibold">Sisa Pokok</div>
+                                    <div class="font-serif text-xl font-bold text-amber-600 dark:text-amber-400">
+                                        {{ $plan->formatted_remaining }}
+                                    </div>
+                                    <div class="text-[11px] text-muted">
+                                        Total: {{ $plan->formatted_total_amount }}
+                                    </div>
+                                </div>
+
+                                <a 
+                                    href="{{ route('credit.plans.show', $plan) }}" 
+                                    class="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                    <span>Detail & Bayar</span>
+                                    <span>→</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar Plan -->
+                        <div class="w-full bg-cream rounded-full h-1.5 mt-4 overflow-hidden border border-line/40">
+                            <div class="h-full bg-forest rounded-full transition-all duration-300" style="width: {{ $percent }}%"></div>
+                        </div>
+
+                        @if ($nextPending)
+                            <div class="mt-3 text-xs bg-panel p-2.5 rounded-lg border border-line/60 flex items-center justify-between">
+                                <span class="text-muted">
+                                    Jatuh tempo berikutnya: <strong class="text-charcoal">{{ $nextPending->due_date->format('d M Y') }}</strong> (Cicilan #{{ $nextPending->installment_number }})
+                                </span>
+                                <span class="font-semibold text-charcoal">
+                                    {{ $nextPending->formatted_principal }}
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+    <!-- Tab 3: Riwayat Selesai -->
+    @elseif ($tab === 'history')
+        @if ($completedPlans->isEmpty())
+            <div class="panel-card p-12 text-center">
+                <div class="text-4xl mb-3">📁</div>
+                <h3 class="font-serif text-lg text-charcoal font-medium mb-1">Belum Ada Riwayat Cicilan</h3>
+                <p class="text-xs text-muted max-w-md mx-auto">
+                    Cicilan yang telah lunas seluruhnya atau dibatalkan akan dirangkum di sini sebagai arsip histori.
+                </p>
+            </div>
+        @else
+            <div class="space-y-3">
+                @foreach ($completedPlans as $plan)
+                    <div class="panel-card p-4 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs px-2 py-0.5 rounded font-bold {{ $plan->isCompleted() ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted/20 text-muted' }}">
+                                    {{ $plan->isCompleted() ? 'Lunas' : 'Dibatalkan' }}
+                                </span>
+                                <h4 class="font-semibold text-sm text-charcoal truncate">{{ $plan->name }}</h4>
+                            </div>
+                            <div class="text-xs text-muted mt-1">
+                                {{ $plan->creditAccount->name }} • {{ $plan->tenor }} bulan • Total {{ $plan->formatted_total_amount }}
+                            </div>
+                        </div>
+                        <a 
+                            href="{{ route('credit.plans.show', $plan) }}" 
+                            class="min-h-[38px] inline-flex items-center px-3 py-1.5 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition"
+                        >
+                            Lihat Arsip
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    @endif
+
+    <!-- Modal Tambah / Edit Akun Kredit -->
+    <div id="creditAccountModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
+            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+                <h3 id="modalTitle" class="font-serif text-lg text-charcoal font-medium">Tambah Akun Kredit</h3>
+                <button type="button" onclick="closeCreditAccountModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+            </div>
+
+            <form id="creditAccountForm" method="POST" action="{{ route('credit.accounts.store') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="_method" id="formMethod" value="POST">
+
+                <div>
+                    <label for="credit_account_name" class="block text-xs font-semibold text-charcoal mb-1">Nama Kartu / Layanan Kredit</label>
+                    <input 
+                        type="text" 
+                        name="name" 
+                        id="credit_account_name" 
+                        required 
+                        placeholder="Contoh: BCA Everyday Card, Mandiri Livin, SPayLater"
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                </div>
+
+                <div>
+                    <label for="credit_account_type" class="block text-xs font-semibold text-charcoal mb-1">Tipe Kredit</label>
+                    <select 
+                        name="type" 
+                        id="credit_account_type" 
+                        required 
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                    >
+                        <option value="credit_card">Kartu Kredit (Credit Card)</option>
+                        <option value="paylater">PayLater</option>
+                        <option value="loan">Pinjaman / Cicilan Tunai</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="credit_account_limit" class="block text-xs font-semibold text-charcoal mb-1">Batas Limit Kredit (Rp)</label>
+                    <input 
+                        type="number" 
+                        name="credit_limit" 
+                        id="credit_account_limit" 
+                        required 
+                        min="0"
+                        step="10000"
+                        placeholder="Contoh: 15000000"
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
+                        onfocus="this.select()"
+                    >
+                    <span class="text-[10px] text-muted">Limit kredit yang diberikan oleh bank atau penyedia layanan.</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="credit_account_billing_cycle" class="block text-xs font-semibold text-charcoal mb-1">Tgl Cetak Tagihan</label>
+                        <input 
+                            type="number" 
+                            name="billing_cycle_day" 
+                            id="credit_account_billing_cycle" 
+                            min="1" 
+                            max="31"
+                            placeholder="Tgl 1-31"
+                            class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                        >
+                    </div>
+                    <div>
+                        <label for="credit_account_due_day" class="block text-xs font-semibold text-charcoal mb-1">Tgl Jatuh Tempo</label>
+                        <input 
+                            type="number" 
+                            name="due_day" 
+                            id="credit_account_due_day" 
+                            min="1" 
+                            max="31"
+                            placeholder="Tgl 1-31"
+                            class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                        >
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                    <button 
+                        type="button" 
+                        onclick="closeCreditAccountModal()" 
+                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        id="btnSaveCreditAccount"
+                        class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2"
+                    >
+                        <span id="btnSaveCreditAccountText">Simpan Akun Kredit</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        function openCreditAccountModal() {
+            document.getElementById('modalTitle').textContent = 'Tambah Akun Kredit';
+            document.getElementById('creditAccountForm').action = "{{ route('credit.accounts.store') }}";
+            document.getElementById('formMethod').value = 'POST';
+            document.getElementById('credit_account_name').value = '';
+            document.getElementById('credit_account_type').value = 'credit_card';
+            document.getElementById('credit_account_limit').value = '';
+            document.getElementById('credit_account_billing_cycle').value = '';
+            document.getElementById('credit_account_due_day').value = '';
+            document.getElementById('btnSaveCreditAccountText').textContent = 'Simpan Akun Kredit';
+            document.getElementById('creditAccountModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('credit_account_name').focus(), 50);
+        }
+
+        function openEditCreditAccountModal(account) {
+            document.getElementById('modalTitle').textContent = 'Edit Akun Kredit';
+            document.getElementById('creditAccountForm').action = "/credit/accounts/" + account.id;
+            document.getElementById('formMethod').value = 'PUT';
+            document.getElementById('credit_account_name').value = account.name;
+            document.getElementById('credit_account_type').value = account.type;
+            document.getElementById('credit_account_limit').value = account.credit_limit;
+            document.getElementById('credit_account_billing_cycle').value = account.billing_cycle_day || '';
+            document.getElementById('credit_account_due_day').value = account.due_day || '';
+            document.getElementById('btnSaveCreditAccountText').textContent = 'Perbarui Akun Kredit';
+            document.getElementById('creditAccountModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('credit_account_name').focus(), 50);
+        }
+
+        function closeCreditAccountModal() {
+            document.getElementById('creditAccountModal').classList.add('hidden');
+        }
+
+        document.getElementById('creditAccountForm').addEventListener('submit', function() {
+            const btn = document.getElementById('btnSaveCreditAccount');
+            const txt = document.getElementById('btnSaveCreditAccountText');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Menyimpan...';
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !document.getElementById('creditAccountModal').classList.contains('hidden')) {
+                closeCreditAccountModal();
+            }
+        });
+    </script>
+    @endpush
+</x-layouts.app>
