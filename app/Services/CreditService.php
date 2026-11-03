@@ -13,6 +13,7 @@ use App\Models\Space;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class CreditService
@@ -127,7 +128,7 @@ class CreditService
             $interestRate = (float) ($data['interest_rate'] ?? 0);
             $adminFee = (int) ($data['admin_fee'] ?? 0);
 
-            $plan = InstallmentPlan::create([
+            $planData = [
                 'space_id' => $space->id,
                 'credit_account_id' => $lockedCreditAccount->id,
                 'financial_transaction_id' => $transaction->id,
@@ -137,11 +138,16 @@ class CreditService
                 'total_amount' => $totalAmount,
                 'tenor' => $tenor,
                 'interest_rate' => $interestRate,
-                'admin_fee' => $adminFee,
                 'start_date' => $data['start_date'],
                 'status' => 'active',
                 'notes' => $data['notes'] ?? null,
-            ]);
+            ];
+
+            if (Schema::hasColumn('installment_plans', 'admin_fee')) {
+                $planData['admin_fee'] = $adminFee;
+            }
+
+            $plan = InstallmentPlan::create($planData);
 
             $basePrincipal = intdiv($totalAmount, $tenor);
             $remainderPrincipal = $totalAmount % $tenor;

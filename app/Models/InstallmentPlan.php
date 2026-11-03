@@ -129,9 +129,14 @@ class InstallmentPlan extends Model
         return (int) $this->installments()->where('status', 'pending')->sum('total_amount');
     }
 
+    public function getAdminFeeAttribute(): int
+    {
+        return (int) ($this->attributes['admin_fee'] ?? 0);
+    }
+
     public function hasInterestOrFees(): bool
     {
-        return $this->totalInterest() > 0 || $this->totalFees() > 0 || (float) $this->interest_rate > 0 || (int) $this->admin_fee > 0;
+        return $this->totalInterest() > 0 || $this->totalFees() > 0 || (float) $this->interest_rate > 0 || $this->admin_fee > 0;
     }
 
     public function getFormattedTotalAmountAttribute(): string
