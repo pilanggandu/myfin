@@ -89,7 +89,7 @@ class CreditService
             ]);
         }
 
-        $totalAmount = (int) $data['total_amount'];
+        $totalAmount = round((float) $data['total_amount'], 2);
         if ($totalAmount <= 0) {
             throw ValidationException::withMessages([
                 'total_amount' => 'Nominal pembelian harus lebih dari 0.',
@@ -127,7 +127,7 @@ class CreditService
             ]);
 
             $interestRate = (float) ($data['interest_rate'] ?? 0);
-            $adminFee = (int) ($data['admin_fee'] ?? 0);
+            $adminFee = ! empty($data['admin_fee']) ? round((float) $data['admin_fee'], 2) : 0;
 
             $planData = [
                 'space_id' => $space->id,
@@ -150,12 +150,20 @@ class CreditService
 
             $plan = InstallmentPlan::create($planData);
 
-            $basePrincipal = intdiv($totalAmount, $tenor);
-            $remainderPrincipal = $totalAmount % $tenor;
+            $monthlyInterest = round($totalAmount * ($interestRate / 100), 2);
+            $isIntegerDivision = fmod($totalAmount, 1.0) == 0.0 && fmod($adminFee, 1.0) == 0.0;
 
-            $monthlyInterest = (int) round($totalAmount * ($interestRate / 100));
-            $baseFee = intdiv($adminFee, $tenor);
-            $remainderFee = $adminFee % $tenor;
+            if ($isIntegerDivision) {
+                $basePrincipal = intdiv((int) $totalAmount, $tenor);
+                $remainderPrincipal = (int) $totalAmount % $tenor;
+                $baseFee = intdiv((int) $adminFee, $tenor);
+                $remainderFee = (int) $adminFee % $tenor;
+            } else {
+                $basePrincipal = round($totalAmount / $tenor, 2);
+                $remainderPrincipal = round($totalAmount - ($basePrincipal * $tenor), 2);
+                $baseFee = round($adminFee / $tenor, 2);
+                $remainderFee = round($adminFee - ($baseFee * $tenor), 2);
+            }
 
             $startDate = Carbon::parse($data['start_date']);
             $firstDueDate = ! empty($data['first_due_date'])
@@ -169,10 +177,10 @@ class CreditService
             $pastPaidInstallments = [];
 
             for ($i = 1; $i <= $tenor; $i++) {
-                $principal = $basePrincipal + ($i === 1 ? $remainderPrincipal : 0);
-                $fee = $baseFee + ($i === 1 ? $remainderFee : 0);
+                $principal = round($basePrincipal + ($i === 1 ? $remainderPrincipal : 0), 2);
+                $fee = round($baseFee + ($i === 1 ? $remainderFee : 0), 2);
                 $dueDate = $firstDueDate->copy()->addMonths($i - 1);
-                $totalInst = $principal + $monthlyInterest + $fee;
+                $totalInst = round($principal + $monthlyInterest + $fee, 2);
 
                 $isPast = $markPastPaid && $dueDate->copy()->startOfDay()->isPast() && ! $dueDate->isToday();
                 $status = $isPast ? 'paid' : 'pending';
@@ -257,7 +265,7 @@ class CreditService
             ]);
         }
 
-        $paymentAmount = isset($data['amount']) ? (int) $data['amount'] : (int) $installment->principal_amount;
+        $paymentAmount = isset($data['amount']) ? round((float) $data['amount'], 2) : round((float) $installment->principal_amount, 2);
 
         if ($paymentAmount <= 0) {
             throw ValidationException::withMessages([
@@ -685,7 +693,7 @@ class CreditService
             ]);
         }
 
-        $amount = (int) $data['amount'];
+        $amount = round((float) $data['amount'], 2);
         if ($amount <= 0) {
             throw ValidationException::withMessages([
                 'amount' => 'Nominal nota harus lebih dari 0.',
@@ -830,7 +838,7 @@ class CreditService
             ]);
         }
 
-        $paymentAmount = (int) $data['amount'];
+        $paymentAmount = round((float) $data['amount'], 2);
         if ($paymentAmount <= 0) {
             throw ValidationException::withMessages([
                 'amount' => 'Nominal pembayaran harus lebih dari 0.',

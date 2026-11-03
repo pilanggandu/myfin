@@ -795,4 +795,64 @@ class CreditInstallmentTest extends TestCase
             'installment_id' => $inst->id,
         ]);
     }
+
+    public function test_decimal_input_behind_the_comma_is_normalized_and_processed(): void
+    {
+        // 1. Simpan pembelian dengan format desimal berkoma Indonesia "1200000,50"
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.purchases.store'), [
+                'credit_account_id' => $this->creditCard->id,
+                'category_id' => $this->category->id,
+                'name' => 'Belanja Desimal',
+                'total_amount' => '1.200.000,50',
+                'tenor' => 2,
+                'start_date' => '2026-11-01',
+                'admin_fee' => '10.000,50',
+            ])
+            ->assertRedirect();
+
+        $plan = InstallmentPlan::where('name', 'Belanja Desimal')->first();
+        $this->assertNotNull($plan);
+        $this->assertEquals(1200000.50, $plan->total_amount);
+        $this->assertEquals(10000.50, $plan->admin_fee);
+
+        $inst = $plan->installments()->where('installment_number', 1)->first();
+        $this->assertNotNull($inst);
+
+        // 2. Bayar cicilan dengan nominal koma Indonesia "600000,25"
+        $initialBalance = $this->bankAccount->currentBalance();
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.installments.pay', $inst), [
+                'source_account_id' => $this->bankAccount->id,
+                'amount' => '600.000,25',
+                'payment_date' => '2026-11-04',
+            ])
+            ->assertRedirect(route('credit.plans.show', $plan));
+
+        $inst->refresh();
+        $this->assertTrue($inst->isPaid());
+        $this->assertEquals(600000.25, $inst->principal_amount);
+        $this->assertEquals($initialBalance - 600000.25, $this->bankAccount->currentBalance());
+
+        // 3. Simpan nota kredit dengan nilai desimal "7,33"
+        $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.notes.store'), [
+                'credit_account_id' => $this->creditCard->id,
+                'installment_plan_id' => $plan->id,
+                'installment_id' => $plan->installments()->where('installment_number', 2)->first()->id,
+                'type' => 'credit_note',
+                'amount' => '7,33',
+                'note_date' => '2026-11-04',
+                'description' => 'Diskon pembulatan sen',
+            ])
+            ->assertRedirect(route('credit.plans.show', $plan));
+
+        $this->assertDatabaseHas('credit_debit_notes', [
+            'type' => 'credit_note',
+            'amount' => 7.33,
+        ]);
+    }
 }

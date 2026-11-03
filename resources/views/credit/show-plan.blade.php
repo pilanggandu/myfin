@@ -488,8 +488,9 @@
                         name="amount" 
                         id="payment_amount" 
                         required 
-                        min="1"
-                        placeholder="Contoh: 400000"
+                        min="0.01"
+                        step="any"
+                        placeholder="Contoh: 150166.67"
                         onfocus="this.select()"
                         class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono font-bold text-base focus:outline-none focus:ring-1 focus:ring-forest"
                     >
@@ -744,8 +745,9 @@
                         name="amount" 
                         id="note_amount" 
                         required 
-                        min="1"
-                        placeholder="Contoh: 8"
+                        min="0.01"
+                        step="any"
+                        placeholder="Contoh: 7.33 atau 8"
                         class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono font-bold text-base focus:outline-none focus:ring-1 focus:ring-forest"
                     >
                     <span id="noteAmountHelp" class="text-[10px] text-muted">Nominal selisih atau penyesuaian yang akan dicatat.</span>

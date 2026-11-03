@@ -25,7 +25,7 @@ class CreditDebitNote extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'integer',
+            'amount' => 'float',
             'note_date' => 'date',
         ];
     }
@@ -73,7 +73,8 @@ class CreditDebitNote extends Model
     public function getFormattedAmountAttribute(): string
     {
         $prefix = $this->isCreditNote() ? '- Rp ' : '+ Rp ';
+        $decimals = fmod((float) $this->amount, 1) == 0.0 ? 0 : 2;
 
-        return $prefix.number_format($this->amount, 0, ',', '.');
+        return $prefix.number_format($this->amount, $decimals, ',', '.');
     }
 }

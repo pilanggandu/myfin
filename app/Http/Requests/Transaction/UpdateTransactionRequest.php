@@ -2,14 +2,24 @@
 
 namespace App\Http\Requests\Transaction;
 
+use App\Http\Requests\Concerns\NormalizesMonetaryInputs;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateTransactionRequest extends FormRequest
 {
+    use NormalizesMonetaryInputs;
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('transaction'));
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('amount')) {
+            $this->merge(['amount' => $this->normalizeMonetaryInput($this->input('amount'))]);
+        }
     }
 
     public function rules(): array
@@ -23,7 +33,7 @@ class UpdateTransactionRequest extends FormRequest
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['nullable', 'string', 'max:8'],
             'description' => ['required', 'string', 'max:255'],
-            'amount' => ['required', 'integer', 'min:1'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
             'reason' => ['nullable', 'string', 'max:255'],
             'member_id' => [
                 'nullable',

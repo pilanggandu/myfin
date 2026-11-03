@@ -27,7 +27,7 @@ class CreditAccount extends Model
     protected function casts(): array
     {
         return [
-            'credit_limit' => 'integer',
+            'credit_limit' => 'float',
             'billing_cycle_day' => 'integer',
             'due_day' => 'integer',
             'archived_at' => 'datetime',
@@ -90,22 +90,22 @@ class CreditAccount extends Model
         }
     }
 
-    public function currentLiability(): int
+    public function currentLiability(): float
     {
-        return (int) Installment::query()
+        return round((float) Installment::query()
             ->whereHas('installmentPlan', function ($q) {
                 $q->where('credit_account_id', $this->id)
                     ->where('status', 'active');
             })
             ->where('status', 'pending')
-            ->sum('principal_amount');
+            ->sum('principal_amount'), 2);
     }
 
-    public function availableLimit(): int
+    public function availableLimit(): float
     {
-        $available = (int) $this->credit_limit - $this->currentLiability();
+        $available = (float) $this->credit_limit - $this->currentLiability();
 
-        return max(0, $available);
+        return max(0.0, round($available, 2));
     }
 
     public function utilizationRate(): float
@@ -137,17 +137,25 @@ class CreditAccount extends Model
 
     public function getFormattedLimitAttribute(): string
     {
-        return 'Rp '.number_format($this->credit_limit, 0, ',', '.');
+        $decimals = fmod($this->credit_limit, 1.0) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->credit_limit, $decimals, ',', '.');
     }
 
     public function getFormattedLiabilityAttribute(): string
     {
-        return 'Rp '.number_format($this->currentLiability(), 0, ',', '.');
+        $amt = $this->currentLiability();
+        $decimals = fmod($amt, 1.0) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getFormattedAvailableLimitAttribute(): string
     {
-        return 'Rp '.number_format($this->availableLimit(), 0, ',', '.');
+        $amt = $this->availableLimit();
+        $decimals = fmod($amt, 1.0) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getStatementBill(?string $monthYear = null): array

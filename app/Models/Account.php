@@ -27,7 +27,7 @@ class Account extends Model
     protected function casts(): array
     {
         return [
-            'opening_balance' => 'integer',
+            'opening_balance' => 'float',
             'opened_on' => 'date',
             'archived_at' => 'datetime',
             'is_default' => 'boolean',
@@ -92,33 +92,36 @@ class Account extends Model
         });
     }
 
-    public function currentBalance(): int
+    public function currentBalance(): float|int
     {
-        $entriesSum = (int) $this->entries()
+        $entriesSum = (float) $this->entries()
             ->whereHas('transaction', function ($query) {
                 $query->where('status', 'posted');
             })
             ->sum('amount_signed');
 
-        return (int) $this->opening_balance + $entriesSum;
+        return round((float) $this->opening_balance + $entriesSum, 2);
     }
 
-    public function balanceOnDate(Carbon|string $date): int
+    public function balanceOnDate(Carbon|string $date): float|int
     {
         $dateStr = $date instanceof Carbon ? $date->toDateString() : $date;
 
-        $entriesSum = (int) $this->entries()
+        $entriesSum = (float) $this->entries()
             ->whereHas('transaction', function ($query) use ($dateStr) {
                 $query->where('status', 'posted')
                     ->where('transaction_date', '<=', $dateStr);
             })
             ->sum('amount_signed');
 
-        return (int) $this->opening_balance + $entriesSum;
+        return round((float) $this->opening_balance + $entriesSum, 2);
     }
 
     public function getFormattedBalanceAttribute(): string
     {
-        return 'Rp '.number_format($this->currentBalance(), 0, ',', '.');
+        $bal = $this->currentBalance();
+        $decimals = fmod((float) $bal, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($bal, $decimals, ',', '.');
     }
 }

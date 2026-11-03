@@ -562,7 +562,7 @@
                         id="credit_account_limit" 
                         required 
                         min="0"
-                        step="10000"
+                        step="any"
                         placeholder="Contoh: 15000000"
                         class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
                         onfocus="this.select()"
@@ -684,7 +684,8 @@
                         name="amount" 
                         id="pay_bill_amount" 
                         required 
-                        min="1"
+                        min="0.01"
+                        step="any"
                         placeholder="Contoh: 1500000"
                         onfocus="this.select()"
                         class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono font-bold text-base focus:outline-none focus:ring-1 focus:ring-forest"

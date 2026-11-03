@@ -178,7 +178,8 @@
                             name="amount" 
                             id="amount" 
                             required 
-                            min="1"
+                            min="0.01"
+                            step="any"
                             value="{{ $statement['total_pending'] }}"
                             class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono font-bold text-base focus:outline-none focus:ring-1 focus:ring-forest"
                         >
@@ -285,7 +286,11 @@
                                     {{ $inst->formatted_principal }}
                                 </td>
                                 <td class="py-3 px-3 whitespace-nowrap text-right font-mono text-muted">
-                                    {{ 'Rp ' . number_format((int)$inst->interest_amount + (int)$inst->fee_amount, 0, ',', '.') }}
+                                    @php
+                                        $extra = (float) $inst->interest_amount + (float) $inst->fee_amount;
+                                        $extraDec = fmod($extra, 1.0) == 0.0 ? 0 : 2;
+                                    @endphp
+                                    {{ 'Rp ' . number_format($extra, $extraDec, ',', '.') }}
                                 </td>
                                 <td class="py-3 px-3 whitespace-nowrap text-right font-mono font-bold text-charcoal">
                                     {{ $inst->formatted_total }}

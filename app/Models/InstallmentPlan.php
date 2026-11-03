@@ -31,10 +31,10 @@ class InstallmentPlan extends Model
     protected function casts(): array
     {
         return [
-            'total_amount' => 'integer',
+            'total_amount' => 'float',
             'tenor' => 'integer',
             'interest_rate' => 'decimal:2',
-            'admin_fee' => 'integer',
+            'admin_fee' => 'float',
             'start_date' => 'date',
         ];
     }
@@ -104,39 +104,39 @@ class InstallmentPlan extends Model
         return $this->status === 'completed';
     }
 
-    public function remainingPrincipal(): int
+    public function remainingPrincipal(): float|int
     {
-        return (int) $this->installments()->where('status', 'pending')->sum('principal_amount');
+        return round((float) $this->installments()->where('status', 'pending')->sum('principal_amount'), 2);
     }
 
-    public function paidPrincipal(): int
+    public function paidPrincipal(): float|int
     {
-        return (int) $this->installments()->where('status', 'paid')->sum('principal_amount');
+        return round((float) $this->installments()->where('status', 'paid')->sum('principal_amount'), 2);
     }
 
-    public function totalInterest(): int
+    public function totalInterest(): float|int
     {
-        return (int) $this->installments()->sum('interest_amount');
+        return round((float) $this->installments()->sum('interest_amount'), 2);
     }
 
-    public function totalFees(): int
+    public function totalFees(): float|int
     {
-        return (int) $this->installments()->sum('fee_amount');
+        return round((float) $this->installments()->sum('fee_amount'), 2);
     }
 
-    public function grandTotalAmount(): int
+    public function grandTotalAmount(): float|int
     {
-        return (int) $this->installments()->sum('total_amount');
+        return round((float) $this->installments()->sum('total_amount'), 2);
     }
 
-    public function remainingTotalAmount(): int
+    public function remainingTotalAmount(): float|int
     {
-        return (int) $this->installments()->where('status', 'pending')->sum('total_amount');
+        return round((float) $this->installments()->where('status', 'pending')->sum('total_amount'), 2);
     }
 
-    public function getAdminFeeAttribute(): int
+    public function getAdminFeeAttribute(): float|int
     {
-        return (int) ($this->attributes['admin_fee'] ?? 0);
+        return round((float) ($this->attributes['admin_fee'] ?? 0), 2);
     }
 
     public function hasInterestOrFees(): bool
@@ -146,37 +146,57 @@ class InstallmentPlan extends Model
 
     public function getFormattedTotalAmountAttribute(): string
     {
-        return 'Rp '.number_format($this->total_amount, 0, ',', '.');
+        $decimals = fmod((float) $this->total_amount, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->total_amount, $decimals, ',', '.');
     }
 
     public function getFormattedGrandTotalAttribute(): string
     {
-        return 'Rp '.number_format($this->grandTotalAmount(), 0, ',', '.');
+        $amt = $this->grandTotalAmount();
+        $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getFormattedRemainingAttribute(): string
     {
-        return 'Rp '.number_format($this->remainingPrincipal(), 0, ',', '.');
+        $amt = $this->remainingPrincipal();
+        $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getFormattedRemainingTotalAttribute(): string
     {
-        return 'Rp '.number_format($this->remainingTotalAmount(), 0, ',', '.');
+        $amt = $this->remainingTotalAmount();
+        $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getFormattedPaidAttribute(): string
     {
-        return 'Rp '.number_format($this->paidPrincipal(), 0, ',', '.');
+        $amt = $this->paidPrincipal();
+        $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getFormattedInterestAttribute(): string
     {
-        return 'Rp '.number_format($this->totalInterest(), 0, ',', '.');
+        $amt = $this->totalInterest();
+        $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function getFormattedFeeAttribute(): string
     {
-        return 'Rp '.number_format($this->totalFees(), 0, ',', '.');
+        $amt = $this->totalFees();
+        $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 
     public function checkCompletion(): void

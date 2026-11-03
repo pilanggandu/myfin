@@ -768,4 +768,25 @@ class TransactionTest extends TestCase
             'description' => 'Kopi Sore Cepat',
         ]);
     }
+
+    public function test_transaction_stores_with_decimal_amount_comma_notation(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('transactions.store'), [
+                'type' => 'expense',
+                'account_id' => $this->bca->id,
+                'category_id' => $this->expenseCat->id,
+                'amount' => '25.000,50',
+                'transaction_date' => '2026-01-05',
+                'description' => 'Kopi Desimal',
+            ]);
+
+        $response->assertRedirect(route('transactions.index'));
+
+        $this->assertDatabaseHas('transaction_entries', [
+            'account_id' => $this->bca->id,
+            'amount_signed' => -25000.50,
+        ]);
+    }
 }

@@ -213,9 +213,9 @@
                                 >
                                 <input 
                                     type="text" 
-                                    inputmode="numeric" 
+                                    inputmode="decimal" 
                                     id="amountDisplay" 
-                                    value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '' }}" 
+                                    value="{{ old('amount') ? (fmod((float)old('amount'), 1.0) == 0.0 ? number_format((float)old('amount'), 0, ',', '.') : number_format((float)old('amount'), 2, ',', '.')) : '' }}" 
                                     placeholder="0" 
                                     required 
                                     autofocus 
@@ -881,19 +881,58 @@
             }
 
             function onAmountDisplayInput(val) {
-                const raw = val.replace(/\D/g, '');
-                const num = parseInt(raw, 10) || 0;
-                document.getElementById('amountInput').value = num > 0 ? num : '';
-                document.getElementById('amountDisplay').value = num > 0 ? Number(num).toLocaleString('id-ID') : '';
+                let cleaned = val.replace(/[^0-9,\.]/g, '');
+                let intPart = '';
+                let decPart = '';
+                let hasComma = false;
+
+                if (cleaned.includes(',')) {
+                    hasComma = true;
+                    const parts = cleaned.split(',');
+                    intPart = parts[0].replace(/\D/g, '');
+                    decPart = parts.slice(1).join('').replace(/\D/g, '').slice(0, 2);
+                } else if (cleaned.includes('.')) {
+                    const parts = cleaned.split('.');
+                    if (parts.length === 2 && parts[1].length <= 2 && parts[0].length > 0) {
+                        hasComma = true;
+                        intPart = parts[0].replace(/\D/g, '');
+                        decPart = parts[1].slice(0, 2);
+                    } else {
+                        intPart = cleaned.replace(/\D/g, '');
+                    }
+                } else {
+                    intPart = cleaned.replace(/\D/g, '');
+                }
+
+                const intNum = parseInt(intPart, 10) || 0;
+                const formattedInt = intNum > 0 ? Number(intNum).toLocaleString('id-ID') : (intPart === '0' ? '0' : '');
+
+                let displayVal = '';
+                let submitVal = '';
+
+                if (formattedInt !== '') {
+                    displayVal = formattedInt + (hasComma ? ',' + decPart : '');
+                    submitVal = decPart ? intNum + '.' + decPart : (intNum > 0 ? intNum.toString() : '');
+                } else if (hasComma) {
+                    displayVal = '0,' + decPart;
+                    submitVal = '0.' + (decPart || '0');
+                }
+
+                document.getElementById('amountInput').value = submitVal;
+                document.getElementById('amountDisplay').value = displayVal;
                 updateReceipt();
             }
 
             function addAmount(val) {
                 const hidden = document.getElementById('amountInput');
-                const current = parseInt(hidden.value, 10) || 0;
-                const next = current + val;
+                const current = parseFloat(hidden.value) || 0;
+                const next = Math.round((current + val) * 100) / 100;
                 hidden.value = next;
-                document.getElementById('amountDisplay').value = Number(next).toLocaleString('id-ID');
+                const isInt = next % 1 === 0;
+                document.getElementById('amountDisplay').value = Number(next).toLocaleString('id-ID', {
+                    minimumFractionDigits: isInt ? 0 : 2,
+                    maximumFractionDigits: 2
+                });
                 updateReceipt();
             }
 
@@ -920,11 +959,15 @@
             }
 
             function formatRupiah(num) {
-                return 'Rp ' + Number(num).toLocaleString('id-ID');
+                const isInt = num % 1 === 0;
+                return 'Rp ' + Number(num).toLocaleString('id-ID', {
+                    minimumFractionDigits: isInt ? 0 : 2,
+                    maximumFractionDigits: 2
+                });
             }
 
             function updateReceipt() {
-                const amountVal = parseInt(document.getElementById('amountInput').value, 10) || 0;
+                const amountVal = parseFloat(document.getElementById('amountInput').value) || 0;
                 const dateVal = document.getElementById('transaction_date').value;
                 const timeVal = document.getElementById('transaction_time')?.value;
                 const descVal = document.getElementById('descriptionInput').value.trim();

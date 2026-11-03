@@ -2,13 +2,33 @@
 
 namespace App\Http\Requests\Credit;
 
+use App\Http\Requests\Concerns\NormalizesMonetaryInputs;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCreditPurchaseRequest extends FormRequest
 {
+    use NormalizesMonetaryInputs;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $merged = [];
+        if ($this->has('total_amount')) {
+            $merged['total_amount'] = $this->normalizeMonetaryInput($this->input('total_amount'));
+        }
+        if ($this->has('admin_fee')) {
+            $merged['admin_fee'] = $this->normalizeMonetaryInput($this->input('admin_fee'));
+        }
+        if ($this->has('interest_rate')) {
+            $merged['interest_rate'] = $this->normalizeMonetaryInput($this->input('interest_rate'));
+        }
+        if (! empty($merged)) {
+            $this->merge($merged);
+        }
     }
 
     public function rules(): array
@@ -18,10 +38,10 @@ class StoreCreditPurchaseRequest extends FormRequest
             'category_id' => ['required', 'exists:categories,id'],
             'member_id' => ['nullable', 'exists:members,id'],
             'name' => ['required', 'string', 'max:255'],
-            'total_amount' => ['required', 'integer', 'min:1'],
+            'total_amount' => ['required', 'numeric', 'min:0.01'],
             'tenor' => ['required', 'integer', 'between:1,60'],
             'interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'admin_fee' => ['nullable', 'integer', 'min:0'],
+            'admin_fee' => ['nullable', 'numeric', 'min:0'],
             'start_date' => ['required', 'date'],
             'first_due_date' => ['nullable', 'date'],
             'mark_past_paid' => ['nullable', 'boolean'],
@@ -38,8 +58,8 @@ class StoreCreditPurchaseRequest extends FormRequest
             'category_id.exists' => 'Kategori pengeluaran tidak valid.',
             'name.required' => 'Nama barang atau deskripsi belanja wajib diisi.',
             'total_amount.required' => 'Nominal belanja wajib diisi.',
-            'total_amount.integer' => 'Nominal belanja harus berupa angka bulat dalam Rupiah.',
-            'total_amount.min' => 'Nominal belanja minimal Rp 1.',
+            'total_amount.numeric' => 'Nominal belanja harus berupa angka valid.',
+            'total_amount.min' => 'Nominal belanja minimal Rp 0,01.',
             'tenor.required' => 'Pilih tenor cicilan.',
             'tenor.between' => 'Tenor cicilan harus antara 1 sampai 60 bulan.',
             'start_date.required' => 'Tanggal transaksi pembelian wajib diisi.',

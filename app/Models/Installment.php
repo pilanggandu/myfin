@@ -31,10 +31,10 @@ class Installment extends Model
         return [
             'installment_number' => 'integer',
             'due_date' => 'date',
-            'principal_amount' => 'integer',
-            'interest_amount' => 'integer',
-            'fee_amount' => 'integer',
-            'total_amount' => 'integer',
+            'principal_amount' => 'float',
+            'interest_amount' => 'float',
+            'fee_amount' => 'float',
+            'total_amount' => 'float',
             'paid_at' => 'datetime',
         ];
     }
@@ -185,21 +185,29 @@ class Installment extends Model
 
     public function getFormattedTotalAmountAttribute(): string
     {
-        return 'Rp '.number_format($this->total_amount, 0, ',', '.');
+        $decimals = fmod((float) $this->total_amount, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->total_amount, $decimals, ',', '.');
     }
 
     public function getFormattedPrincipalAttribute(): string
     {
-        return 'Rp '.number_format($this->principal_amount, 0, ',', '.');
+        $decimals = fmod((float) $this->principal_amount, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->principal_amount, $decimals, ',', '.');
     }
 
     public function getFormattedInterestAttribute(): string
     {
-        return 'Rp '.number_format($this->interest_amount, 0, ',', '.');
+        $decimals = fmod((float) $this->interest_amount, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->interest_amount, $decimals, ',', '.');
     }
 
     public function getFormattedFeeAttribute(): string
     {
-        return 'Rp '.number_format($this->fee_amount, 0, ',', '.');
+        $decimals = fmod((float) $this->fee_amount, 1) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->fee_amount, $decimals, ',', '.');
     }
 }

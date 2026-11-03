@@ -59,7 +59,7 @@ class TransactionService
                     ]);
                 }
 
-                $amount = (int) $data['amount'];
+                $amount = round((float) $data['amount'], 2);
                 if ($amount <= 0) {
                     throw ValidationException::withMessages([
                         'amount' => 'Nominal transaksi harus lebih dari 0.',
@@ -146,7 +146,7 @@ class TransactionService
                     ]);
                 }
 
-                $amount = (int) $data['amount'];
+                $amount = round((float) $data['amount'], 2);
                 if ($amount <= 0) {
                     throw ValidationException::withMessages([
                         'amount' => 'Nominal transaksi harus lebih dari 0.',
@@ -237,7 +237,7 @@ class TransactionService
                     ]);
                 }
 
-                $amount = (int) $data['amount'];
+                $amount = round((float) $data['amount'], 2);
                 if ($amount <= 0) {
                     throw ValidationException::withMessages([
                         'amount' => 'Nominal transfer harus lebih dari 0.',
@@ -308,7 +308,7 @@ class TransactionService
 
             $space = $lockedTransaction->space;
             $type = $data['type'] ?? $lockedTransaction->type;
-            $amount = (int) ($data['amount'] ?? $lockedTransaction->totalAmount());
+            $amount = round((float) ($data['amount'] ?? $lockedTransaction->totalAmount()), 2);
             if ($amount <= 0) {
                 throw ValidationException::withMessages([
                     'amount' => 'Nominal transaksi harus lebih dari 0.',
