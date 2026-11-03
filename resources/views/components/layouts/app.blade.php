@@ -433,5 +433,7 @@
 
     <!-- Global Quick Transaction Modal -->
     <x-quick-transaction-modal />
+
+    @stack('scripts')
 </body>
 </html>

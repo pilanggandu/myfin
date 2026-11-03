@@ -352,7 +352,6 @@
         @endif
     </div>
 
-    @push('scripts')
     <script>
         function onCreditAccountChange() {
             const select = document.getElementById('credit_account_id');
@@ -486,5 +485,4 @@
             updateSimulation();
         });
     </script>
-    @endpush
 </x-layouts.app>

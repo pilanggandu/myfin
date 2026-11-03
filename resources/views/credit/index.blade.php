@@ -494,7 +494,7 @@
     @endif
 
     <!-- Modal Tambah / Edit Akun Kredit -->
-    <div id="creditAccountModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
+    <div id="creditAccountModal" onclick="if (event.target === this) closeCreditAccountModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
         <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
             <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
                 <h3 id="modalTitle" class="font-serif text-lg text-charcoal font-medium">Tambah Akun Kredit</h3>
@@ -595,7 +595,7 @@
     </div>
 
     <!-- Modal Bayar Tagihan Kartu Kredit -->
-    <div id="payBillModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
+    <div id="payBillModal" onclick="if (event.target === this) closePayBillModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
         <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
             <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
                 <div>
@@ -689,7 +689,6 @@
         </div>
     </div>
 
-    @push('scripts')
     <script>
         function openPayBillModal(id, name, liability, formattedLiability) {
             document.getElementById('payBillModalTitle').textContent = 'Bayar Tagihan ' + name;
@@ -763,5 +762,4 @@
             }
         });
     </script>
-    @endpush
 </x-layouts.app>
