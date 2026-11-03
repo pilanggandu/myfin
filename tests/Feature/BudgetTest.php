@@ -16,11 +16,17 @@ class BudgetTest extends TestCase
     use RefreshDatabase;
 
     private User $userA;
+
     private User $userB;
+
     private Space $spaceA;
+
     private Space $spaceB;
+
     private Account $bca;
+
     private Category $expenseCat;
+
     private Category $incomeCat;
 
     protected function setUp(): void

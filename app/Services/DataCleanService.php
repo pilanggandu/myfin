@@ -5,7 +5,11 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
+use App\Models\CreditAccount;
+use App\Models\CreditPayment;
 use App\Models\FinancialTransaction;
+use App\Models\Installment;
+use App\Models\InstallmentPlan;
 use App\Models\Member;
 use App\Models\RecurringOccurrence;
 use App\Models\RecurringSchedule;
@@ -19,15 +23,15 @@ class DataCleanService
 {
     public function cleanSpace(Space $space, array $options): array
     {
-        $isAll = !empty($options['all']);
-        $cleanTransactions = $isAll || !empty($options['transactions']);
-        $cleanBudgets = $isAll || !empty($options['budgets']);
-        $cleanRecurring = $isAll || !empty($options['recurring']);
-        $cleanMembers = $isAll || !empty($options['members']);
-        $cleanAccounts = $isAll || !empty($options['accounts']);
-        $cleanCredit = $isAll || !empty($options['credit']);
-        $resetAccountBalances = !empty($options['reset_account_balances']);
-        $resetCategories = $isAll || !empty($options['reset_categories']);
+        $isAll = ! empty($options['all']);
+        $cleanTransactions = $isAll || ! empty($options['transactions']);
+        $cleanBudgets = $isAll || ! empty($options['budgets']);
+        $cleanRecurring = $isAll || ! empty($options['recurring']);
+        $cleanMembers = $isAll || ! empty($options['members']);
+        $cleanAccounts = $isAll || ! empty($options['accounts']);
+        $cleanCredit = $isAll || ! empty($options['credit']);
+        $resetAccountBalances = ! empty($options['reset_account_balances']);
+        $resetCategories = $isAll || ! empty($options['reset_categories']);
 
         if (! $cleanTransactions && ! $cleanBudgets && ! $cleanRecurring && ! $cleanMembers && ! $cleanAccounts && ! $cleanCredit && ! $resetAccountBalances && ! $resetCategories) {
             throw ValidationException::withMessages([
@@ -105,11 +109,11 @@ class DataCleanService
             }
 
             if ($cleanCredit) {
-                \App\Models\CreditPayment::where('space_id', $space->id)->delete();
-                \App\Models\Installment::where('space_id', $space->id)->delete();
-                \App\Models\InstallmentPlan::where('space_id', $space->id)->delete();
-                $creditAccountLedgerIds = \App\Models\CreditAccount::where('space_id', $space->id)->pluck('account_id');
-                \App\Models\CreditAccount::where('space_id', $space->id)->delete();
+                CreditPayment::where('space_id', $space->id)->delete();
+                Installment::where('space_id', $space->id)->delete();
+                InstallmentPlan::where('space_id', $space->id)->delete();
+                $creditAccountLedgerIds = CreditAccount::where('space_id', $space->id)->pluck('account_id');
+                CreditAccount::where('space_id', $space->id)->delete();
                 Account::whereIn('id', $creditAccountLedgerIds)->delete();
                 $summary['credit'] = true;
             }

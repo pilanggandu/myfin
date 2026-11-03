@@ -49,29 +49,29 @@ class ProfileController extends Controller
         $summary = $cleanService->cleanSpace($space, $request->validated());
 
         $details = [];
-        if (!empty($summary['transactions'])) {
+        if (! empty($summary['transactions'])) {
             $details[] = "{$summary['transactions']} transaksi";
         }
-        if (!empty($summary['recurring'])) {
+        if (! empty($summary['recurring'])) {
             $details[] = "{$summary['recurring']} jadwal berulang";
         }
-        if (!empty($summary['budgets'])) {
+        if (! empty($summary['budgets'])) {
             $details[] = "{$summary['budgets']} anggaran";
         }
-        if (!empty($summary['members'])) {
+        if (! empty($summary['members'])) {
             $details[] = "{$summary['members']} member";
         }
-        if (!empty($summary['accounts'])) {
+        if (! empty($summary['accounts'])) {
             $details[] = "{$summary['accounts']} rekening";
         }
-        if (!empty($summary['reset_balances'])) {
-            $details[] = "saldo rekening direset ke Rp 0";
+        if (! empty($summary['reset_balances'])) {
+            $details[] = 'saldo rekening direset ke Rp 0';
         }
-        if (!empty($summary['categories_reset'])) {
-            $details[] = "kategori direset ke default";
+        if (! empty($summary['categories_reset'])) {
+            $details[] = 'kategori direset ke default';
         }
 
-        $detailText = !empty($details) ? ' (' . implode(', ', $details) . ')' : '';
+        $detailText = ! empty($details) ? ' ('.implode(', ', $details).')' : '';
 
         return redirect()->route('profile.edit')->with('success', "Data ruang \"{$space->name}\" berhasil dibersihkan{$detailText}.");
     }

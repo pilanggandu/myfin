@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Account extends Model
 {
@@ -80,7 +81,7 @@ class Account extends Model
 
     public function makeDefault(): void
     {
-        \Illuminate\Support\Facades\DB::transaction(function () {
+        DB::transaction(function () {
             static::where('space_id', $this->space_id)->lockForUpdate()->get();
 
             static::where('space_id', $this->space_id)
@@ -118,6 +119,6 @@ class Account extends Model
 
     public function getFormattedBalanceAttribute(): string
     {
-        return 'Rp ' . number_format($this->currentBalance(), 0, ',', '.');
+        return 'Rp '.number_format($this->currentBalance(), 0, ',', '.');
     }
 }

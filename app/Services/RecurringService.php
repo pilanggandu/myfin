@@ -71,7 +71,7 @@ class RecurringService
             }
         }
 
-        $memberId = !empty($data['member_id']) ? (int) $data['member_id'] : null;
+        $memberId = ! empty($data['member_id']) ? (int) $data['member_id'] : null;
         if ($memberId) {
             $member = Member::where('space_id', $space->id)
                 ->where('id', $memberId)
@@ -85,7 +85,7 @@ class RecurringService
             }
         }
 
-        $isVariable = !empty($data['is_variable_amount']);
+        $isVariable = ! empty($data['is_variable_amount']);
         $amount = $isVariable ? null : (int) ($data['amount'] ?? 0);
 
         if (! $isVariable && $amount <= 0) {
@@ -106,7 +106,7 @@ class RecurringService
                 'frequency' => $data['frequency'],
                 'anchor_day' => $anchorDay,
                 'start_date' => $startDate->toDateString(),
-                'end_date' => !empty($data['end_date']) ? Carbon::parse($data['end_date'])->toDateString() : null,
+                'end_date' => ! empty($data['end_date']) ? Carbon::parse($data['end_date'])->toDateString() : null,
                 'next_due_date' => $startDate->toDateString(),
                 'amount' => $amount,
                 'is_variable_amount' => $isVariable,
@@ -178,7 +178,7 @@ class RecurringService
             }
         }
 
-        $memberId = !empty($data['member_id']) ? (int) $data['member_id'] : null;
+        $memberId = ! empty($data['member_id']) ? (int) $data['member_id'] : null;
         if ($memberId) {
             $member = Member::where('space_id', $space->id)
                 ->where('id', $memberId)
@@ -192,7 +192,7 @@ class RecurringService
             }
         }
 
-        $isVariable = !empty($data['is_variable_amount']);
+        $isVariable = ! empty($data['is_variable_amount']);
         $amount = $isVariable ? null : (int) ($data['amount'] ?? 0);
 
         if (! $isVariable && $amount <= 0) {
@@ -213,7 +213,7 @@ class RecurringService
             'frequency' => $data['frequency'],
             'anchor_day' => $anchorDay,
             'start_date' => $startDate->toDateString(),
-            'end_date' => !empty($data['end_date']) ? Carbon::parse($data['end_date'])->toDateString() : null,
+            'end_date' => ! empty($data['end_date']) ? Carbon::parse($data['end_date'])->toDateString() : null,
             'amount' => $amount,
             'is_variable_amount' => $isVariable,
             'description' => $data['description'] ?? null,
@@ -243,7 +243,7 @@ class RecurringService
             $occurrence = RecurringOccurrence::where('recurring_schedule_id', $lockedSchedule->id)
                 ->where(function ($q) use ($dueDateStr) {
                     $q->where('due_date', $dueDateStr)
-                      ->orWhere('due_date', 'like', "{$dueDateStr}%");
+                        ->orWhere('due_date', 'like', "{$dueDateStr}%");
                 })
                 ->lockForUpdate()
                 ->first();
@@ -261,7 +261,7 @@ class RecurringService
                 ]);
             }
 
-            $sourceAccountId = !empty($overrideData['source_account_id'])
+            $sourceAccountId = ! empty($overrideData['source_account_id'])
                 ? (int) $overrideData['source_account_id']
                 : (int) $lockedSchedule->source_account_id;
 
@@ -276,12 +276,12 @@ class RecurringService
             }
 
             $txDate = $overrideData['transaction_date'] ?? $dueDate;
-            $description = !empty($overrideData['description'])
+            $description = ! empty($overrideData['description'])
                 ? $overrideData['description']
                 : $lockedSchedule->name;
 
             if ($lockedSchedule->isExpense()) {
-                $categoryId = !empty($overrideData['category_id'])
+                $categoryId = ! empty($overrideData['category_id'])
                     ? (int) $overrideData['category_id']
                     : (int) $lockedSchedule->category_id;
 
@@ -295,7 +295,7 @@ class RecurringService
                     'member_id' => $lockedSchedule->member_id,
                 ]);
             } else {
-                $destAccountId = !empty($overrideData['destination_account_id'])
+                $destAccountId = ! empty($overrideData['destination_account_id'])
                     ? (int) $overrideData['destination_account_id']
                     : (int) $lockedSchedule->destination_account_id;
 
@@ -379,7 +379,7 @@ class RecurringService
             $occurrence = RecurringOccurrence::where('recurring_schedule_id', $lockedSchedule->id)
                 ->where(function ($q) use ($dueDateStr) {
                     $q->where('due_date', $dueDateStr)
-                      ->orWhere('due_date', 'like', "{$dueDateStr}%");
+                        ->orWhere('due_date', 'like', "{$dueDateStr}%");
                 })
                 ->lockForUpdate()
                 ->first();

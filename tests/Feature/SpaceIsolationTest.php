@@ -13,8 +13,11 @@ class SpaceIsolationTest extends TestCase
     use RefreshDatabase;
 
     private User $userA;
+
     private User $userB;
+
     private Space $spaceA;
+
     private Space $spaceB;
 
     protected function setUp(): void

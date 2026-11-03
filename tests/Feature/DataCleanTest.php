@@ -19,11 +19,17 @@ class DataCleanTest extends TestCase
     use RefreshDatabase;
 
     private User $userA;
+
     private User $userB;
+
     private Space $spaceA;
+
     private Space $spaceB;
+
     private Account $bca;
+
     private Category $foodCategory;
+
     private Member $memberMe;
 
     protected function setUp(): void

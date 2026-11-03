@@ -15,6 +15,7 @@ class CurrencyTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Space $space;
 
     protected function setUp(): void

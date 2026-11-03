@@ -40,7 +40,7 @@ class ReportController extends Controller
 
             $startDate = $parsedStart->toDateString();
             $endDate = $parsedEnd->toDateString();
-            $periodLabel = $parsedStart->format('d M Y') . ' s/d ' . $parsedEnd->format('d M Y');
+            $periodLabel = $parsedStart->format('d M Y').' s/d '.$parsedEnd->format('d M Y');
         } else {
             $periodType = 'month';
             $cDate = Carbon::createFromDate($year, $month, 1, $space?->timezone ?: 'Asia/Jakarta');
@@ -103,6 +103,7 @@ class ReportController extends Controller
         $categoryBreakdown = $categoryBreakdown->map(function ($item) use ($totalExpense) {
             $amount = (int) $item->total_amount;
             $percentage = $totalExpense > 0 ? round(($amount / $totalExpense) * 100, 1) : 0;
+
             return (object) [
                 'id' => $item->id,
                 'name' => $item->name,

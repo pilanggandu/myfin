@@ -21,10 +21,20 @@
             @if ($plan->purchaseTransaction)
                 <a 
                     href="{{ route('transactions.show', $plan->purchaseTransaction) }}" 
-                    class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition"
+                    class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition shadow-xs"
                 >
-                    <span>🔍 Lihat Transaksi Belanja Awal</span>
+                    <span>🔍 Transaksi Awal</span>
                 </a>
+            @endif
+
+            @if ($plan->isActive() && $plan->pendingInstallments->count() > 0)
+                <button 
+                    type="button" 
+                    onclick="openPayoffModal()" 
+                    class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-emerald-600/40 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer shadow-xs"
+                >
+                    <span>⚡ Lunasi Sekaligus ({{ $plan->pendingInstallments->count() }} Cicilan)</span>
+                </button>
             @endif
 
             @if ($plan->isActive() && $plan->paidInstallments->isEmpty())
@@ -32,9 +42,9 @@
                     @csrf
                     <button 
                         type="submit" 
-                        class="min-h-[44px] inline-flex items-center gap-1 px-3.5 py-2 border border-red/30 text-red hover:bg-red/10 rounded-lg text-xs font-bold transition cursor-pointer"
+                        class="min-h-[44px] inline-flex items-center gap-1 px-3.5 py-2 border border-red/30 text-red hover:bg-red/10 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
                     >
-                        <span>Batalkan Rencana (Void)</span>
+                        <span>Batalkan (Void)</span>
                     </button>
                 </form>
             @endif
@@ -98,7 +108,16 @@
                 <div class="font-serif text-xl font-bold text-charcoal">
                     {{ $plan->formatted_total_amount }}
                 </div>
-                <span class="text-xs text-muted">0% Bunga (Tanpa Bunga)</span>
+                @if ($plan->hasInterestOrFees())
+                    <span class="text-xs text-muted block mt-0.5">
+                        + Bunga: <strong class="text-amber-600">{{ $plan->formatted_interest }}</strong> | Admin: <strong>{{ $plan->formatted_fee }}</strong>
+                    </span>
+                    <span class="text-xs text-muted block">
+                        Grand Total: <strong class="text-forest">{{ $plan->formatted_grand_total }}</strong>
+                    </span>
+                @else
+                    <span class="text-xs text-muted">0% Bunga (Tanpa Bunga)</span>
+                @endif
             </div>
         </div>
 
@@ -147,8 +166,9 @@
                     <tr class="border-b border-line text-muted">
                         <th class="py-3 px-3 font-semibold">No</th>
                         <th class="py-3 px-3 font-semibold">Jatuh Tempo</th>
-                        <th class="py-3 px-3 font-semibold text-right">Pokok Hutang</th>
-                        <th class="py-3 px-3 font-semibold text-right">Bunga & Biaya</th>
+                        <th class="py-3 px-3 font-semibold text-right">Pokok</th>
+                        <th class="py-3 px-3 font-semibold text-right">Bunga</th>
+                        <th class="py-3 px-3 font-semibold text-right">Admin</th>
                         <th class="py-3 px-3 font-semibold text-right">Total Tagihan</th>
                         <th class="py-3 px-3 font-semibold text-center">Status</th>
                         <th class="py-3 px-3 font-semibold">Keterangan / Pembayaran</th>
@@ -157,18 +177,26 @@
                 </thead>
                 <tbody class="divide-y divide-line/60">
                     @foreach ($plan->installments as $inst)
-                        <tr class="hover:bg-panel transition {{ $inst->isPaid() ? 'bg-cream/20' : '' }}">
+                        <tr class="hover:bg-panel transition {{ $inst->isPaid() ? 'bg-cream/20' : ($inst->isOverdue() ? 'bg-red/5' : '') }}">
                             <td class="py-3.5 px-3 font-bold text-charcoal">
                                 #{{ $inst->installment_number }}
                             </td>
                             <td class="py-3.5 px-3 text-muted whitespace-nowrap">
-                                {{ $inst->due_date->format('d M Y') }}
+                                <div>{{ $inst->due_date->format('d M Y') }}</div>
+                                @if ($inst->isOverdue())
+                                    <span class="text-[10px] text-red font-bold">Terlambat {{ $inst->daysOverdue() }} hari</span>
+                                @elseif ($inst->isDueToday())
+                                    <span class="text-[10px] text-amber-600 font-bold">Jatuh tempo hari ini</span>
+                                @endif
                             </td>
-                            <td class="py-3.5 px-3 text-right font-mono font-semibold text-charcoal">
+                            <td class="py-3.5 px-3 text-right font-mono font-medium text-charcoal">
                                 {{ $inst->formatted_principal }}
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono text-muted">
-                                Rp 0
+                                {{ $inst->formatted_interest }}
+                            </td>
+                            <td class="py-3.5 px-3 text-right font-mono text-muted">
+                                {{ $inst->formatted_fee }}
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono font-bold text-charcoal">
                                 {{ $inst->formatted_total_amount }}
@@ -178,9 +206,21 @@
                                     <span class="inline-flex items-center gap-1 text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded">
                                         <span>✓</span> Lunas
                                     </span>
-                                @else
+                                @elseif ($inst->isOverdue())
+                                    <span class="inline-flex items-center gap-1 text-[11px] bg-red/15 text-red font-bold px-2 py-0.5 rounded">
+                                        <span>⚠️</span> Terlambat
+                                    </span>
+                                @elseif ($inst->isDueToday())
+                                    <span class="inline-flex items-center gap-1 text-[11px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded">
+                                        <span>⚡</span> Hari Ini
+                                    </span>
+                                @elseif ($inst->isDueSoon())
                                     <span class="inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded">
-                                        <span>⏳</span> Belum Bayar
+                                        <span>⏳</span> Segera
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-[11px] bg-muted/15 text-muted font-bold px-2 py-0.5 rounded">
+                                        <span>📅</span> Mendatang
                                     </span>
                                 @endif
                             </td>
@@ -195,18 +235,28 @@
                                     <span class="text-[11px] text-muted">Menunggu pembayaran</span>
                                 @endif
                             </td>
-                            <td class="py-3.5 px-3 text-right">
-                                @if ($inst->isPending() && $plan->isActive())
-                                    <button 
-                                        type="button" 
-                                        onclick="openPaymentModal({{ json_encode($inst) }})" 
-                                        class="min-h-[38px] inline-flex items-center justify-center px-3 py-1.5 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs whitespace-nowrap"
-                                    >
-                                        Bayar Cicilan
-                                    </button>
-                                @elseif ($inst->isPaid())
-                                    <span class="text-xs text-muted font-mono">Tuntas</span>
-                                @endif
+                            <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-1.5 justify-end">
+                                    @if ($inst->isPending() && $plan->isActive())
+                                        <a 
+                                            href="{{ $inst->whatsAppReminderUrl($plan->member?->phone) }}" 
+                                            target="_blank" 
+                                            title="Kirim Pengingat WhatsApp"
+                                            class="min-h-[36px] px-2.5 py-1.5 border border-line text-muted hover:text-emerald-600 rounded-lg text-xs font-semibold hover:bg-cream transition inline-flex items-center gap-1"
+                                        >
+                                            <span>💬 WA</span>
+                                        </a>
+                                        <button 
+                                            type="button" 
+                                            onclick="openPaymentModal({{ json_encode($inst) }})" 
+                                            class="min-h-[36px] inline-flex items-center justify-center px-3 py-1.5 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs whitespace-nowrap"
+                                        >
+                                            Bayar Cicilan
+                                        </button>
+                                    @elseif ($inst->isPaid())
+                                        <span class="text-xs text-muted font-mono">Tuntas</span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -311,8 +361,103 @@
         </div>
     </div>
 
+    <!-- Modal Pelunasan Dipercepat Sekaligus -->
+    <div id="payoffModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
+            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+                <div>
+                    <h3 class="font-serif text-lg text-charcoal font-medium">⚡ Pelunasan Sekaligus</h3>
+                    <p class="text-xs text-muted">{{ $plan->name }} ({{ $plan->pendingInstallments->count() }} cicilan tersisa)</p>
+                </div>
+                <button type="button" onclick="closePayoffModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+            </div>
+
+            <div class="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/20 text-xs">
+                <span class="text-emerald-800 dark:text-emerald-300 block font-medium">
+                    Pelunasan sekaligus akan melunasi seluruh sisa <strong>{{ $plan->pendingInstallments->count() }} cicilan pokok</strong> dan mengembalikan limit kredit Anda sepenuhnya.
+                </span>
+                <div class="mt-2 text-sm font-serif font-bold text-emerald-700 dark:text-emerald-300">
+                    Total Pelunasan: {{ $plan->formatted_remaining }}
+                </div>
+            </div>
+
+            <form id="payoffForm" method="POST" action="{{ route('credit.plans.payoff', $plan) }}" class="space-y-4">
+                @csrf
+
+                <div>
+                    <label for="payoff_source_account_id" class="block text-xs font-semibold text-charcoal mb-1">
+                        Rekening Kas / Bank Pembayaran <span class="text-red">*</span>
+                    </label>
+                    <select 
+                        name="source_account_id" 
+                        id="payoff_source_account_id" 
+                        required 
+                        class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                    >
+                        <option value="">-- Pilih Rekening Kas / Bank --</option>
+                        @foreach ($cashAccounts as $acc)
+                            <option value="{{ $acc->id }}">
+                                {{ $acc->name }} (Saldo: {{ $acc->formatted_balance }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="payoff_payment_date" class="block text-xs font-semibold text-charcoal mb-1">
+                        Tanggal Pelunasan <span class="text-red">*</span>
+                    </label>
+                    <input 
+                        type="date" 
+                        name="payment_date" 
+                        id="payoff_payment_date" 
+                        required 
+                        value="{{ (app('currentSpace') ? app('currentSpace')->now() : now())->toDateString() }}"
+                        class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                </div>
+
+                <div>
+                    <label for="payoff_notes" class="block text-xs font-semibold text-charcoal mb-1">Catatan (Opsional)</label>
+                    <input 
+                        type="text" 
+                        name="notes" 
+                        id="payoff_notes" 
+                        placeholder="Contoh: Pelunasan dipercepat bulan ke-..."
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                    <button 
+                        type="button" 
+                        onclick="closePayoffModal()" 
+                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        id="btnSubmitPayoff"
+                        class="min-h-[44px] px-5 py-2 border border-emerald-600/40 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-2 shadow-xs"
+                    >
+                        <span id="btnSubmitPayoffText">Konfirmasi Lunasi Sekaligus</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
+        function openPayoffModal() {
+            document.getElementById('payoffModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('payoff_source_account_id').focus(), 50);
+        }
+
+        function closePayoffModal() {
+            document.getElementById('payoffModal').classList.add('hidden');
+        }
         function openPaymentModal(installment) {
             document.getElementById('paymentModalTitle').textContent = 'Bayar Cicilan #' + installment.installment_number;
             document.getElementById('paymentForm').action = "/credit/installments/" + installment.id + "/pay";
@@ -334,9 +479,22 @@
             txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Memproses Pembayaran...';
         });
 
+        document.getElementById('payoffForm')?.addEventListener('submit', function() {
+            const btn = document.getElementById('btnSubmitPayoff');
+            const txt = document.getElementById('btnSubmitPayoffText');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Melunasi...';
+        });
+
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !document.getElementById('paymentModal').classList.contains('hidden')) {
-                closePaymentModal();
+            if (e.key === 'Escape') {
+                if (!document.getElementById('paymentModal').classList.contains('hidden')) {
+                    closePaymentModal();
+                }
+                if (!document.getElementById('payoffModal').classList.contains('hidden')) {
+                    closePayoffModal();
+                }
             }
         });
     </script>

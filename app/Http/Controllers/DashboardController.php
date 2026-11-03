@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Installment;
+use App\Services\RecurringService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -10,7 +13,7 @@ class DashboardController extends Controller
     public function index(Request $request): View
     {
         $currentSpace = app('currentSpace');
-        $now = $currentSpace ? $currentSpace->now() : \Illuminate\Support\Carbon::now('Asia/Jakarta');
+        $now = $currentSpace ? $currentSpace->now() : Carbon::now('Asia/Jakarta');
         $startOfMonth = $now->copy()->startOfMonth()->toDateString();
         $endOfMonth = $now->copy()->endOfMonth()->toDateString();
 
@@ -74,7 +77,7 @@ class DashboardController extends Controller
         $unbudgetedExpense = max(0, $monthlyExpense - $totalBudgetSpent);
 
         $recurringSummary = $currentSpace
-            ? app(\App\Services\RecurringService::class)->getDashboardSummary($currentSpace)
+            ? app(RecurringService::class)->getDashboardSummary($currentSpace)
             : ['total_due_count' => 0, 'overdue_count' => 0, 'due_today_count' => 0, 'upcoming_count' => 0, 'items' => []];
 
         $creditAccounts = $currentSpace
@@ -86,7 +89,7 @@ class DashboardController extends Controller
         $totalAvailableCredit = max(0, $totalCreditLimit - $totalCreditLiability);
 
         $upcomingInstallments = $currentSpace
-            ? \App\Models\Installment::query()
+            ? Installment::query()
                 ->where('space_id', $currentSpace->id)
                 ->where('status', 'pending')
                 ->with(['installmentPlan.creditAccount'])

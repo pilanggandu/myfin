@@ -22,7 +22,7 @@ class CreditService
         return DB::transaction(function () use ($space, $data) {
             $ledgerAccount = Account::create([
                 'space_id' => $space->id,
-                'name' => $data['name'] . ' (Kewajiban)',
+                'name' => $data['name'].' (Kewajiban)',
                 'type' => $data['type'] ?? 'credit_card',
                 'opening_balance' => 0,
                 'opened_on' => now()->toDateString(),
@@ -54,7 +54,7 @@ class CreditService
 
             if ($creditAccount->ledgerAccount) {
                 $creditAccount->ledgerAccount->update([
-                    'name' => $data['name'] . ' (Kewajiban)',
+                    'name' => $data['name'].' (Kewajiban)',
                     'type' => $data['type'] ?? $creditAccount->type,
                 ]);
             }
@@ -102,7 +102,7 @@ class CreditService
 
             if ($totalAmount > $available) {
                 throw ValidationException::withMessages([
-                    'total_amount' => 'Nominal pembelian melebihi sisa limit kredit yang tersedia (' . $lockedCreditAccount->formatted_available_limit . ').',
+                    'total_amount' => 'Nominal pembelian melebihi sisa limit kredit yang tersedia ('.$lockedCreditAccount->formatted_available_limit.').',
                 ]);
             }
 
@@ -111,7 +111,7 @@ class CreditService
                 'type' => 'expense',
                 'transaction_date' => $data['start_date'],
                 'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
-                'description' => 'Pembelian Kredit: ' . $data['name'] . ' (' . $lockedCreditAccount->name . ')',
+                'description' => 'Pembelian Kredit: '.$data['name'].' ('.$lockedCreditAccount->name.')',
                 'category_id' => $category->id,
                 'member_id' => $data['member_id'] ?? null,
                 'status' => 'posted',
@@ -124,6 +124,9 @@ class CreditService
                 'amount_signed' => -$totalAmount,
             ]);
 
+            $interestRate = (float) ($data['interest_rate'] ?? 0);
+            $adminFee = (int) ($data['admin_fee'] ?? 0);
+
             $plan = InstallmentPlan::create([
                 'space_id' => $space->id,
                 'credit_account_id' => $lockedCreditAccount->id,
@@ -133,14 +136,19 @@ class CreditService
                 'name' => $data['name'],
                 'total_amount' => $totalAmount,
                 'tenor' => $tenor,
-                'interest_rate' => $data['interest_rate'] ?? 0,
+                'interest_rate' => $interestRate,
+                'admin_fee' => $adminFee,
                 'start_date' => $data['start_date'],
                 'status' => 'active',
                 'notes' => $data['notes'] ?? null,
             ]);
 
             $basePrincipal = intdiv($totalAmount, $tenor);
-            $remainder = $totalAmount % $tenor;
+            $remainderPrincipal = $totalAmount % $tenor;
+
+            $monthlyInterest = (int) round($totalAmount * ($interestRate / 100));
+            $baseFee = intdiv($adminFee, $tenor);
+            $remainderFee = $adminFee % $tenor;
 
             $startDate = Carbon::parse($data['start_date']);
             $firstDueDate = ! empty($data['first_due_date'])
@@ -150,8 +158,10 @@ class CreditService
                     : $startDate->copy()->addMonth());
 
             for ($i = 1; $i <= $tenor; $i++) {
-                $principal = $basePrincipal + ($i === 1 ? $remainder : 0);
+                $principal = $basePrincipal + ($i === 1 ? $remainderPrincipal : 0);
+                $fee = $baseFee + ($i === 1 ? $remainderFee : 0);
                 $dueDate = $firstDueDate->copy()->addMonths($i - 1);
+                $totalInst = $principal + $monthlyInterest + $fee;
 
                 Installment::create([
                     'space_id' => $space->id,
@@ -159,9 +169,9 @@ class CreditService
                     'installment_number' => $i,
                     'due_date' => $dueDate->toDateString(),
                     'principal_amount' => $principal,
-                    'interest_amount' => 0,
-                    'fee_amount' => 0,
-                    'total_amount' => $principal,
+                    'interest_amount' => $monthlyInterest,
+                    'fee_amount' => $fee,
+                    'total_amount' => $totalInst,
                     'status' => 'pending',
                 ]);
             }
@@ -210,7 +220,7 @@ class CreditService
 
         if ($paymentAmount > $installment->principal_amount) {
             throw ValidationException::withMessages([
-                'amount' => 'Nominal pembayaran tidak boleh melebihi sisa pokok cicilan (' . $installment->formatted_principal . ').',
+                'amount' => 'Nominal pembayaran tidak boleh melebihi sisa pokok cicilan ('.$installment->formatted_principal.').',
             ]);
         }
 
@@ -233,7 +243,7 @@ class CreditService
                 'type' => 'credit_payment',
                 'transaction_date' => $data['payment_date'],
                 'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
-                'description' => 'Pembayaran Cicilan #' . $lockedInstallment->installment_number . ' - ' . $lockedInstallment->installmentPlan->name,
+                'description' => 'Pembayaran Cicilan #'.$lockedInstallment->installment_number.' - '.$lockedInstallment->installmentPlan->name,
                 'category_id' => null,
                 'member_id' => $lockedInstallment->installmentPlan->member_id,
                 'status' => 'posted',
@@ -301,6 +311,225 @@ class CreditService
                     'updated_by' => $actor->id,
                 ]);
             }
+        });
+    }
+
+    public function payoffPlan(Space $space, User $actor, InstallmentPlan $plan, array $data): array
+    {
+        if ($plan->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'plan' => 'Rencana cicilan bukan milik ruang aktif.',
+            ]);
+        }
+
+        if (! $plan->isActive()) {
+            throw ValidationException::withMessages([
+                'plan' => 'Rencana cicilan sudah selesai atau tidak aktif.',
+            ]);
+        }
+
+        $sourceAccount = Account::where('space_id', $space->id)
+            ->where('id', $data['source_account_id'])
+            ->first();
+
+        if (! $sourceAccount || $sourceAccount->isArchived()) {
+            throw ValidationException::withMessages([
+                'source_account_id' => 'Rekening sumber dana tidak valid atau telah diarsipkan.',
+            ]);
+        }
+
+        if (! in_array($sourceAccount->type, ['bank', 'cash', 'e-wallet'])) {
+            throw ValidationException::withMessages([
+                'source_account_id' => 'Rekening sumber dana harus berupa rekening kas, bank, atau e-wallet.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $plan, $sourceAccount, $data) {
+            $lockedPlan = InstallmentPlan::where('id', $plan->id)->lockForUpdate()->first();
+            $pendingInstallments = $lockedPlan->installments()->where('status', 'pending')->lockForUpdate()->get();
+
+            if ($pendingInstallments->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'plan' => 'Tidak ada sisa cicilan pending yang perlu dilunasi.',
+                ]);
+            }
+
+            $totalRemainingPrincipal = (int) $pendingInstallments->sum('principal_amount');
+            $creditAccount = $lockedPlan->creditAccount;
+
+            $accountIds = [$sourceAccount->id, $creditAccount->account_id];
+            sort($accountIds);
+            Account::whereIn('id', $accountIds)->lockForUpdate()->get();
+
+            $transaction = FinancialTransaction::create([
+                'space_id' => $space->id,
+                'type' => 'credit_payment',
+                'transaction_date' => $data['payment_date'],
+                'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                'description' => 'Pelunasan Dipercepat: '.$lockedPlan->name.' ('.$pendingInstallments->count().' Cicilan)',
+                'category_id' => null,
+                'member_id' => $lockedPlan->member_id,
+                'status' => 'posted',
+                'created_by' => $actor->id,
+                'version' => 1,
+            ]);
+
+            $transaction->entries()->create([
+                'account_id' => $sourceAccount->id,
+                'amount_signed' => -$totalRemainingPrincipal,
+            ]);
+
+            $transaction->entries()->create([
+                'account_id' => $creditAccount->account_id,
+                'amount_signed' => $totalRemainingPrincipal,
+            ]);
+
+            $settledCount = 0;
+            foreach ($pendingInstallments as $inst) {
+                $inst->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'payment_transaction_id' => $transaction->id,
+                ]);
+
+                CreditPayment::create([
+                    'space_id' => $space->id,
+                    'credit_account_id' => $creditAccount->id,
+                    'installment_id' => $inst->id,
+                    'source_account_id' => $sourceAccount->id,
+                    'transaction_id' => $transaction->id,
+                    'principal_amount' => $inst->principal_amount,
+                    'interest_amount' => (int) $inst->interest_amount,
+                    'fee_amount' => (int) $inst->fee_amount,
+                    'total_amount' => $inst->principal_amount + (int) $inst->interest_amount + (int) $inst->fee_amount,
+                    'payment_date' => $data['payment_date'],
+                    'notes' => $data['notes'] ?? 'Pelunasan Dipercepat Sekaligus',
+                ]);
+
+                $settledCount++;
+            }
+
+            $lockedPlan->update(['status' => 'completed']);
+
+            return [
+                'transaction' => $transaction,
+                'settled_count' => $settledCount,
+                'total_paid' => $totalRemainingPrincipal,
+            ];
+        });
+    }
+
+    public function payCreditAccountBill(Space $space, User $actor, CreditAccount $creditAccount, array $data): CreditPayment
+    {
+        if ($creditAccount->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'credit_account' => 'Akun kredit bukan milik ruang aktif.',
+            ]);
+        }
+
+        if ($creditAccount->isArchived()) {
+            throw ValidationException::withMessages([
+                'credit_account' => 'Akun kredit telah diarsipkan.',
+            ]);
+        }
+
+        $currentLiability = $creditAccount->currentLiability();
+        if ($currentLiability <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => 'Akun kredit tidak memiliki kewajiban hutang yang perlu dibayar.',
+            ]);
+        }
+
+        $paymentAmount = (int) $data['amount'];
+        if ($paymentAmount <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => 'Nominal pembayaran harus lebih dari 0.',
+            ]);
+        }
+
+        if ($paymentAmount > $currentLiability) {
+            throw ValidationException::withMessages([
+                'amount' => 'Nominal pembayaran melebihi total kewajiban ('.$creditAccount->formatted_liability.').',
+            ]);
+        }
+
+        $sourceAccount = Account::where('space_id', $space->id)
+            ->where('id', $data['source_account_id'])
+            ->first();
+
+        if (! $sourceAccount || $sourceAccount->isArchived()) {
+            throw ValidationException::withMessages([
+                'source_account_id' => 'Rekening sumber dana tidak valid atau telah diarsipkan.',
+            ]);
+        }
+
+        if (! in_array($sourceAccount->type, ['bank', 'cash', 'e-wallet'])) {
+            throw ValidationException::withMessages([
+                'source_account_id' => 'Rekening sumber dana harus berupa rekening kas, bank, atau e-wallet.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $creditAccount, $sourceAccount, $paymentAmount, $data) {
+            $accountIds = [$sourceAccount->id, $creditAccount->account_id];
+            sort($accountIds);
+            Account::whereIn('id', $accountIds)->lockForUpdate()->get();
+
+            $transaction = FinancialTransaction::create([
+                'space_id' => $space->id,
+                'type' => 'credit_payment',
+                'transaction_date' => $data['payment_date'],
+                'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                'description' => 'Pembayaran Tagihan Kartu/Kredit: '.$creditAccount->name,
+                'category_id' => null,
+                'member_id' => null,
+                'status' => 'posted',
+                'created_by' => $actor->id,
+                'version' => 1,
+            ]);
+
+            $transaction->entries()->create([
+                'account_id' => $sourceAccount->id,
+                'amount_signed' => -$paymentAmount,
+            ]);
+
+            $transaction->entries()->create([
+                'account_id' => $creditAccount->account_id,
+                'amount_signed' => $paymentAmount,
+            ]);
+
+            $remainingToAllocate = $paymentAmount;
+            $pendingInstallments = Installment::whereHas('installmentPlan', function ($q) use ($creditAccount) {
+                $q->where('credit_account_id', $creditAccount->id)->where('status', 'active');
+            })->where('status', 'pending')->orderBy('due_date', 'asc')->orderBy('id', 'asc')->lockForUpdate()->get();
+
+            foreach ($pendingInstallments as $inst) {
+                if ($remainingToAllocate <= 0) {
+                    break;
+                }
+                if ($remainingToAllocate >= $inst->principal_amount) {
+                    $inst->update([
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                        'payment_transaction_id' => $transaction->id,
+                    ]);
+                    $remainingToAllocate -= $inst->principal_amount;
+                    $inst->installmentPlan->checkCompletion();
+                }
+            }
+
+            return CreditPayment::create([
+                'space_id' => $space->id,
+                'credit_account_id' => $creditAccount->id,
+                'installment_id' => null,
+                'source_account_id' => $sourceAccount->id,
+                'transaction_id' => $transaction->id,
+                'principal_amount' => $paymentAmount,
+                'interest_amount' => 0,
+                'fee_amount' => 0,
+                'total_amount' => $paymentAmount,
+                'payment_date' => $data['payment_date'],
+                'notes' => $data['notes'] ?? 'Pembayaran Tagihan Akun Kredit',
+            ]);
         });
     }
 }

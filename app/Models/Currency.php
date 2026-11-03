@@ -44,7 +44,7 @@ class Currency extends Model
         $decimals = $this->decimal_digits;
         $formatted = number_format($amount, $decimals, ',', '.');
 
-        return $this->symbol . ' ' . $formatted;
+        return $this->symbol.' '.$formatted;
     }
 
     public function convertToIdr(float|int $amount): float

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Account;
+use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Space;
 use App\Models\User;
@@ -172,7 +173,7 @@ class DemoSeeder extends Seeder
                 default => 500000,
             };
 
-            \App\Models\Budget::firstOrCreate(
+            Budget::firstOrCreate(
                 [
                     'space_id' => $budiPersonal->id,
                     'category_id' => $cat->id,

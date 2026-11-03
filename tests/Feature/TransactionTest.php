@@ -18,12 +18,19 @@ class TransactionTest extends TestCase
     use RefreshDatabase;
 
     private User $userA;
+
     private User $userB;
+
     private Space $spaceA;
+
     private Space $spaceB;
+
     private Account $bca;
+
     private Account $gopay;
+
     private Category $incomeCat;
+
     private Category $expenseCat;
 
     protected function setUp(): void
@@ -656,7 +663,7 @@ class TransactionTest extends TestCase
             ->get(route('transactions.edit', $tx));
 
         $response->assertStatus(200);
-        $response->assertSee('Koreksi Transaksi #' . $tx->id);
+        $response->assertSee('Koreksi Transaksi #'.$tx->id);
         $response->assertSee('Alasan Koreksi');
     }
 

@@ -20,10 +20,15 @@ class CreditInstallmentTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Space $space;
+
     protected Account $bankAccount;
+
     protected Category $category;
+
     protected CreditAccount $creditCard;
+
     protected CreditService $creditService;
 
     protected function setUp(): void
@@ -338,6 +343,217 @@ class CreditInstallmentTest extends TestCase
             'name' => 'Beli Sepeda Lipat',
             'total_amount' => 2400000,
             'tenor' => 6,
+        ]);
+    }
+
+    public function test_credit_purchase_with_interest_and_admin_fee(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Gadget dengan Bunga dan Admin',
+            'total_amount' => 1200000,
+            'tenor' => 3,
+            'interest_rate' => 2.0, // 2% per bulan = 24.000 / bln
+            'admin_fee' => 15000, // 15.000 total = 5.000 / bln
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->assertEquals(1200000, $plan->total_amount);
+        $this->assertEquals(2.0, $plan->interest_rate);
+        $this->assertEquals(15000, $plan->admin_fee);
+        $this->assertTrue($plan->hasInterestOrFees());
+        $this->assertEquals(72000, $plan->totalInterest()); // 24.000 * 3
+        $this->assertEquals(15000, $plan->totalFees());
+        $this->assertEquals(1287000, $plan->grandTotalAmount()); // 1.200.000 + 72.000 + 15.000
+
+        $firstInst = $plan->installments()->first();
+        $this->assertEquals(400000, $firstInst->principal_amount);
+        $this->assertEquals(24000, $firstInst->interest_amount);
+        $this->assertEquals(5000, $firstInst->fee_amount);
+        $this->assertEquals(429000, $firstInst->total_amount);
+    }
+
+    public function test_early_payoff_settles_all_installments_and_completes_plan(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Tablet Pelunasan Dipercepat',
+            'total_amount' => 1500000,
+            'tenor' => 3,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->assertEquals(3, $plan->pendingInstallments()->count());
+        $this->assertEquals(1500000, $this->creditCard->currentLiability());
+
+        $payoffResult = $this->creditService->payoffPlan($this->space, $this->user, $plan, [
+            'source_account_id' => $this->bankAccount->id,
+            'payment_date' => '2026-12-05',
+        ]);
+
+        $this->assertEquals(3, $payoffResult['settled_count']);
+        $this->assertEquals(1500000, $payoffResult['total_paid']);
+
+        $plan->refresh();
+        $this->assertTrue($plan->isCompleted());
+        $this->assertEquals(0, $plan->pendingInstallments()->count());
+        $this->assertEquals(3, $plan->paidInstallments()->count());
+        $this->assertEquals(0, $this->creditCard->currentLiability());
+        $this->assertEquals(3500000, $this->bankAccount->currentBalance()); // 5jt - 1.5jt
+    }
+
+    public function test_direct_bill_payment_reduces_credit_liability(): void
+    {
+        $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Monitor 4K',
+            'total_amount' => 2000000,
+            'tenor' => 4,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->assertEquals(2000000, $this->creditCard->currentLiability());
+
+        // Bayar tagihan kartu 1.000.000 (menutup 2 cicilan @500.000)
+        $payment = $this->creditService->payCreditAccountBill($this->space, $this->user, $this->creditCard, [
+            'source_account_id' => $this->bankAccount->id,
+            'amount' => 1000000,
+            'payment_date' => '2026-12-05',
+            'notes' => 'Bayar tagihan parsial kartu kredit',
+        ]);
+
+        $this->assertNotNull($payment);
+        $this->assertEquals(1000000, $this->creditCard->currentLiability());
+        $this->assertEquals(4000000, $this->bankAccount->currentBalance());
+
+        // Sisa 2 cicilan pending
+        $remainingPending = Installment::where('space_id', $this->space->id)
+            ->where('status', 'pending')
+            ->count();
+        $this->assertEquals(2, $remainingPending);
+    }
+
+    public function test_installment_due_status_and_helpers(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Keyboard Mekanikal',
+            'total_amount' => 900000,
+            'tenor' => 3,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $inst = $plan->installments()->first();
+        $this->assertFalse($inst->isPaid());
+        $this->assertTrue($inst->isPending());
+
+        // Test Overdue logic
+        $inst->update(['due_date' => now()->subDays(5)->toDateString()]);
+        $this->assertTrue($inst->isOverdue());
+        $this->assertEquals('overdue', $inst->dueStatus());
+        $this->assertStringContainsString('Terlambat 5 hari', $inst->dueStatusLabel());
+        $this->assertStringContainsString('TERLAMBAT', $inst->whatsAppReminderMessage());
+
+        // Test WhatsApp URL generator
+        $url = $inst->whatsAppReminderUrl('08123456789');
+        $this->assertStringContainsString('628123456789', $url);
+
+        // Test Utilization Rate on CreditAccount
+        $this->assertEquals(9.0, $this->creditCard->utilizationRate()); // 900.000 / 10.000.000 = 9%
+        $this->assertEquals('safe', $this->creditCard->utilizationStatus());
+    }
+
+    public function test_http_bill_pay_and_payoff_routes(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Speaker Bluetooth',
+            'total_amount' => 600000,
+            'tenor' => 2,
+            'start_date' => '2026-11-03',
+        ]);
+
+        // Test Payoff HTTP Route
+        $payoffResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.plans.payoff', $plan), [
+                'source_account_id' => $this->bankAccount->id,
+                'payment_date' => '2026-12-05',
+            ]);
+
+        $payoffResponse->assertRedirect(route('credit.plans.show', $plan));
+        $plan->refresh();
+        $this->assertTrue($plan->isCompleted());
+
+        // Test Pay Bill HTTP Route on new purchase
+        $plan2 = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Mouse Wireless',
+            'total_amount' => 400000,
+            'tenor' => 2,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $billPayResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.accounts.payBill', $this->creditCard), [
+                'source_account_id' => $this->bankAccount->id,
+                'amount' => 400000,
+                'payment_date' => '2026-12-05',
+            ]);
+
+        $billPayResponse->assertRedirect(route('credit.index', ['tab' => 'accounts']));
+        $this->assertEquals(0, $this->creditCard->currentLiability());
+    }
+
+    public function test_paying_bill_exceeding_liability_is_rejected(): void
+    {
+        $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Powerbank',
+            'total_amount' => 300000,
+            'tenor' => 2,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        $this->creditService->payCreditAccountBill($this->space, $this->user, $this->creditCard, [
+            'source_account_id' => $this->bankAccount->id,
+            'amount' => 500000, // melebihi 300.000
+            'payment_date' => '2026-12-05',
+        ]);
+    }
+
+    public function test_payoff_completed_plan_is_rejected(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Kabel Type-C',
+            'total_amount' => 100000,
+            'tenor' => 1,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->creditService->payoffPlan($this->space, $this->user, $plan, [
+            'source_account_id' => $this->bankAccount->id,
+            'payment_date' => '2026-12-05',
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        // Pelunasan kedua pada plan yang sudah completed
+        $this->creditService->payoffPlan($this->space, $this->user, $plan, [
+            'source_account_id' => $this->bankAccount->id,
+            'payment_date' => '2026-12-06',
         ]);
     }
 }

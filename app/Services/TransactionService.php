@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinancialTransaction;
+use App\Models\RecurringOccurrence;
 use App\Models\Space;
 use App\Models\TransactionRevision;
 use App\Models\User;
@@ -69,7 +70,7 @@ class TransactionService
                     'space_id' => $space->id,
                     'type' => 'income',
                     'transaction_date' => $data['transaction_date'],
-                    'transaction_time' => !empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                    'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
                     'description' => $data['description'],
                     'category_id' => $category->id,
                     'member_id' => $data['member_id'] ?? null,
@@ -156,7 +157,7 @@ class TransactionService
                     'space_id' => $space->id,
                     'type' => 'expense',
                     'transaction_date' => $data['transaction_date'],
-                    'transaction_time' => !empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                    'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
                     'description' => $data['description'],
                     'category_id' => $category->id,
                     'member_id' => $data['member_id'] ?? null,
@@ -247,7 +248,7 @@ class TransactionService
                     'space_id' => $space->id,
                     'type' => 'transfer',
                     'transaction_date' => $data['transaction_date'],
-                    'transaction_time' => !empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
+                    'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
                     'description' => $data['description'],
                     'category_id' => null,
                     'member_id' => $data['member_id'] ?? null,
@@ -531,7 +532,7 @@ class TransactionService
             $afterSnapshot['status'] = 'void';
             $afterSnapshot['version'] = $lockedTransaction->version;
 
-            $occurrence = \App\Models\RecurringOccurrence::where('transaction_id', $lockedTransaction->id)->first();
+            $occurrence = RecurringOccurrence::where('transaction_id', $lockedTransaction->id)->first();
             if ($occurrence) {
                 $occurrence->update([
                     'status' => 'pending',

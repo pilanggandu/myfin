@@ -65,7 +65,9 @@ class RecurringScheduleController extends Controller
         $dueTodayCount = 0;
 
         foreach ($schedules as $sch) {
-            if ($sch->isArchived()) continue;
+            if ($sch->isArchived()) {
+                continue;
+            }
             $dueDate = Carbon::parse($sch->next_due_date, $tz)->startOfDay();
             if ($dueDate->lt($today)) {
                 $overdueCount++;
@@ -211,7 +213,8 @@ class RecurringScheduleController extends Controller
             $request->validated()
         );
 
-        $formattedAmt = 'Rp ' . number_format($transaction->totalAmount(), 0, ',', '.');
+        $formattedAmt = 'Rp '.number_format($transaction->totalAmount(), 0, ',', '.');
+
         return redirect()->back()->with('status', "Pembayaran/transfer jadwal \"{$recurring->name}\" periode {$dueDate} ({$formattedAmt}) berhasil dicatat.");
     }
 

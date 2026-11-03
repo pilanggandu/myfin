@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -54,12 +55,14 @@ class Space extends Model
     public function isOwner(User|int $user): bool
     {
         $userId = $user instanceof User ? $user->id : $user;
+
         return (int) $this->owner_id === (int) $userId;
     }
 
     public function hasMember(User|int $user): bool
     {
         $userId = $user instanceof User ? $user->id : $user;
+
         return $this->activeMembers()->where('users.id', $userId)->exists();
     }
 
@@ -68,9 +71,9 @@ class Space extends Model
         return $this->hasMember($user);
     }
 
-    public function now(): \Carbon\Carbon
+    public function now(): Carbon
     {
-        return \Carbon\Carbon::now($this->timezone ?: config('app.timezone', 'Asia/Jakarta'));
+        return Carbon::now($this->timezone ?: config('app.timezone', 'Asia/Jakarta'));
     }
 
     public function getRoleOf(User|int $user): ?string
@@ -146,6 +149,7 @@ class Space extends Model
         foreach ($this->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'e-wallet', 'cash'])->get() as $account) {
             $total += $account->currentBalance();
         }
+
         return $total;
     }
 
@@ -155,6 +159,7 @@ class Space extends Model
         foreach ($this->creditAccounts()->whereNull('archived_at')->get() as $creditAccount) {
             $total += $creditAccount->currentLiability();
         }
+
         return $total;
     }
 

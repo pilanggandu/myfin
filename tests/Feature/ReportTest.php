@@ -8,6 +8,7 @@ use App\Models\Space;
 use App\Models\User;
 use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class ReportTest extends TestCase
@@ -15,13 +16,21 @@ class ReportTest extends TestCase
     use RefreshDatabase;
 
     private User $userA;
+
     private User $userB;
+
     private Space $spaceA;
+
     private Space $spaceB;
+
     private Account $bca;
+
     private Account $gopay;
+
     private Category $incomeCat;
+
     private Category $foodCat;
+
     private Category $transportCat;
 
     protected function setUp(): void
@@ -254,7 +263,7 @@ class ReportTest extends TestCase
 
     public function test_six_month_trend_does_not_skip_or_duplicate_months_on_day_31(): void
     {
-        \Illuminate\Support\Carbon::setTestNow('2026-03-31 15:30:00');
+        Carbon::setTestNow('2026-03-31 15:30:00');
 
         $response = $this->actingAs($this->userA)
             ->withSession(['active_space_id' => $this->spaceA->id])
@@ -265,10 +274,11 @@ class ReportTest extends TestCase
             $this->assertCount(6, $trend);
             $months = array_map(fn ($item) => (int) $item->month, $trend);
             $this->assertEquals([10, 11, 12, 1, 2, 3], $months);
+
             return true;
         });
 
-        \Illuminate\Support\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function test_report_validates_and_gracefully_handles_swapped_custom_dates(): void

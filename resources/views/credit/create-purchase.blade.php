@@ -196,6 +196,44 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
+                            <label for="interest_rate" class="block text-xs font-semibold text-charcoal mb-1">
+                                Suku Bunga Flat per Bulan (%) <span class="text-muted font-normal">(Opsional)</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                name="interest_rate" 
+                                id="interest_rate" 
+                                step="0.01" 
+                                min="0" 
+                                max="100" 
+                                value="{{ old('interest_rate', 0) }}"
+                                placeholder="0 untuk promo cicilan 0%"
+                                oninput="updateSimulation()"
+                                class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <span class="text-[10px] text-muted">Contoh: 1.5 untuk bunga 1.5%/bulan, atau 0 untuk 0%.</span>
+                        </div>
+
+                        <div>
+                            <label for="admin_fee" class="block text-xs font-semibold text-charcoal mb-1">
+                                Biaya Admin / Penanganan (Rp) <span class="text-muted font-normal">(Opsional)</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                name="admin_fee" 
+                                id="admin_fee" 
+                                min="0" 
+                                value="{{ old('admin_fee', 0) }}"
+                                placeholder="Contoh: 15000"
+                                oninput="updateSimulation()"
+                                class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <span class="text-[10px] text-muted">Biaya admin dibagi rata ke seluruh tenor cicilan.</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
                             <label for="start_date" class="block text-xs font-semibold text-charcoal mb-1">
                                 Tanggal Transaksi Pembelian <span class="text-red">*</span>
                             </label>
@@ -243,15 +281,35 @@
                     <div class="flex items-center justify-between border-b border-line pb-3 mb-4">
                         <div>
                             <h3 class="font-serif text-base text-charcoal font-medium">
-                                3. Simulasi Jadwal Pelunasan Pokok
+                                3. Simulasi Jadwal Pelunasan Pokok & Biaya
                             </h3>
                             <p class="text-xs text-muted">
-                                Perhitungan pembagian cicilan pokok secara proporsional presisi hingga Rp1.
+                                Rincian pembagian cicilan pokok, bunga flat, dan biaya admin presisi per bulan.
                             </p>
                         </div>
                         <div class="text-right">
-                            <span class="text-[11px] text-muted block uppercase">Estimasi per Bulan</span>
+                            <span class="text-[11px] text-muted block uppercase">Estimasi Angsuran / Bln</span>
                             <span id="monthlyEstimateText" class="font-serif text-lg font-bold text-forest">Rp 400.000 / bln</span>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Mini Badges -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-xs">
+                        <div class="p-2.5 rounded-lg bg-cream/40 border border-line">
+                            <span class="text-muted block text-[10px] uppercase font-bold">Total Pokok</span>
+                            <span id="previewTotalPrincipal" class="font-mono font-bold text-charcoal">Rp 0</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-cream/40 border border-line">
+                            <span class="text-muted block text-[10px] uppercase font-bold">Total Bunga</span>
+                            <span id="previewTotalInterest" class="font-mono font-bold text-amber-600 dark:text-amber-400">Rp 0</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-cream/40 border border-line">
+                            <span class="text-muted block text-[10px] uppercase font-bold">Total Biaya Admin</span>
+                            <span id="previewTotalFee" class="font-mono font-bold text-charcoal">Rp 0</span>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-forest-light/60 border border-forest/20">
+                            <span class="text-forest block text-[10px] uppercase font-bold">Grand Total</span>
+                            <span id="previewGrandTotal" class="font-mono font-bold text-forest">Rp 0</span>
                         </div>
                     </div>
 
@@ -261,8 +319,10 @@
                                 <tr class="border-b border-line text-muted">
                                     <th class="py-2 px-3 font-semibold">Cicilan Ke-</th>
                                     <th class="py-2 px-3 font-semibold">Jatuh Tempo</th>
-                                    <th class="py-2 px-3 font-semibold text-right">Pokok Hutang</th>
-                                    <th class="py-2 px-3 font-semibold text-right">Status Jadwal</th>
+                                    <th class="py-2 px-3 font-semibold text-right">Pokok</th>
+                                    <th class="py-2 px-3 font-semibold text-right">Bunga</th>
+                                    <th class="py-2 px-3 font-semibold text-right">Biaya Admin</th>
+                                    <th class="py-2 px-3 font-semibold text-right">Total Tagihan</th>
                                 </tr>
                             </thead>
                             <tbody id="simulationTableBody" class="divide-y divide-line/60">
@@ -364,13 +424,28 @@
             checkLimit();
             const total = parseInt(document.getElementById('total_amount').value || '0', 10);
             const tenor = Math.max(1, parseInt(document.getElementById('tenor').value || '1', 10));
+            const interestRate = parseFloat(document.getElementById('interest_rate')?.value || '0');
+            const adminFee = parseInt(document.getElementById('admin_fee')?.value || '0', 10);
             const startDateVal = document.getElementById('start_date').value;
             const firstDueVal = document.getElementById('first_due_date').value;
 
             const basePrincipal = Math.floor(total / tenor);
-            const remainder = total % tenor;
+            const remainderPrincipal = total % tenor;
 
-            document.getElementById('monthlyEstimateText').textContent = 'Rp ' + basePrincipal.toLocaleString('id-ID') + ' / bln';
+            const monthlyInterest = Math.round(total * (interestRate / 100));
+            const totalInterest = monthlyInterest * tenor;
+
+            const baseFee = Math.floor(adminFee / tenor);
+            const remainderFee = adminFee % tenor;
+
+            const grandTotal = total + totalInterest + adminFee;
+            const avgMonthly = Math.round(grandTotal / tenor);
+
+            document.getElementById('monthlyEstimateText').textContent = 'Rp ' + avgMonthly.toLocaleString('id-ID') + ' / bln';
+            document.getElementById('previewTotalPrincipal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+            document.getElementById('previewTotalInterest').textContent = 'Rp ' + totalInterest.toLocaleString('id-ID');
+            document.getElementById('previewTotalFee').textContent = 'Rp ' + adminFee.toLocaleString('id-ID');
+            document.getElementById('previewGrandTotal').textContent = 'Rp ' + grandTotal.toLocaleString('id-ID');
 
             const tbody = document.getElementById('simulationTableBody');
             tbody.innerHTML = '';
@@ -379,18 +454,20 @@
             let firstDue = firstDueVal ? new Date(firstDueVal) : new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, baseDate.getDate());
 
             for (let i = 1; i <= tenor; i++) {
-                const principal = basePrincipal + (i === 1 ? remainder : 0);
+                const principal = basePrincipal + (i === 1 ? remainderPrincipal : 0);
+                const fee = baseFee + (i === 1 ? remainderFee : 0);
+                const totalInst = principal + monthlyInterest + fee;
                 let dueDate = new Date(firstDue.getFullYear(), firstDue.getMonth() + (i - 1), firstDue.getDate());
 
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-panel';
+                tr.className = 'hover:bg-panel transition';
                 tr.innerHTML = `
                     <td class="py-2.5 px-3 font-semibold text-charcoal">Cicilan #${i}</td>
                     <td class="py-2.5 px-3 text-muted">${dueDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td class="py-2.5 px-3 text-right font-mono font-semibold text-charcoal">Rp ${principal.toLocaleString('id-ID')}</td>
-                    <td class="py-2.5 px-3 text-right">
-                        <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded">Rencana Pending</span>
-                    </td>
+                    <td class="py-2.5 px-3 text-right font-mono font-medium text-charcoal">Rp ${principal.toLocaleString('id-ID')}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-muted">Rp ${monthlyInterest.toLocaleString('id-ID')}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-muted">Rp ${fee.toLocaleString('id-ID')}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-bold text-forest">Rp ${totalInst.toLocaleString('id-ID')}</td>
                 `;
                 tbody.appendChild(tr);
             }

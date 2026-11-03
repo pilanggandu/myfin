@@ -44,11 +44,11 @@ class ReminderService
     public function sendTestReminder(User $user, Space $space, string $channel = 'both', ?string $targetPhone = null): array
     {
         $title = 'Uji Coba Pengingat ARUS';
-        $messageText = 'Halo ' . $user->name . '! Ini adalah pesan uji coba sistem pengingat ARUS. Konfigurasi notifikasi Anda telah aktif dan siap digunakan.';
+        $messageText = 'Halo '.$user->name.'! Ini adalah pesan uji coba sistem pengingat ARUS. Konfigurasi notifikasi Anda telah aktif dan siap digunakan.';
         $details = [
             'Tipe Pesan' => 'Uji Coba Sistem (Test)',
             'Ruang Keuangan' => $space->name,
-            'Waktu Eksekusi' => Carbon::now()->format('d M Y H:i:s') . ' WIB',
+            'Waktu Eksekusi' => Carbon::now()->format('d M Y H:i:s').' WIB',
             'Status Biaya' => '100% Gratis Tanpa Langganan',
         ];
 
@@ -97,7 +97,7 @@ class ReminderService
                 'success' => true,
                 'channel' => 'email',
                 'recipient' => $recipient,
-                'message' => 'Email pengingat berhasil dikirim ke ' . $recipient,
+                'message' => 'Email pengingat berhasil dikirim ke '.$recipient,
                 'log_id' => $log->id,
             ];
         } catch (\Throwable $e) {
@@ -117,7 +117,7 @@ class ReminderService
                 'success' => false,
                 'channel' => 'email',
                 'recipient' => $recipient,
-                'message' => 'Gagal mengirim email: ' . $e->getMessage(),
+                'message' => 'Gagal mengirim email: '.$e->getMessage(),
                 'log_id' => $log->id,
             ];
         }
@@ -137,12 +137,12 @@ class ReminderService
 
         $phone = $this->normalizePhoneNumber($rawPhone);
         $fullText = "*[ARUS PENGINGAT]*\n\n"
-            . "*{$title}*\n"
-            . "Halo *{$user->name}*,\n\n"
-            . "{$messageText}\n\n"
-            . "Ruang: {$space->name}\n"
-            . "Waktu: " . Carbon::now()->format('d/m/Y H:i') . " WIB\n\n"
-            . "Buka aplikasi: " . url('/dashboard');
+            ."*{$title}*\n"
+            ."Halo *{$user->name}*,\n\n"
+            ."{$messageText}\n\n"
+            ."Ruang: {$space->name}\n"
+            .'Waktu: '.Carbon::now()->format('d/m/Y H:i')." WIB\n\n"
+            .'Buka aplikasi: '.url('/dashboard');
 
         $directLink = $this->generateWhatsAppDirectLink($phone, $fullText);
         $status = 'simulated';
@@ -160,7 +160,7 @@ class ReminderService
                 ]);
                 $status = $resp->successful() ? 'sent' : 'failed';
                 if (! $resp->successful()) {
-                    $error = 'Gateway status: ' . $resp->status();
+                    $error = 'Gateway status: '.$resp->status();
                 }
             } catch (\Throwable $e) {
                 $status = 'failed';
@@ -176,7 +176,7 @@ class ReminderService
                 ]);
                 $status = $resp->successful() ? 'sent' : 'failed';
                 if (! $resp->successful()) {
-                    $error = 'CallMeBot status: ' . $resp->status();
+                    $error = 'CallMeBot status: '.$resp->status();
                 }
             } catch (\Throwable $e) {
                 $status = 'failed';
@@ -224,11 +224,11 @@ class ReminderService
         $digits = preg_replace('/\D/', '', $phone);
 
         if (str_starts_with($digits, '08')) {
-            return '628' . substr($digits, 2);
+            return '628'.substr($digits, 2);
         }
 
         if (str_starts_with($digits, '8')) {
-            return '628' . substr($digits, 1);
+            return '628'.substr($digits, 1);
         }
 
         if (str_starts_with($digits, '62')) {
@@ -245,10 +245,10 @@ class ReminderService
         }
 
         return match ($reminder->type) {
-            'bill_payment' => 'Pengingat jatuh tempo pembayaran tagihan "' . $reminder->title . '" sebesar Rp ' . number_format($reminder->amount ?? 0, 0, ',', '.') . ' pada tanggal ' . ($reminder->due_date?->format('d M Y') ?? 'segera') . '. Pastikan saldo rekening mencukupi.',
+            'bill_payment' => 'Pengingat jatuh tempo pembayaran tagihan "'.$reminder->title.'" sebesar Rp '.number_format($reminder->amount ?? 0, 0, ',', '.').' pada tanggal '.($reminder->due_date?->format('d M Y') ?? 'segera').'. Pastikan saldo rekening mencukupi.',
             'daily_bookkeeping' => 'Jangan lupa untuk mencatat mutasi pengeluaran dan pemasukan Anda hari ini di ARUS agar kesehatan arus kas tetap terkontrol dengan baik.',
             'budget_alert' => 'Perhatian: Pos anggaran Anda mendekati atau telah melampaui limit yang ditetapkan. Silakan evaluasi pengeluaran kategori terkait.',
-            default => 'Ini adalah pengingat terjadwal untuk: ' . $reminder->title . '.',
+            default => 'Ini adalah pengingat terjadwal untuk: '.$reminder->title.'.',
         };
     }
 
@@ -262,7 +262,7 @@ class ReminderService
         ];
 
         if ($reminder->amount && $reminder->amount > 0) {
-            $details['Nominal'] = 'Rp ' . number_format($reminder->amount, 0, ',', '.');
+            $details['Nominal'] = 'Rp '.number_format($reminder->amount, 0, ',', '.');
         }
 
         if ($reminder->due_date) {
@@ -270,7 +270,7 @@ class ReminderService
         }
 
         if ($reminder->reminder_time) {
-            $details['Waktu Pengingat'] = $reminder->reminder_time . ' WIB';
+            $details['Waktu Pengingat'] = $reminder->reminder_time.' WIB';
         }
 
         return $details;

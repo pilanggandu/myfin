@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Mail\ReminderMail;
 use App\Models\Reminder;
-use App\Models\ReminderLog;
 use App\Models\Space;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +16,7 @@ class ReminderTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Space $space;
 
     protected function setUp(): void

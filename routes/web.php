@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/credit', [CreditAccountController::class, 'index'])->name('credit.index');
     Route::post('/credit/accounts', [CreditAccountController::class, 'store'])->name('credit.accounts.store');
+    Route::post('/credit/accounts/{creditAccount}/pay-bill', [CreditAccountController::class, 'payBill'])->name('credit.accounts.payBill');
     Route::put('/credit/accounts/{creditAccount}', [CreditAccountController::class, 'update'])->name('credit.accounts.update');
     Route::delete('/credit/accounts/{creditAccount}', [CreditAccountController::class, 'destroy'])->name('credit.accounts.destroy');
     Route::post('/credit/accounts/{creditAccount}/unarchive', [CreditAccountController::class, 'unarchive'])->name('credit.accounts.unarchive');
@@ -118,5 +119,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/credit/purchases', [InstallmentController::class, 'store'])->name('credit.purchases.store');
     Route::get('/credit/plans/{plan}', [InstallmentController::class, 'show'])->name('credit.plans.show');
     Route::post('/credit/installments/{installment}/pay', [InstallmentController::class, 'pay'])->name('credit.installments.pay');
+    Route::post('/credit/plans/{plan}/payoff', [InstallmentController::class, 'payoff'])->name('credit.plans.payoff');
     Route::post('/credit/plans/{plan}/void', [InstallmentController::class, 'void'])->name('credit.plans.void');
 });

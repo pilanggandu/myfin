@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Credit;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Credit\PayInstallmentRequest;
+use App\Http\Requests\Credit\PayoffPlanRequest;
 use App\Http\Requests\Credit\StoreCreditPurchaseRequest;
 use App\Models\Installment;
 use App\Models\InstallmentPlan;
@@ -68,7 +69,18 @@ class InstallmentController extends Controller
         $this->creditService->payInstallment($space, auth()->user(), $installment, $request->validated());
 
         return redirect()->route('credit.plans.show', $installment->installmentPlan)
-            ->with('status', 'Pembayaran cicilan ke-' . $installment->installment_number . ' berhasil diposting.');
+            ->with('status', 'Pembayaran cicilan ke-'.$installment->installment_number.' berhasil diposting.');
+    }
+
+    public function payoff(PayoffPlanRequest $request, InstallmentPlan $plan): RedirectResponse
+    {
+        Gate::authorize('view', $plan);
+        $space = app('currentSpace');
+
+        $result = $this->creditService->payoffPlan($space, auth()->user(), $plan, $request->validated());
+
+        return redirect()->route('credit.plans.show', $plan)
+            ->with('status', 'Seluruh sisa '.$result['settled_count'].' cicilan sebesar Rp '.number_format($result['total_paid'], 0, ',', '.').' berhasil dilunasi sekaligus (Lunas Selesai).');
     }
 
     public function void(Request $request, InstallmentPlan $plan): RedirectResponse

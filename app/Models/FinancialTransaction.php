@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class FinancialTransaction extends Model
 {
@@ -50,17 +51,17 @@ class FinancialTransaction extends Model
         return $this->belongsTo(Member::class);
     }
 
-    public function recurringOccurrence(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function recurringOccurrence(): HasOne
     {
         return $this->hasOne(RecurringOccurrence::class, 'transaction_id');
     }
 
-    public function installmentPlan(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function installmentPlan(): HasOne
     {
         return $this->hasOne(InstallmentPlan::class, 'financial_transaction_id');
     }
 
-    public function creditPayment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function creditPayment(): HasOne
     {
         return $this->hasOne(CreditPayment::class, 'transaction_id');
     }
@@ -154,10 +155,12 @@ class FinancialTransaction extends Model
     {
         if ($this->isExpense()) {
             $entry = $this->entries->firstWhere('amount_signed', '<', 0);
+
             return $entry ? abs((int) $entry->amount_signed) : 0;
         }
 
         $entry = $this->entries->firstWhere('amount_signed', '>', 0);
+
         return $entry ? (int) $entry->amount_signed : 0;
     }
 
@@ -173,6 +176,6 @@ class FinancialTransaction extends Model
 
     public function getFormattedAmountAttribute(): string
     {
-        return 'Rp ' . number_format($this->totalAmount(), 0, ',', '.');
+        return 'Rp '.number_format($this->totalAmount(), 0, ',', '.');
     }
 }

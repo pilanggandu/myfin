@@ -43,6 +43,7 @@ class CurrencyService
                         'last_synced_at' => $now,
                     ]);
                     $updatedCount++;
+
                     continue;
                 }
 
@@ -58,7 +59,7 @@ class CurrencyService
 
         return [
             'success' => true,
-            'message' => 'Berhasil memperbarui kurs ' . $updatedCount . ' mata uang dari Public API.',
+            'message' => 'Berhasil memperbarui kurs '.$updatedCount.' mata uang dari Public API.',
             'updated_count' => $updatedCount,
             'synced_at' => $now->toDateTimeString(),
         ];

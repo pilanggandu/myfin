@@ -15,8 +15,11 @@ class AccountTest extends TestCase
     use RefreshDatabase;
 
     private User $userA;
+
     private User $userB;
+
     private Space $spaceA;
+
     private Space $spaceB;
 
     protected function setUp(): void
@@ -222,7 +225,7 @@ class AccountTest extends TestCase
             ->get(route('transactions.create'));
 
         $response->assertStatus(200);
-        $response->assertSee('value="' . $account->id . '"', false);
+        $response->assertSee('value="'.$account->id.'"', false);
         $response->assertSee('(Default)', false);
     }
 

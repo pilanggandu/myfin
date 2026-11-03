@@ -98,21 +98,49 @@ class CreditAccount extends Model
     public function availableLimit(): int
     {
         $available = (int) $this->credit_limit - $this->currentLiability();
+
         return max(0, $available);
+    }
+
+    public function utilizationRate(): float
+    {
+        if ($this->credit_limit <= 0) {
+            return 0.0;
+        }
+
+        return round(($this->currentLiability() / $this->credit_limit) * 100, 1);
+    }
+
+    public function utilizationStatus(): string
+    {
+        $rate = $this->utilizationRate();
+        if ($rate <= 30.0) {
+            return 'safe';
+        }
+        if ($rate <= 70.0) {
+            return 'moderate';
+        }
+
+        return 'high';
+    }
+
+    public function getFormattedUtilizationRateAttribute(): string
+    {
+        return $this->utilizationRate().'%';
     }
 
     public function getFormattedLimitAttribute(): string
     {
-        return 'Rp ' . number_format($this->credit_limit, 0, ',', '.');
+        return 'Rp '.number_format($this->credit_limit, 0, ',', '.');
     }
 
     public function getFormattedLiabilityAttribute(): string
     {
-        return 'Rp ' . number_format($this->currentLiability(), 0, ',', '.');
+        return 'Rp '.number_format($this->currentLiability(), 0, ',', '.');
     }
 
     public function getFormattedAvailableLimitAttribute(): string
     {
-        return 'Rp ' . number_format($this->availableLimit(), 0, ',', '.');
+        return 'Rp '.number_format($this->availableLimit(), 0, ',', '.');
     }
 }

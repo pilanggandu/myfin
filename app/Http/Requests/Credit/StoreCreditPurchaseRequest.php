@@ -20,6 +20,8 @@ class StoreCreditPurchaseRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'total_amount' => ['required', 'integer', 'min:1'],
             'tenor' => ['required', 'integer', 'between:1,60'],
+            'interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'admin_fee' => ['nullable', 'integer', 'min:0'],
             'start_date' => ['required', 'date'],
             'first_due_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],

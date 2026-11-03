@@ -192,11 +192,13 @@ class RecurringSchedule extends Model
         if ($this->frequency === 'yearly') {
             $target = $fromDate->copy()->startOfYear()->addYearsNoOverflow(1)->month($fromDate->month);
             $day = min((int) $this->anchor_day, (int) $target->daysInMonth);
+
             return $target->day($day);
         }
 
         $target = $fromDate->copy()->startOfMonth()->addMonthsNoOverflow(1);
         $day = min((int) $this->anchor_day, (int) $target->daysInMonth);
+
         return $target->day($day);
     }
 

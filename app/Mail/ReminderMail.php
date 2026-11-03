@@ -25,7 +25,7 @@ class ReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[ARUS Pengingat] ' . $this->subjectTitle,
+            subject: '[ARUS Pengingat] '.$this->subjectTitle,
         );
     }
 
