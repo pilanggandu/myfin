@@ -11,10 +11,11 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
-     * Secara default kosong; untuk data demo gunakan: php artisan db:seed --class=DemoSeeder
      */
     public function run(): void
     {
-        // Kosong secara default agar aman untuk produksi.
+        $this->call([
+            UserSeeder::class,
+        ]);
     }
 }
