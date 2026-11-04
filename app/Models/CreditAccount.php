@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class CreditAccount extends Model
 {
@@ -98,12 +99,21 @@ class CreditAccount extends Model
                     ->where('status', 'active');
             })
             ->where('status', 'pending')
-            ->sum('principal_amount');
+            ->sum('total_amount');
 
         if ($this->ledgerAccount) {
             $ledgerDebt = max(0.0, -$this->ledgerAccount->currentBalance());
+            $pendingPrincipal = (float) Installment::query()
+                ->whereHas('installmentPlan', function ($q) {
+                    $q->where('credit_account_id', $this->id)
+                        ->where('status', 'active');
+                })
+                ->where('status', 'pending')
+                ->sum('principal_amount');
 
-            return round(max($installmentLiability, $ledgerDebt), 2);
+            $nonInstallmentDebt = max(0.0, $ledgerDebt - $pendingPrincipal);
+
+            return round($installmentLiability + $nonInstallmentDebt, 2);
         }
 
         return round($installmentLiability, 2);
@@ -117,7 +127,31 @@ class CreditAccount extends Model
                     ->where('status', 'active');
             })
             ->where('status', 'pending')
+            ->sum('total_amount'), 2);
+    }
+
+    public function installmentPrincipalLiability(): float
+    {
+        return round((float) Installment::query()
+            ->whereHas('installmentPlan', function ($q) {
+                $q->where('credit_account_id', $this->id)
+                    ->where('status', 'active');
+            })
+            ->where('status', 'pending')
             ->sum('principal_amount'), 2);
+    }
+
+    public function installmentInterestAndFeeLiability(): float
+    {
+        $interestAndFee = (float) Installment::query()
+            ->whereHas('installmentPlan', function ($q) {
+                $q->where('credit_account_id', $this->id)
+                    ->where('status', 'active');
+            })
+            ->where('status', 'pending')
+            ->sum(DB::raw('interest_amount + fee_amount'));
+
+        return round($interestAndFee, 2);
     }
 
     public function nonInstallmentLiability(): float

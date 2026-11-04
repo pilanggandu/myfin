@@ -898,4 +898,34 @@ class CreditInstallmentTest extends TestCase
         $this->assertEquals(2778708, $this->creditCard->availableLimit());
         $this->assertEquals('Rp 2.778.708', $this->creditCard->formatted_available_limit);
     }
+
+    public function test_credit_account_liability_and_available_limit_include_installment_interest_and_fee(): void
+    {
+        // 1. Credit card dengan limit 5.000.000
+        $this->creditCard->update(['credit_limit' => 5000000]);
+
+        // 2. Belanja cicilan pokok 2.174.000 dengan biaya/bunga 47.292
+        $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Cicilan HP dengan Bunga/Biaya',
+            'total_amount' => 2174000,
+            'tenor' => 1,
+            'admin_fee' => 47292,
+            'start_date' => '2026-11-01',
+        ]);
+
+        $this->creditCard->refresh();
+
+        // 3. Verifikasi kewajiban terpakai mencakup Pokok + Bunga/Biaya (2.221.292)
+        $this->assertEquals(2221292, $this->creditCard->currentLiability());
+        $this->assertEquals(2221292, $this->creditCard->installmentLiability());
+        $this->assertEquals(2174000, $this->creditCard->installmentPrincipalLiability());
+        $this->assertEquals(47292, $this->creditCard->installmentInterestAndFeeLiability());
+        $this->assertEquals(0, $this->creditCard->nonInstallmentLiability());
+
+        // 4. Verifikasi sisa limit tersedia sama persis dengan m-banking BCA (2.778.708)
+        $this->assertEquals(2778708, $this->creditCard->availableLimit());
+        $this->assertEquals('Rp 2.778.708', $this->creditCard->formatted_available_limit);
+    }
 }

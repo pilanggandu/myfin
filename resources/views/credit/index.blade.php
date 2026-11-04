@@ -266,6 +266,15 @@
                                         <span>• Transaksi Non-Cicilan:</span>
                                         <span>Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
                                     </div>
+                                @elseif ($account->installmentInterestAndFeeLiability() > 0)
+                                    <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
+                                        <span>• Pokok Cicilan:</span>
+                                        <span>Rp {{ number_format($account->installmentPrincipalLiability(), fmod($account->installmentPrincipalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
+                                        <span>• Bunga & Biaya:</span>
+                                        <span>Rp {{ number_format($account->installmentInterestAndFeeLiability(), fmod($account->installmentInterestAndFeeLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                    </div>
                                 @endif
                                 <div class="flex justify-between items-center">
                                     <span class="text-muted">Limit Tersedia:</span>

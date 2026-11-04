@@ -143,9 +143,12 @@
                 <span class="text-muted">
                     Progress Pelunasan: <strong class="text-charcoal">{{ $plan->paidInstallments->count() }} dari {{ $plan->tenor }} cicilan lunas</strong> ({{ $percent }}%)
                 </span>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-wrap">
                     <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Terbayar: {{ $plan->formatted_paid }}</span>
                     <span class="text-amber-600 dark:text-amber-400 font-semibold">Sisa Pokok: {{ $plan->formatted_remaining }}</span>
+                    @if ($plan->hasInterestOrFees())
+                        <span class="text-forest font-semibold">Sisa Total: {{ $plan->formatted_remaining_total }}</span>
+                    @endif
                 </div>
             </div>
             <div class="w-full bg-cream rounded-full h-2.5 overflow-hidden border border-line/40">
