@@ -121,6 +121,20 @@ class FinancialTransaction extends Model
         return $query->where('type', 'credit_payment');
     }
 
+    public function scopeLatestFirst(Builder $query): Builder
+    {
+        return $query->orderBy('transaction_date', 'desc')
+            ->orderBy('transaction_time', 'desc')
+            ->orderBy('id', 'desc');
+    }
+
+    public function scopeOldestFirst(Builder $query): Builder
+    {
+        return $query->orderBy('transaction_date', 'asc')
+            ->orderBy('transaction_time', 'asc')
+            ->orderBy('id', 'asc');
+    }
+
     public function isPosted(): bool
     {
         return $this->status === 'posted';

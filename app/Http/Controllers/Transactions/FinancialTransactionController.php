@@ -25,9 +25,14 @@ class FinancialTransactionController extends Controller
         $space = app('currentSpace');
 
         $query = $space->financialTransactions()
-            ->with(['category', 'entries.account', 'creator', 'member'])
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('id', 'desc');
+            ->with(['category', 'entries.account', 'creator', 'member']);
+
+        $sort = $request->input('sort', 'date_desc');
+        if ($sort === 'date_asc' || $request->input('direction') === 'asc') {
+            $query->oldestFirst();
+        } else {
+            $query->latestFirst();
+        }
 
         if ($request->filled('type') && in_array($request->type, ['income', 'expense', 'transfer'])) {
             $query->where('type', $request->type);

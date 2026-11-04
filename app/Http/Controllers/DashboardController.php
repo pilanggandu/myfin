@@ -22,8 +22,7 @@ class DashboardController extends Controller
 
         $recentTransactions = $currentSpace ? $currentSpace->financialTransactions()
             ->with(['category', 'entries.account'])
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('id', 'desc')
+            ->latestFirst()
             ->take(5)
             ->get() : collect();
 

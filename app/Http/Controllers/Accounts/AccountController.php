@@ -60,6 +60,7 @@ class AccountController extends Controller
             ->with(['transaction.category', 'transaction.creator'])
             ->join('financial_transactions', 'transaction_entries.transaction_id', '=', 'financial_transactions.id')
             ->orderBy('financial_transactions.transaction_date', 'desc')
+            ->orderBy('financial_transactions.transaction_time', 'desc')
             ->orderBy('transaction_entries.id', 'desc')
             ->select('transaction_entries.*')
             ->paginate(20);

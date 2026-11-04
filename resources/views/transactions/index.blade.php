@@ -33,6 +33,9 @@
                     $activeCount++;
                 }
             }
+            if (request('sort') === 'date_asc') {
+                $activeCount++;
+            }
             $isAdvancedOpen = $activeCount > 0;
         @endphp
 
@@ -152,6 +155,14 @@
                             <option value="">Semua Status</option>
                             <option value="posted" {{ request('status') === 'posted' ? 'selected' : '' }}>Posted (Aktif)</option>
                             <option value="void" {{ request('status') === 'void' ? 'selected' : '' }}>Void (Dibatalkan)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-charcoal mb-1">Urutan Tanggal</label>
+                        <select name="sort" class="field-select h-9 py-1 text-xs w-full">
+                            <option value="date_desc" {{ request('sort', 'date_desc') === 'date_desc' ? 'selected' : '' }}>Terbaru (Tanggal ↓)</option>
+                            <option value="date_asc" {{ request('sort') === 'date_asc' ? 'selected' : '' }}>Terlama (Tanggal ↑)</option>
                         </select>
                     </div>
 
@@ -358,7 +369,19 @@
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
-                            <th class="py-3 px-6">Tanggal</th>
+                            <th class="py-3 px-6">
+                                @php
+                                    $currentSort = request('sort', 'date_desc');
+                                    $nextSort = $currentSort === 'date_desc' ? 'date_asc' : 'date_desc';
+                                    $sortUrl = request()->fullUrlWithQuery(['sort' => $nextSort]);
+                                @endphp
+                                <a href="{{ $sortUrl }}" class="inline-flex items-center gap-1.5 hover:text-forest transition cursor-pointer select-none group" title="Klik untuk membalik urutan tanggal">
+                                    <span>Tanggal</span>
+                                    <span class="text-xs font-bold {{ $currentSort === 'date_asc' ? 'text-forest' : 'text-muted group-hover:text-forest' }}">
+                                        {{ $currentSort === 'date_asc' ? '↑' : '↓' }}
+                                    </span>
+                                </a>
+                            </th>
                             <th class="py-3 px-4">Keterangan</th>
                             <th class="py-3 px-4">Kategori</th>
                             <th class="py-3 px-4">Rekening</th>

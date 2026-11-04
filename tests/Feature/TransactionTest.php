@@ -789,4 +789,106 @@ class TransactionTest extends TestCase
             'amount_signed' => -25000.50,
         ]);
     }
+
+    public function test_transactions_are_ordered_by_date_and_time_descending_by_default(): void
+    {
+        $trxOld = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-01',
+            'transaction_time' => '10:00:00',
+            'description' => 'Transaksi Lama',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $trxNewMorning = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-04',
+            'transaction_time' => '08:30:00',
+            'description' => 'Transaksi Baru Pagi',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $trxNewAfternoon = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-04',
+            'transaction_time' => '15:45:00',
+            'description' => 'Transaksi Baru Sore',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index'));
+
+        $response->assertOk();
+        $transactions = $response->viewData('transactions');
+
+        // Urutan default harus: 2026-11-04 15:45, lalu 2026-11-04 08:30, lalu 2026-11-01 10:00
+        $this->assertEquals($trxNewAfternoon->id, $transactions->items()[0]->id);
+        $this->assertEquals($trxNewMorning->id, $transactions->items()[1]->id);
+        $this->assertEquals($trxOld->id, $transactions->items()[2]->id);
+    }
+
+    public function test_transactions_can_be_ordered_by_date_ascending(): void
+    {
+        $trxOld = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-01',
+            'transaction_time' => '10:00:00',
+            'description' => 'Transaksi Lama',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $trxNewMorning = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-04',
+            'transaction_time' => '08:30:00',
+            'description' => 'Transaksi Baru Pagi',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $trxNewAfternoon = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-04',
+            'transaction_time' => '15:45:00',
+            'description' => 'Transaksi Baru Sore',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index', ['sort' => 'date_asc']));
+
+        $response->assertOk();
+        $transactions = $response->viewData('transactions');
+
+        // Urutan ASC harus: 2026-11-01 10:00, lalu 2026-11-04 08:30, lalu 2026-11-04 15:45
+        $this->assertEquals($trxOld->id, $transactions->items()[0]->id);
+        $this->assertEquals($trxNewMorning->id, $transactions->items()[1]->id);
+        $this->assertEquals($trxNewAfternoon->id, $transactions->items()[2]->id);
+    }
 }
