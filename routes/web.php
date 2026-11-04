@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Accounts\AccountController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Budgets\BudgetController;
 use App\Http\Controllers\Categories\CategoryController;
 use App\Http\Controllers\Credit\CreditAccountController;
@@ -23,6 +24,12 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/register/verify-otp', [AuthController::class, 'showVerifyOtp'])->name('register.otp.show');
+    Route::post('/register/verify-otp', [AuthController::class, 'verifyOtp'])->name('register.otp.verify');
+    Route::post('/register/resend-otp', [AuthController::class, 'resendOtp'])->name('register.otp.resend');
+
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
 
 Route::middleware('auth')->group(function () {
