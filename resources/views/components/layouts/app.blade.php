@@ -104,128 +104,157 @@
                 $isSettingsOpen = $isSettingsActive; // Settings collapsed by default unless active
             @endphp
 
-            <div class="space-y-2.5 flex-1 mt-4">
+            <div class="space-y-1.5 flex-1 mt-4">
                 <!-- Dashboard Utama -->
                 <div>
                     <a href="{{ route('dashboard') }}" class="sidebar-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                        <span class="w-5 text-center text-sm">📊</span> Dashboard
+                        <span class="w-5 text-center text-sm">📊</span>
+                        <span class="font-bold">Dashboard</span>
                     </a>
                 </div>
 
                 <!-- Grup 1: Kas & Transaksi -->
-                <div class="menu-group pt-2 border-t border-line/40" data-group="kas">
+                <div class="menu-group" data-group="kas">
                     <button 
                         type="button" 
                         id="btn-group-kas"
                         onclick="toggleNavGroup('kas')" 
-                        class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted/70 hover:text-charcoal hover:bg-forest-light/40 dark:hover:bg-line/40 rounded-lg transition-colors cursor-pointer select-none group"
+                        class="sidebar-nav-parent group {{ $isKasActive ? 'text-forest' : '' }}"
                         aria-expanded="{{ $isKasOpen ? 'true' : 'false' }}"
                         aria-controls="nav-group-kas"
                     >
-                        <span class="truncate whitespace-nowrap">Kas & Transaksi</span>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="flex items-center gap-2.5 min-w-0">
+                            <svg class="w-5 h-5 flex-shrink-0 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-6.75 3h18a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                            </svg>
+                            <span class="truncate whitespace-nowrap font-bold">Kas & Transaksi</span>
+                        </span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
                             @if ($isKasActive)
                                 <span class="w-1.5 h-1.5 rounded-full bg-forest" title="Halaman aktif di grup ini"></span>
                             @endif
-                            <svg id="chevron-kas" class="w-3.5 h-3.5 text-muted/60 group-hover:text-charcoal transition-transform duration-200 {{ $isKasOpen ? 'rotate-180' : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <svg id="chevron-kas" class="w-4 h-4 text-muted group-hover:text-charcoal transition-transform duration-200 {{ $isKasOpen ? 'rotate-180' : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                             </svg>
                         </div>
                     </button>
-                    <nav id="nav-group-kas" class="space-y-0.5 mt-1 {{ $isKasOpen ? '' : 'hidden' }}">
-                        <a href="{{ route('transactions.index') }}" class="sidebar-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">📝</span> Transaksi
+                    <nav id="nav-group-kas" class="ml-3.5 pl-2.5 border-l-2 border-line/60 space-y-0.5 my-1 {{ $isKasOpen ? '' : 'hidden' }}">
+                        <a href="{{ route('transactions.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">📝</span>
+                            <span class="truncate">Transaksi</span>
                         </a>
-                        <a href="{{ route('accounts.index') }}" class="sidebar-nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">💳</span> Rekening & Wallet
+                        <a href="{{ route('accounts.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">💳</span>
+                            <span class="truncate">Rekening & Wallet</span>
                         </a>
                     </nav>
                 </div>
 
                 <!-- Grup 2: Perencanaan & Kredit -->
-                <div class="menu-group pt-2 border-t border-line/40" data-group="planning">
+                <div class="menu-group" data-group="planning">
                     <button 
                         type="button" 
                         id="btn-group-planning"
                         onclick="toggleNavGroup('planning')" 
-                        class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted/70 hover:text-charcoal hover:bg-forest-light/40 dark:hover:bg-line/40 rounded-lg transition-colors cursor-pointer select-none group"
+                        class="sidebar-nav-parent group {{ $isPlanningActive ? 'text-forest' : '' }}"
                         aria-expanded="{{ $isPlanningOpen ? 'true' : 'false' }}"
                         aria-controls="nav-group-planning"
                     >
-                        <span class="truncate whitespace-nowrap">Perencanaan & Kredit</span>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="flex items-center gap-2.5 min-w-0">
+                            <svg class="w-5 h-5 flex-shrink-0 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m1-3l1-3m-1 3H6m0 0l-1 3m1-3l1-3m10.5-6.75l-4.5 4.5-3-3-3.75 3.75" />
+                            </svg>
+                            <span class="truncate whitespace-nowrap font-bold">Perencanaan & Kredit</span>
+                        </span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
                             @if ($isPlanningActive)
                                 <span class="w-1.5 h-1.5 rounded-full bg-forest" title="Halaman aktif di grup ini"></span>
                             @endif
-                            <svg id="chevron-planning" class="w-3.5 h-3.5 text-muted/60 group-hover:text-charcoal transition-transform duration-200 {{ $isPlanningOpen ? 'rotate-180' : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <svg id="chevron-planning" class="w-4 h-4 text-muted group-hover:text-charcoal transition-transform duration-200 {{ $isPlanningOpen ? 'rotate-180' : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                             </svg>
                         </div>
                     </button>
-                    <nav id="nav-group-planning" class="space-y-0.5 mt-1 {{ $isPlanningOpen ? '' : 'hidden' }}">
-                        <a href="{{ route('budgets.index') }}" class="sidebar-nav-item {{ request()->routeIs('budgets.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">🎯</span> Anggaran
+                    <nav id="nav-group-planning" class="ml-3.5 pl-2.5 border-l-2 border-line/60 space-y-0.5 my-1 {{ $isPlanningOpen ? '' : 'hidden' }}">
+                        <a href="{{ route('budgets.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('budgets.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🎯</span>
+                            <span class="truncate">Anggaran</span>
                         </a>
-                        <a href="{{ route('credit.index') }}" class="sidebar-nav-item {{ request()->routeIs('credit.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">🛡️</span> Kredit & Cicilan
+                        <a href="{{ route('credit.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('credit.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🛡️</span>
+                            <span class="truncate">Kredit & Cicilan</span>
                         </a>
-                        <a href="{{ route('recurring.index') }}" class="sidebar-nav-item {{ request()->routeIs('recurring.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">🔄</span> Jadwal Berulang
+                        <a href="{{ route('recurring.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('recurring.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🔄</span>
+                            <span class="truncate">Jadwal Berulang</span>
                         </a>
-                        <a href="{{ route('reports.index') }}" class="sidebar-nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">📈</span> Laporan Keuangan
+                        <a href="{{ route('reports.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">📈</span>
+                            <span class="truncate">Laporan Keuangan</span>
                         </a>
                     </nav>
                 </div>
 
                 <!-- Grup 3: Master Data & Pengaturan -->
-                <div class="menu-group pt-2 border-t border-line/40" data-group="settings">
+                <div class="menu-group" data-group="settings">
                     <button 
                         type="button" 
                         id="btn-group-settings"
                         onclick="toggleNavGroup('settings')" 
-                        class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted/70 hover:text-charcoal hover:bg-forest-light/40 dark:hover:bg-line/40 rounded-lg transition-colors cursor-pointer select-none group"
+                        class="sidebar-nav-parent group {{ $isSettingsActive ? 'text-forest' : '' }}"
                         aria-expanded="{{ $isSettingsOpen ? 'true' : 'false' }}"
                         aria-controls="nav-group-settings"
                     >
-                        <span class="truncate whitespace-nowrap">Pengaturan & Ruang</span>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="flex items-center gap-2.5 min-w-0">
+                            <svg class="w-5 h-5 flex-shrink-0 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                            </svg>
+                            <span class="truncate whitespace-nowrap font-bold">Pengaturan & Ruang</span>
+                        </span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
                             @if ($isSettingsActive)
                                 <span class="w-1.5 h-1.5 rounded-full bg-forest" title="Halaman aktif di grup ini"></span>
                             @endif
-                            <svg id="chevron-settings" class="w-3.5 h-3.5 text-muted/60 group-hover:text-charcoal transition-transform duration-200 {{ $isSettingsOpen ? 'rotate-180' : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <svg id="chevron-settings" class="w-4 h-4 text-muted group-hover:text-charcoal transition-transform duration-200 {{ $isSettingsOpen ? 'rotate-180' : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                             </svg>
                         </div>
                     </button>
-                    <nav id="nav-group-settings" class="space-y-0.5 mt-1 {{ $isSettingsOpen ? '' : 'hidden' }}">
-                        <a href="{{ route('categories.index') }}" class="sidebar-nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">🏷️</span> Kategori
+                    <nav id="nav-group-settings" class="ml-3.5 pl-2.5 border-l-2 border-line/60 space-y-0.5 my-1 {{ $isSettingsOpen ? '' : 'hidden' }}">
+                        <a href="{{ route('categories.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🏷️</span>
+                            <span class="truncate">Kategori</span>
                         </a>
-                        <a href="{{ route('members.index') }}" class="sidebar-nav-item {{ request()->routeIs('members.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">👥</span> Member
+                        <a href="{{ route('members.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('members.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">👥</span>
+                            <span class="truncate">Member</span>
                         </a>
-                        <a href="{{ route('reminders.index') }}" class="sidebar-nav-item {{ request()->routeIs('reminders.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">🔔</span> Pengingat
+                        <a href="{{ route('reminders.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('reminders.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🔔</span>
+                            <span class="truncate">Pengingat</span>
                         </a>
-                        <a href="{{ route('currencies.index') }}" class="sidebar-nav-item {{ request()->routeIs('currencies.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">💱</span> Mata Uang
+                        <a href="{{ route('currencies.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('currencies.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">💱</span>
+                            <span class="truncate">Mata Uang</span>
                         </a>
-                        <a href="{{ route('spaces.index') }}" class="sidebar-nav-item {{ request()->routeIs('spaces.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">🏠</span> Ruang Keuangan
+                        <a href="{{ route('spaces.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('spaces.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🏠</span>
+                            <span class="truncate">Ruang Keuangan</span>
                         </a>
-                        <a href="{{ route('profile.edit') }}" class="sidebar-nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-                            <span class="w-5 text-center text-sm">👤</span> Profil Pengguna
+                        <a href="{{ route('profile.edit') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">👤</span>
+                            <span class="truncate">Profil Pengguna</span>
                         </a>
                     </nav>
                 </div>
 
                 <!-- Grup 4: Fase Selanjutnya -->
                 <div class="pt-2 border-t border-line/40">
-                    <div class="px-3 py-1.5 text-[10px] font-bold tracking-wider text-muted/70 uppercase">Fase Selanjutnya</div>
+                    <div class="px-2.5 py-1 text-[11px] font-bold tracking-wider text-muted/70 uppercase">Fase Selanjutnya</div>
                     <nav class="space-y-0.5 mt-0.5">
                         <span class="sidebar-nav-item disabled" title="Tersedia di Fase 6">
-                            <span class="w-5 text-center text-sm opacity-50">🎯</span> Target & Bersama
+                            <span class="w-5 text-center text-sm opacity-50">🎯</span>
+                            <span class="truncate">Target & Bersama</span>
                             <span class="ml-auto text-[10px] font-bold text-muted bg-cream px-2 py-0.5 rounded">F6</span>
                         </span>
                     </nav>

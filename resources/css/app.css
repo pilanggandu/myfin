@@ -162,9 +162,9 @@ h1, h2, h3, .font-display {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
-  padding: 9px 12px;
-  border-radius: 7px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-muted);
@@ -186,6 +186,54 @@ h1, h2, h3, .font-display {
 .sidebar-nav-item.disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.sidebar-nav-parent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-charcoal);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+.sidebar-nav-parent:hover {
+  background: var(--color-forest-light);
+}
+
+.sidebar-nav-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.sidebar-nav-child:hover {
+  background: var(--color-forest-light);
+  color: var(--color-charcoal);
+}
+.sidebar-nav-child.active {
+  background: var(--color-forest-light);
+  color: var(--color-forest);
+  font-weight: 700;
+}
+.dark .sidebar-nav-child.active {
+  color: #EEF3ED;
 }
 
 .app-topbar {
