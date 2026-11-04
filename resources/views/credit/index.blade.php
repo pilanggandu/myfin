@@ -254,32 +254,29 @@
                                     <span class="font-semibold text-charcoal">{{ $account->formatted_limit }}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <span class="text-muted">Kewajiban Terpakai:</span>
+                                    <span class="text-muted">Limit Terpakai:</span>
                                     <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $account->formatted_liability }}</span>
                                 </div>
                                 @if ($account->nonInstallmentLiability() > 0)
-                                    <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
-                                        <span>• Cicilan Berjalan:</span>
-                                        <span>Rp {{ number_format($account->installmentLiability(), fmod($account->installmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
-                                        <span>• Transaksi Non-Cicilan:</span>
-                                        <span>Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
-                                    </div>
-                                @elseif ($account->installmentInterestAndFeeLiability() > 0)
                                     <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
                                         <span>• Pokok Cicilan:</span>
                                         <span>Rp {{ number_format($account->installmentPrincipalLiability(), fmod($account->installmentPrincipalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
                                     </div>
                                     <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
-                                        <span>• Bunga & Biaya:</span>
-                                        <span>Rp {{ number_format($account->installmentInterestAndFeeLiability(), fmod($account->installmentInterestAndFeeLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                        <span>• Transaksi Non-Cicilan / Biaya:</span>
+                                        <span>Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
                                     </div>
                                 @endif
                                 <div class="flex justify-between items-center">
                                     <span class="text-muted">Limit Tersedia:</span>
                                     <span class="font-bold text-forest">{{ $account->formatted_available_limit }}</span>
                                 </div>
+                                @if ($account->installmentInterestAndFeeLiability() > 0)
+                                    <div class="flex justify-between items-center text-[11px] text-muted border-t border-dashed border-line/40 pt-1.5 mt-1">
+                                        <span title="Total sisa cicilan termasuk bunga sampai lunas (tidak memotong limit kartu)">Sisa Cicilan (+ Bunga):</span>
+                                        <span class="font-medium text-charcoal">Rp {{ number_format($account->installmentTotalLiability(), fmod($account->installmentTotalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                    </div>
+                                @endif
                                 @if ($account->billing_cycle_day || $account->due_day)
                                     <div class="flex justify-between items-center text-[11px] text-muted border-t border-dashed border-line/50 pt-2 mt-2">
                                         <span>Cetak: Tgl {{ $account->billing_cycle_day ?? '-' }}</span>

@@ -917,15 +917,16 @@ class CreditInstallmentTest extends TestCase
 
         $this->creditCard->refresh();
 
-        // 3. Verifikasi kewajiban terpakai mencakup Pokok + Bunga/Biaya (2.221.292)
-        $this->assertEquals(2221292, $this->creditCard->currentLiability());
-        $this->assertEquals(2221292, $this->creditCard->installmentLiability());
+        // 3. Verifikasi kewajiban terpakai yang memotong limit adalah POKOK cicilan (2.174.000), sesuai regulasi perbankan
+        $this->assertEquals(2174000, $this->creditCard->currentLiability());
+        $this->assertEquals(2174000, $this->creditCard->installmentLiability());
         $this->assertEquals(2174000, $this->creditCard->installmentPrincipalLiability());
+        $this->assertEquals(2221292, $this->creditCard->installmentTotalLiability());
         $this->assertEquals(47292, $this->creditCard->installmentInterestAndFeeLiability());
         $this->assertEquals(0, $this->creditCard->nonInstallmentLiability());
 
-        // 4. Verifikasi sisa limit tersedia sama persis dengan m-banking BCA (2.778.708)
-        $this->assertEquals(2778708, $this->creditCard->availableLimit());
-        $this->assertEquals('Rp 2.778.708', $this->creditCard->formatted_available_limit);
+        // 4. Verifikasi sisa limit yang dapat digunakan belanja tidak dipotong bunga masa depan
+        $this->assertEquals(2826000, $this->creditCard->availableLimit());
+        $this->assertEquals('Rp 2.826.000', $this->creditCard->formatted_available_limit);
     }
 }
