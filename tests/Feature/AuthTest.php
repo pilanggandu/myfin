@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Mail\PasswordResetOtpMail;
 use App\Mail\RegistrationOtpMail;
 use App\Models\EmailOtp;
+use App\Models\PasswordResetOtp;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -331,5 +333,145 @@ class AuthTest extends TestCase
 
         $user->refresh();
         $this->assertTrue(Hash::check('NewPassword123!', $user->password));
+    }
+
+    public function test_user_can_view_forgot_password_page(): void
+    {
+        $response = $this->get('/forgot-password');
+        $response->assertStatus(200);
+        $response->assertSee('Lupa Kata Sandi?');
+        $response->assertSee('Kirim Kode OTP Reset');
+    }
+
+    public function test_user_can_request_password_reset_otp(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->create([
+            'email' => 'budi@example.com',
+            'name' => 'Budi Pratama',
+        ]);
+
+        $response = $this->post('/forgot-password', [
+            'email' => 'budi@example.com',
+        ]);
+
+        $response->assertRedirect('/forgot-password/verify-otp');
+        $response->assertSessionHas('password_reset_email', 'budi@example.com');
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('password_reset_otps', [
+            'email' => 'budi@example.com',
+            'attempts' => 0,
+        ]);
+
+        Mail::assertSent(PasswordResetOtpMail::class, function ($mail) {
+            return $mail->hasTo('budi@example.com') && strlen($mail->otpCode) === 6;
+        });
+    }
+
+    public function test_password_reset_request_fails_for_unregistered_email(): void
+    {
+        Mail::fake();
+
+        $response = $this->post('/forgot-password', [
+            'email' => 'tidakterdaftar@example.com',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+        Mail::assertNothingSent();
+    }
+
+    public function test_user_can_verify_otp_and_reset_password(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'budi@example.com',
+            'password' => Hash::make('OldPassword123!'),
+        ]);
+
+        PasswordResetOtp::create([
+            'email' => 'budi@example.com',
+            'otp_code' => '654321',
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->withSession(['password_reset_email' => 'budi@example.com'])
+            ->post('/forgot-password/verify-otp', [
+                'email' => 'budi@example.com',
+                'otp' => '654321',
+                'password' => 'NewSecretPassword123!',
+                'password_confirmation' => 'NewSecretPassword123!',
+            ]);
+
+        $response->assertRedirect('/login');
+        $response->assertSessionHas('success');
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('NewSecretPassword123!', $user->password));
+
+        $this->assertDatabaseMissing('password_reset_otps', [
+            'email' => 'budi@example.com',
+        ]);
+    }
+
+    public function test_password_reset_otp_verification_fails_with_wrong_code(): void
+    {
+        $user = User::factory()->create(['email' => 'budi@example.com']);
+
+        $otp = PasswordResetOtp::create([
+            'email' => 'budi@example.com',
+            'otp_code' => '654321',
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->withSession(['password_reset_email' => 'budi@example.com'])
+            ->post('/forgot-password/verify-otp', [
+                'email' => 'budi@example.com',
+                'otp' => '000000',
+                'password' => 'NewSecretPassword123!',
+                'password_confirmation' => 'NewSecretPassword123!',
+            ]);
+
+        $response->assertSessionHasErrors('otp');
+        $otp->refresh();
+        $this->assertEquals(1, $otp->attempts);
+    }
+
+    public function test_password_reset_otp_resend_respects_cooldown(): void
+    {
+        Mail::fake();
+
+        User::factory()->create(['email' => 'budi@example.com']);
+
+        PasswordResetOtp::create([
+            'email' => 'budi@example.com',
+            'otp_code' => '111111',
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        // Attempt resend immediately (cooldown active)
+        $response = $this->withSession([
+            'password_reset_email' => 'budi@example.com',
+            'password_reset_otp_sent_at' => now()->timestamp,
+        ])->post('/forgot-password/resend-otp', [
+            'email' => 'budi@example.com',
+        ]);
+
+        $response->assertSessionHas('warning');
+        Mail::assertNothingSent();
+
+        // Simulate 61 seconds later
+        $response = $this->withSession([
+            'password_reset_email' => 'budi@example.com',
+            'password_reset_otp_sent_at' => now()->subSeconds(65)->timestamp,
+        ])->post('/forgot-password/resend-otp', [
+            'email' => 'budi@example.com',
+        ]);
+
+        $response->assertSessionHas('success');
+        Mail::assertSent(PasswordResetOtpMail::class);
     }
 }

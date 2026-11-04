@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Accounts\AccountController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Budgets\BudgetController;
 use App\Http\Controllers\Categories\CategoryController;
@@ -30,6 +31,12 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetOtp'])->name('password.email');
+    Route::get('/forgot-password/verify-otp', [ForgotPasswordController::class, 'showVerifyOtp'])->name('password.otp.show');
+    Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyResetOtp'])->name('password.otp.verify');
+    Route::post('/forgot-password/resend-otp', [ForgotPasswordController::class, 'resendOtp'])->name('password.otp.resend');
 });
 
 Route::middleware('auth')->group(function () {

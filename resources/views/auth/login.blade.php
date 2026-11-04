@@ -65,10 +65,15 @@
             autocomplete="current-password" 
         />
 
-        <x-checkbox 
-            name="remember" 
-            label="Ingat saya di perangkat ini" 
-        />
+        <div class="flex items-center justify-between mb-3">
+            <x-checkbox 
+                name="remember" 
+                label="Ingat saya" 
+            />
+            <a href="{{ route('password.request') }}" class="text-xs text-forest hover:text-forest-hover font-semibold">
+                Lupa kata sandi?
+            </a>
+        </div>
 
         <x-button type="submit" class="w-full mt-2">
             Masuk ke Aplikasi
