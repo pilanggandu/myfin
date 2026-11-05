@@ -230,6 +230,41 @@ class TransactionTest extends TestCase
         $this->assertEquals(350000, $revision->after_data['amount']);
     }
 
+    public function test_correct_transaction_switches_account_balances(): void
+    {
+        $service = app(TransactionService::class);
+        $bcaBefore = $this->bca->currentBalance();
+        $gopayBefore = $this->gopay->currentBalance();
+
+        $tx = $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 5900,
+            'transaction_date' => '2026-11-04',
+            'description' => 'Le Minerale',
+        ]);
+
+        $this->assertEquals($bcaBefore - 5900, $this->bca->fresh()->currentBalance());
+        $this->assertEquals($gopayBefore, $this->gopay->fresh()->currentBalance());
+
+        $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/transactions/{$tx->id}", [
+                'type' => 'expense',
+                'account_id' => $this->gopay->id,
+                'category_id' => $this->expenseCat->id,
+                'amount' => 5900,
+                'transaction_date' => '2026-11-04',
+                'description' => 'Le Minerale',
+                'version' => $tx->version,
+                'reason' => 'Salah pilih rekening',
+            ])
+            ->assertRedirect();
+
+        $this->assertEquals($bcaBefore, $this->bca->fresh()->currentBalance());
+        $this->assertEquals($gopayBefore - 5900, $this->gopay->fresh()->currentBalance());
+    }
+
     public function test_optimistic_locking_prevents_stale_update(): void
     {
         $service = app(TransactionService::class);
