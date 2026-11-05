@@ -287,6 +287,7 @@
                                                 'bank' => '🏦',
                                                 'e-wallet' => '📱',
                                                 'cash' => '💵',
+                                                'investment' => '📈',
                                                 default => '💳',
                                             };
                                         @endphp
@@ -382,6 +383,7 @@
                                                         'bank' => '🏦',
                                                         'e-wallet' => '📱',
                                                         'cash' => '💵',
+                                                        'investment' => '📈',
                                                         default => '💳',
                                                     };
                                                 @endphp
@@ -424,6 +426,7 @@
                                                         'bank' => '🏦',
                                                         'e-wallet' => '📱',
                                                         'cash' => '💵',
+                                                        'investment' => '📈',
                                                         default => '💳',
                                                     };
                                                 @endphp
@@ -704,6 +707,8 @@
                 ],
                 transfer: [
                     'Top Up E-Wallet', 
+                    'Top Up Investasi / RDN',
+                    'Tarik Dana Investasi',
                     'Tarik Tunai ATM', 
                     'Pindah ke Rekening Tabungan', 
                     'Alokasi Dana Darurat'

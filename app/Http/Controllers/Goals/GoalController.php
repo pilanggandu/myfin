@@ -75,7 +75,7 @@ class GoalController extends Controller
         $now = $space ? $space->now() : Carbon::now('Asia/Jakarta');
 
         $cashAccounts = $space
-            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->orderBy('name')->get()
+            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet', 'investment'])->orderBy('name')->get()
             : collect();
 
         $categories = $space
@@ -164,7 +164,7 @@ class GoalController extends Controller
         $goal->load(['account', 'category', 'creator', 'contributions.user', 'contributions.member']);
 
         $cashAccounts = $space
-            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->orderBy('name')->get()
+            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet', 'investment'])->orderBy('name')->get()
             : collect();
 
         $members = $space
@@ -213,7 +213,7 @@ class GoalController extends Controller
         }
 
         $cashAccounts = $space
-            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->orderBy('name')->get()
+            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet', 'investment'])->orderBy('name')->get()
             : collect();
 
         $categories = $space

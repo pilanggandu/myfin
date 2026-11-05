@@ -161,7 +161,17 @@ class Space extends Model
     public function totalBalance(): int
     {
         $total = 0;
-        foreach ($this->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'e-wallet', 'cash'])->get() as $account) {
+        foreach ($this->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment'])->get() as $account) {
+            $total += $account->currentBalance();
+        }
+
+        return $total;
+    }
+
+    public function investmentBalance(): int
+    {
+        $total = 0;
+        foreach ($this->accounts()->whereNull('archived_at')->where('type', 'investment')->get() as $account) {
             $total += $account->currentBalance();
         }
 

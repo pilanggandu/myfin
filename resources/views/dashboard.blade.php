@@ -328,7 +328,7 @@
                                             {{ $acc->name }}
                                         </div>
                                         <div class="text-[10px] text-muted uppercase font-bold tracking-wider">
-                                            {{ $acc->type }}
+                                            {{ $acc->type === 'investment' ? 'INVESTASI / RDN' : $acc->type }}
                                         </div>
                                     </div>
                                     <div class="text-right font-mono text-xs font-bold text-forest">

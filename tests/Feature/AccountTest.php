@@ -331,4 +331,52 @@ class AccountTest extends TestCase
         $showResponse->assertSee('7.500.000');
         $showResponse->assertSee('Penyesuaian saldo awal rekonsiliasi bank');
     }
+
+    public function test_user_can_create_and_update_investment_account(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/accounts', [
+                'name' => 'Bibit Reksadana & SBN',
+                'type' => 'investment',
+                'opening_balance' => 5000000,
+                'opened_on' => '2026-01-01',
+            ]);
+
+        $response->assertRedirect('/accounts');
+        $this->assertDatabaseHas('accounts', [
+            'space_id' => $this->spaceA->id,
+            'name' => 'Bibit Reksadana & SBN',
+            'type' => 'investment',
+            'opening_balance' => 5000000,
+        ]);
+
+        $account = Account::where('name', 'Bibit Reksadana & SBN')->first();
+        $this->assertNotNull($account);
+        $this->assertEquals(5000000, $this->spaceA->fresh()->investmentBalance());
+        $this->assertEquals(5000000, $this->spaceA->fresh()->totalBalance());
+
+        $indexResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/accounts');
+
+        $indexResponse->assertOk();
+        $indexResponse->assertSee('INVESTASI &amp; RDN', false);
+        $indexResponse->assertSee('Bibit Reksadana &amp; SBN', false);
+
+        // Update
+        $updateResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/accounts/{$account->id}", [
+                'name' => 'Bibit & SBN Portofolio',
+                'type' => 'investment',
+                'opening_balance' => 6000000,
+                'opened_on' => '2026-01-01',
+                'reason' => 'Koreksi saldo awal aset',
+            ]);
+
+        $updateResponse->assertRedirect('/accounts');
+        $this->assertSame('Bibit & SBN Portofolio', $account->fresh()->name);
+        $this->assertEquals(6000000, $this->spaceA->fresh()->investmentBalance());
+    }
 }

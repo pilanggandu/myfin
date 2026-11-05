@@ -288,12 +288,12 @@
                         />
                     </div>
 
-                    @if ($space && $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->count() > 0)
+                    @if ($space && $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet', 'investment'])->count() > 0)
                         <div>
                             <label class="block text-xs font-bold text-charcoal mb-1">Rekening Sumber (Opsional)</label>
                             <select name="account_id" class="field-select h-10 px-3 text-xs w-full">
                                 <option value="">Tanpa Rekening Kas (Pencatatan Alokasi Saja)</option>
-                                @foreach ($space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->get() as $acc)
+                                @foreach ($space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet', 'investment'])->get() as $acc)
                                     <option value="{{ $acc->id }}">{{ $acc->name }} (Saldo: Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})</option>
                                 @endforeach
                             </select>

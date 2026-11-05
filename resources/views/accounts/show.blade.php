@@ -31,12 +31,22 @@
         </div>
     </div>
 
+    @php
+        $typeLabel = match($account->type) {
+            'bank' => 'Rekening Bank',
+            'e-wallet' => 'Dompet Digital',
+            'cash' => 'Kas Tunai',
+            'investment' => 'Investasi / RDN',
+            default => strtoupper($account->type),
+        };
+    @endphp
+
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <x-metric-card 
             label="SALDO SAAT INI" 
             :value="'Rp ' . number_format($account->currentBalance(), 0, ',', '.')" 
             :dark="true" 
-            :sub="'Tipe: ' . strtoupper($account->type)" 
+            :sub="'Tipe: ' . $typeLabel" 
         />
         <x-metric-card 
             label="SALDO AWAL" 

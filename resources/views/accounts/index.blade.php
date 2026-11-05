@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <x-metric-card 
             label="TOTAL SALDO TERSEDIA" 
             :value="'Rp ' . number_format($totalBalance, 0, ',', '.')" 
@@ -39,6 +39,11 @@
             label="E-WALLET & KAS TUNAI" 
             :value="$accounts->whereIn('type', ['e-wallet', 'cash'])->count() . ' Akun'" 
             :sub="'Saldo: Rp ' . number_format($accounts->whereIn('type', ['e-wallet', 'cash'])->sum(fn($a) => $a->currentBalance()), 0, ',', '.')" 
+        />
+        <x-metric-card 
+            label="INVESTASI & RDN" 
+            :value="$accounts->where('type', 'investment')->count() . ' Akun'" 
+            :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'investment')->sum(fn($a) => $a->currentBalance()), 0, ',', '.')" 
         />
     </div>
 
@@ -85,12 +90,14 @@
                             'bank' => '🏦',
                             'e-wallet' => '📱',
                             'cash' => '💵',
+                            'investment' => '📈',
                             default => '💳',
                         };
                         $typeLabel = match($account->type) {
                             'bank' => 'Bank',
                             'e-wallet' => 'E-Wallet',
                             'cash' => 'Kas Tunai',
+                            'investment' => 'Investasi / RDN',
                             default => $account->type,
                         };
                     @endphp
@@ -191,12 +198,14 @@
                                     'bank' => '🏦',
                                     'e-wallet' => '📱',
                                     'cash' => '💵',
+                                    'investment' => '📈',
                                     default => '💳',
                                 };
                                 $typeLabel = match($account->type) {
                                     'bank' => 'Bank',
                                     'e-wallet' => 'E-Wallet',
                                     'cash' => 'Kas Tunai',
+                                    'investment' => 'Investasi / RDN',
                                     default => $account->type,
                                 };
                             @endphp

@@ -182,6 +182,7 @@
                                     'bank' => '🏦',
                                     'e-wallet' => '📱',
                                     'cash' => '💵',
+                                    'investment' => '📈',
                                     default => '💳',
                                 };
                             @endphp

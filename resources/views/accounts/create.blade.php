@@ -122,6 +122,51 @@
                             <div class="text-xs font-bold text-charcoal group-hover:text-forest">💵 Dompet Tunai</div>
                             <div class="text-[10px] text-muted">Kas Fisik</div>
                         </button>
+
+                        <button 
+                            type="button" 
+                            onclick="applyAccountPreset('Bibit', 'investment')"
+                            class="p-2.5 rounded-xl border border-line bg-sidebar/60 hover:bg-cream hover:border-forest/40 transition text-left cursor-pointer group shadow-xs"
+                        >
+                            <div class="text-xs font-bold text-charcoal group-hover:text-forest">📈 Bibit</div>
+                            <div class="text-[10px] text-muted">Reksadana & SBN</div>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            onclick="applyAccountPreset('Stockbit (RDN)', 'investment')"
+                            class="p-2.5 rounded-xl border border-line bg-sidebar/60 hover:bg-cream hover:border-forest/40 transition text-left cursor-pointer group shadow-xs"
+                        >
+                            <div class="text-xs font-bold text-charcoal group-hover:text-forest">📈 Stockbit</div>
+                            <div class="text-[10px] text-muted">Saham & RDN</div>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            onclick="applyAccountPreset('Ajaib Sekuritas', 'investment')"
+                            class="p-2.5 rounded-xl border border-line bg-sidebar/60 hover:bg-cream hover:border-forest/40 transition text-left cursor-pointer group shadow-xs"
+                        >
+                            <div class="text-xs font-bold text-charcoal group-hover:text-forest">📈 Ajaib</div>
+                            <div class="text-[10px] text-muted">Saham & Kripto</div>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            onclick="applyAccountPreset('Bareksa', 'investment')"
+                            class="p-2.5 rounded-xl border border-line bg-sidebar/60 hover:bg-cream hover:border-forest/40 transition text-left cursor-pointer group shadow-xs"
+                        >
+                            <div class="text-xs font-bold text-charcoal group-hover:text-forest">📈 Bareksa</div>
+                            <div class="text-[10px] text-muted">Investasi & Surat Berharga</div>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            onclick="applyAccountPreset('Pluang', 'investment')"
+                            class="p-2.5 rounded-xl border border-line bg-sidebar/60 hover:bg-cream hover:border-forest/40 transition text-left cursor-pointer group shadow-xs"
+                        >
+                            <div class="text-xs font-bold text-charcoal group-hover:text-forest">📈 Pluang</div>
+                            <div class="text-[10px] text-muted">Emas & Aset Digital</div>
+                        </button>
                     </div>
                 </div>
 
@@ -133,7 +178,7 @@
                         <label class="block text-[11px] font-bold tracking-wider text-muted uppercase mb-2">
                             1. Tipe Rekening
                         </label>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-1.5 rounded-xl bg-sidebar border border-line" id="typeSwitcher">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-1.5 rounded-xl bg-sidebar border border-line" id="typeSwitcher">
                             
                             <label class="cursor-pointer">
                                 <input 
@@ -147,7 +192,7 @@
                                 <div class="p-3 rounded-lg text-center transition border border-transparent peer-checked:bg-panel peer-checked:border-forest/40 peer-checked:shadow-xs group">
                                     <div class="text-xl mb-1">🏦</div>
                                     <div class="text-xs font-bold text-charcoal peer-checked:text-forest">Rekening Bank</div>
-                                    <div class="text-[10px] text-muted mt-0.5">BCA, Mandiri, BRI, dll.</div>
+                                    <div class="text-[10px] text-muted mt-0.5">BCA, Mandiri, BRI</div>
                                 </div>
                             </label>
 
@@ -163,7 +208,7 @@
                                 <div class="p-3 rounded-lg text-center transition border border-transparent peer-checked:bg-panel peer-checked:border-forest/40 peer-checked:shadow-xs group">
                                     <div class="text-xl mb-1">📱</div>
                                     <div class="text-xs font-bold text-charcoal peer-checked:text-forest">Dompet Digital</div>
-                                    <div class="text-[10px] text-muted mt-0.5">GoPay, OVO, Dana, Shopee</div>
+                                    <div class="text-[10px] text-muted mt-0.5">GoPay, OVO, Dana</div>
                                 </div>
                             </label>
 
@@ -179,7 +224,23 @@
                                 <div class="p-3 rounded-lg text-center transition border border-transparent peer-checked:bg-panel peer-checked:border-forest/40 peer-checked:shadow-xs group">
                                     <div class="text-xl mb-1">💵</div>
                                     <div class="text-xs font-bold text-charcoal peer-checked:text-forest">Kas Tunai</div>
-                                    <div class="text-[10px] text-muted mt-0.5">Dompet fisik, laci kasir</div>
+                                    <div class="text-[10px] text-muted mt-0.5">Dompet fisik, tunai</div>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    name="type" 
+                                    value="investment" 
+                                    class="sr-only peer" 
+                                    {{ old('type') === 'investment' ? 'checked' : '' }} 
+                                    onchange="onTypeChanged('investment')"
+                                >
+                                <div class="p-3 rounded-lg text-center transition border border-transparent peer-checked:bg-panel peer-checked:border-forest/40 peer-checked:shadow-xs group">
+                                    <div class="text-xl mb-1">📈</div>
+                                    <div class="text-xs font-bold text-charcoal peer-checked:text-forest">Investasi / RDN</div>
+                                    <div class="text-[10px] text-muted mt-0.5">Bibit, Saham, Emas</div>
                                 </div>
                             </label>
                         </div>
@@ -217,6 +278,15 @@
                             </button>
                             <button type="button" onclick="appendNameSuffix('Dana Darurat')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-sidebar border border-line text-muted hover:text-forest hover:border-forest/30 transition cursor-pointer">
                                 Dana Darurat
+                            </button>
+                            <button type="button" onclick="appendNameSuffix('RDN Utama')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-sidebar border border-line text-muted hover:text-forest hover:border-forest/30 transition cursor-pointer">
+                                RDN Utama
+                            </button>
+                            <button type="button" onclick="appendNameSuffix('Portofolio Saham')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-sidebar border border-line text-muted hover:text-forest hover:border-forest/30 transition cursor-pointer">
+                                Portofolio Saham
+                            </button>
+                            <button type="button" onclick="appendNameSuffix('Reksadana')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-sidebar border border-line text-muted hover:text-forest hover:border-forest/30 transition cursor-pointer">
+                                Reksadana
                             </button>
                         </div>
                         @error('name')
@@ -523,6 +593,11 @@
                 previewBadge.textContent = 'KAS TUNAI';
                 previewBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
                 previewCategory.textContent = 'Uang Tunai / Kas Fisik';
+            } else if (type === 'investment') {
+                visualCard.style.background = 'linear-gradient(135deg, #064e3b 0%, #022c22 60%, #047857 100%)';
+                previewBadge.textContent = 'INVESTASI / RDN';
+                previewBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+                previewCategory.textContent = 'Rekening RDN / Sekuritas / Portofolio';
             }
 
             updateAccountPreview();

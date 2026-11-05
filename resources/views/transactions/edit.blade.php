@@ -148,6 +148,7 @@
                                                 'bank' => '🏦',
                                                 'e-wallet' => '📱',
                                                 'cash' => '💵',
+                                                'investment' => '📈',
                                                 default => '💳',
                                             };
                                         @endphp
@@ -216,6 +217,7 @@
                                                     'bank' => '🏦',
                                                     'e-wallet' => '📱',
                                                     'cash' => '💵',
+                                                    'investment' => '📈',
                                                     default => '💳',
                                                 };
                                             @endphp
@@ -257,6 +259,7 @@
                                                     'bank' => '🏦',
                                                     'e-wallet' => '📱',
                                                     'cash' => '💵',
+                                                    'investment' => '📈',
                                                     default => '💳',
                                                 };
                                             @endphp
