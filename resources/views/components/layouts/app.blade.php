@@ -306,13 +306,14 @@
                         <kbd class="hidden md:inline-block text-[10px] font-mono px-1 py-0.5 rounded bg-white/20 text-white/90">C</kbd>
                     </button>
 
-                    <!-- Tombol Sembunyikan / Tampilkan Saldo (Privacy Mode) -->
+                    <!-- Tombol Sembunyikan / Tampilkan Saldo (Master / General Privacy Mode) -->
                     <button 
                         type="button" 
-                        onclick="toggleBalanceVisibility()" 
-                        class="privacy-toggle-btn min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition cursor-pointer" 
-                        title="Sembunyikan / Tampilkan Saldo (Tekan 'H')"
-                        aria-label="Sembunyikan atau Tampilkan Saldo"
+                        id="masterPrivacyToggle"
+                        onclick="toggleMasterPrivacy()" 
+                        class="master-privacy-toggle min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition cursor-pointer" 
+                        title="Sembunyikan / Tampilkan Semua Saldo (Master, Tekan 'H')"
+                        aria-label="Sembunyikan atau Tampilkan Semua Saldo"
                     >
                         <span class="privacy-toggle-icon text-muted flex items-center justify-center">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -321,7 +322,7 @@
                             </svg>
                         </span>
                         <span class="privacy-toggle-text hidden xl:inline text-xs">
-                            Saldo
+                            Semua Saldo
                         </span>
                         <kbd class="hidden xl:inline-block text-[10px] font-mono px-1 py-0.5 rounded bg-cream/80 text-muted border border-line/60">H</kbd>
                     </button>
@@ -454,65 +455,183 @@
             }
         });
 
-        function isBalanceHidden() {
+        // === DUAL-LEVEL PRIVACY & BALANCE MASKING SYSTEM ===
+        const PRIVACY_ICON_OPEN = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>';
+        const PRIVACY_ICON_SLASH = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>';
+
+        function isMasterHidden() {
             return localStorage.getItem('arus_hide_balances') === 'true';
         }
 
-        function toggleBalanceVisibility() {
-            setBalanceVisibility(!isBalanceHidden());
+        function maskElement(el) {
+            if (!el.hasAttribute('data-raw-value')) {
+                el.setAttribute('data-raw-value', el.textContent.trim());
+            }
+            const raw = el.getAttribute('data-raw-value');
+            if (raw.startsWith('+Rp ') || raw.startsWith('+ Rp ') || raw.startsWith('+Rp')) {
+                el.textContent = '+Rp ••••••••';
+            } else if (raw.startsWith('-Rp ') || raw.startsWith('- Rp ') || raw.startsWith('-Rp')) {
+                el.textContent = '-Rp ••••••••';
+            } else if (raw.startsWith('⇄ Rp ') || raw.startsWith('⇄Rp ')) {
+                el.textContent = '⇄ Rp ••••••••';
+            } else if (raw.startsWith('Rp ') || raw.startsWith('Rp. ') || raw.startsWith('Rp')) {
+                el.textContent = 'Rp ••••••••';
+            } else if (raw.includes('Rp ') || raw.includes('Rp.')) {
+                el.textContent = raw.replace(/Rp\.?\s?[0-9.,]+/g, 'Rp ••••••••');
+            } else {
+                el.textContent = '••••••••';
+            }
+            el.classList.add('privacy-masked');
         }
 
-        function setBalanceVisibility(hide) {
+        function unmaskElement(el) {
+            if (el.hasAttribute('data-raw-value')) {
+                el.textContent = el.getAttribute('data-raw-value');
+            }
+            el.classList.remove('privacy-masked');
+        }
+
+        function updateToggleBtnUI(btn, isHidden, isMaster = false) {
+            if (!btn) return;
+            const icon = btn.querySelector('.privacy-toggle-icon');
+            const text = btn.querySelector('.privacy-toggle-text');
+            if (icon) {
+                icon.innerHTML = isHidden ? PRIVACY_ICON_SLASH : PRIVACY_ICON_OPEN;
+            }
+            if (text && !text.classList.contains('hidden-label-keep')) {
+                text.textContent = isHidden ? 'Tampilkan' : 'Sembunyikan';
+            }
+            if (isMaster) {
+                btn.setAttribute('title', isHidden ? 'Tampilkan Semua Saldo (Master, Tekan H)' : 'Sembunyikan Semua Saldo (Master, Tekan H)');
+                btn.setAttribute('aria-label', isHidden ? 'Tampilkan Semua Saldo' : 'Sembunyikan Semua Saldo');
+            } else {
+                btn.setAttribute('title', isHidden ? 'Tampilkan Saldo Bagian Ini' : 'Sembunyikan Saldo Bagian Ini');
+                btn.setAttribute('aria-label', isHidden ? 'Tampilkan Saldo Bagian Ini' : 'Sembunyikan Saldo Bagian Ini');
+            }
+        }
+
+        // 1. MASTER GENERAL TOGGLE (Header)
+        function toggleMasterPrivacy() {
+            setMasterPrivacy(!isMasterHidden());
+        }
+        window.toggleMasterPrivacy = toggleMasterPrivacy;
+        window.toggleBalanceVisibility = toggleMasterPrivacy; // alias
+
+        function setMasterPrivacy(hide) {
             localStorage.setItem('arus_hide_balances', hide ? 'true' : 'false');
-            applyPrivacyMask(hide);
-        }
 
-        function applyPrivacyMask(hide) {
-            document.querySelectorAll('.privacy-balance').forEach(el => {
-                if (!el.hasAttribute('data-raw-value')) {
-                    el.setAttribute('data-raw-value', el.textContent.trim());
-                }
-                const raw = el.getAttribute('data-raw-value');
-                if (hide) {
-                    if (raw.startsWith('+Rp ') || raw.startsWith('+ Rp ') || raw.startsWith('+Rp')) {
-                        el.textContent = '+Rp ••••••••';
-                    } else if (raw.startsWith('-Rp ') || raw.startsWith('- Rp ') || raw.startsWith('-Rp')) {
-                        el.textContent = '-Rp ••••••••';
-                    } else if (raw.startsWith('⇄ Rp ') || raw.startsWith('⇄Rp ')) {
-                        el.textContent = '⇄ Rp ••••••••';
-                    } else if (raw.startsWith('Rp ') || raw.startsWith('Rp. ') || raw.startsWith('Rp')) {
-                        el.textContent = 'Rp ••••••••';
-                    } else if (raw.includes('Rp ') || raw.includes('Rp.')) {
-                        el.textContent = raw.replace(/Rp\.?\s?[0-9.,]+/g, 'Rp ••••••••');
-                    } else {
-                        el.textContent = '••••••••';
-                    }
-                    el.classList.add('privacy-masked');
-                } else {
-                    el.textContent = raw;
-                    el.classList.remove('privacy-masked');
+            // Reset per-card local overrides agar semua tersinkronisasi ke status master
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('arus_scope_privacy_')) {
+                    localStorage.removeItem(key);
                 }
             });
 
-            const eyeOpen = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>';
-            const eyeSlash = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>';
+            // Mask/unmask seluruh elemen pada halaman
+            document.querySelectorAll('.privacy-balance').forEach(el => {
+                if (hide) {
+                    maskElement(el);
+                } else {
+                    unmaskElement(el);
+                }
+            });
 
-            document.querySelectorAll('.privacy-toggle-btn').forEach(btn => {
-                const icon = btn.querySelector('.privacy-toggle-icon');
-                const text = btn.querySelector('.privacy-toggle-text');
-                if (icon) {
-                    icon.innerHTML = hide ? eyeSlash : eyeOpen;
+            // Update status UI tombol master
+            document.querySelectorAll('.master-privacy-toggle, #masterPrivacyToggle').forEach(btn => {
+                updateToggleBtnUI(btn, hide, true);
+            });
+
+            // Update status UI seluruh tombol card lokal
+            document.querySelectorAll('.privacy-card-toggle, [data-privacy-card-toggle]').forEach(btn => {
+                updateToggleBtnUI(btn, hide, false);
+            });
+        }
+
+        // 2. INDEPENDENT / LOCAL CARD TOGGLE (Per Card & Per Modul)
+        function toggleCardPrivacy(btn, explicitScope) {
+            let container = null;
+            if (explicitScope) {
+                container = typeof explicitScope === 'string'
+                    ? (document.getElementById(explicitScope) || document.querySelector(`[data-privacy-scope="${explicitScope}"]`) || document.querySelector(explicitScope))
+                    : explicitScope;
+            }
+            if (!container && btn) {
+                container = btn.closest('[data-privacy-scope], .privacy-scope, .panel-card, .metric-card') || btn.parentElement;
+            }
+            if (!container) return;
+
+            const balances = container.querySelectorAll('.privacy-balance');
+            if (balances.length === 0) return;
+
+            // Cek apakah saat ini ada saldo di card ini yang disembunyikan
+            const isCurrentlyMasked = Array.from(balances).some(el => el.classList.contains('privacy-masked'));
+            const willHide = !isCurrentlyMasked;
+
+            balances.forEach(el => {
+                if (willHide) {
+                    maskElement(el);
+                } else {
+                    unmaskElement(el);
                 }
-                if (text && !text.classList.contains('hidden-label-keep')) {
-                    text.textContent = hide ? 'Tampilkan' : 'Sembunyikan';
+            });
+
+            // Update UI tombol-tombol yang berada di card ini saja
+            const cardBtns = container.querySelectorAll('.privacy-card-toggle, [data-privacy-card-toggle]');
+            cardBtns.forEach(b => updateToggleBtnUI(b, willHide, false));
+            if (btn && !container.contains(btn)) {
+                updateToggleBtnUI(btn, willHide, false);
+            }
+
+            // Simpan status per-scope jika card memiliki atribut identifier
+            const scopeId = container.getAttribute('data-privacy-scope') || container.id;
+            if (scopeId) {
+                localStorage.setItem('arus_scope_privacy_' + scopeId, willHide ? 'hidden' : 'shown');
+            }
+        }
+        window.toggleCardPrivacy = toggleCardPrivacy;
+
+        function initPrivacySystem() {
+            const masterHidden = isMasterHidden();
+
+            // 1. Terapkan state master awal ke semua saldo
+            document.querySelectorAll('.privacy-balance').forEach(el => {
+                if (masterHidden) {
+                    maskElement(el);
+                } else {
+                    unmaskElement(el);
                 }
-                btn.setAttribute('title', hide ? 'Tampilkan Saldo (Tekan H)' : 'Sembunyikan Saldo (Tekan H)');
-                btn.setAttribute('aria-label', hide ? 'Tampilkan Saldo' : 'Sembunyikan Saldo');
+            });
+
+            // 2. Terapkan preferensi lokal per-card jika ada tersimpan
+            document.querySelectorAll('[data-privacy-scope], .privacy-scope').forEach(container => {
+                const scopeId = container.getAttribute('data-privacy-scope') || container.id;
+                if (scopeId) {
+                    const saved = localStorage.getItem('arus_scope_privacy_' + scopeId);
+                    if (saved === 'hidden') {
+                        container.querySelectorAll('.privacy-balance').forEach(maskElement);
+                    } else if (saved === 'shown') {
+                        container.querySelectorAll('.privacy-balance').forEach(unmaskElement);
+                    }
+                }
+            });
+
+            // 3. Update tombol master di header
+            document.querySelectorAll('.master-privacy-toggle, #masterPrivacyToggle').forEach(btn => {
+                updateToggleBtnUI(btn, masterHidden, true);
+            });
+
+            // 4. Update seluruh tombol lokal per-card sesuai kondisi masing-masing card
+            document.querySelectorAll('.privacy-card-toggle, [data-privacy-card-toggle], [onclick*="toggleCardPrivacy"]').forEach(btn => {
+                const container = btn.closest('[data-privacy-scope], .privacy-scope, .panel-card, .metric-card') || btn.parentElement;
+                if (container) {
+                    const hasMasked = container.querySelector('.privacy-masked') !== null;
+                    updateToggleBtnUI(btn, hasMasked, false);
+                }
             });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            applyPrivacyMask(isBalanceHidden());
+            initPrivacySystem();
 
             // Pulihkan status buka/tutup grup menu navigasi dari localStorage
             ['kas', 'planning', 'settings'].forEach(function(groupId) {

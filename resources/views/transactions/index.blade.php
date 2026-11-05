@@ -10,12 +10,12 @@
         <div class="flex items-center gap-2">
             <button 
                 type="button" 
-                onclick="toggleBalanceVisibility()" 
-                class="privacy-toggle-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
-                title="Sembunyikan / Tampilkan Nominal"
+                onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'transactions-table\']')" 
+                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                title="Sembunyikan / Tampilkan Nominal Transaksi"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
-                <span class="privacy-toggle-text">Sembunyikan Nominal</span>
+                <span class="privacy-toggle-text">Nominal Transaksi</span>
             </button>
             <a href="{{ route('transactions.create') }}" class="btn-arus-primary w-full sm:w-auto">
                 + Catat Transaksi Baru
@@ -222,16 +222,16 @@
     </div>
 
     <!-- Table & List Panel -->
-    <div class="panel-card p-0 overflow-hidden">
+    <div class="panel-card p-0 overflow-hidden" data-privacy-scope="transactions-table">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="text-sm font-bold text-forest block">Daftar Transaksi ({{ $transactions->total() }})</span>
                 <button 
                     type="button" 
-                    onclick="toggleBalanceVisibility()" 
-                    class="privacy-toggle-btn p-1 text-muted hover:text-charcoal transition-colors rounded cursor-pointer" 
-                    title="Sembunyikan / Tampilkan Nominal"
-                    aria-label="Sembunyikan / Tampilkan Nominal"
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle p-1 text-muted hover:text-charcoal transition-colors rounded cursor-pointer" 
+                    title="Sembunyikan / Tampilkan Nominal Transaksi"
+                    aria-label="Sembunyikan / Tampilkan Nominal Transaksi"
                 >
                     <span class="privacy-toggle-icon text-muted"></span>
                 </button>

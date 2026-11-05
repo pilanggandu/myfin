@@ -14,12 +14,12 @@
         <div class="flex items-center gap-2 flex-wrap">
             <button 
                 type="button" 
-                onclick="toggleBalanceVisibility()" 
-                class="privacy-toggle-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
-                title="Sembunyikan / Tampilkan Nominal"
+                onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'goals-metrics\']')" 
+                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                title="Sembunyikan / Tampilkan Nominal Ringkasan Target"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
-                <span class="privacy-toggle-text">Sembunyikan Saldo</span>
+                <span class="privacy-toggle-text">Nominal Ringkasan</span>
             </button>
 
             <a href="{{ route('goals.create') }}" class="btn-arus-primary text-xs">
@@ -29,7 +29,7 @@
     </div>
 
     <!-- Ringkasan Metrik Target -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div data-privacy-scope="goals-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <x-metric-card 
             label="TOTAL TARGET TABUNGAN" 
             :value="'Rp ' . number_format($totalTargetAmount, 0, ',', '.')" 
@@ -138,7 +138,7 @@
                                     </div>
                                 </div>
 
-                                <div>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
                                     @if ($isAchieved)
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
                                             🎉 Tercapai
@@ -152,6 +152,14 @@
                                             Aktif
                                         </span>
                                     @endif
+                                    <button 
+                                        type="button" 
+                                        onclick="toggleCardPrivacy(this)" 
+                                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                                        title="Sembunyikan / Tampilkan Saldo Target Ini"
+                                    >
+                                        <span class="privacy-toggle-icon"></span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -173,7 +181,7 @@
                                                 Rp {{ number_format($goal->current_amount, 0, ',', '.') }}
                                             </span>
                                         </span>
-                                        <span class="text-[11px] text-muted"> / Rp {{ number_format($goal->target_amount, 0, ',', '.') }}</span>
+                                        <span class="text-[11px] text-muted"> / <span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->target_amount, 0, ',', '.') }}">Rp {{ number_format($goal->target_amount, 0, ',', '.') }}</span></span>
                                     </div>
                                 </div>
 
@@ -188,7 +196,7 @@
                                 <div class="flex items-center justify-between text-xs text-muted">
                                     <span class="font-bold font-mono text-charcoal">{{ $pct }}%</span>
                                     @if (! $isAchieved)
-                                        <span>Sisa: <strong class="font-mono text-charcoal">Rp {{ number_format($rem, 0, ',', '.') }}</strong></span>
+                                        <span>Sisa: <strong class="font-mono text-charcoal"><span class="privacy-balance" data-raw-value="Rp {{ number_format($rem, 0, ',', '.') }}">Rp {{ number_format($rem, 0, ',', '.') }}</span></strong></span>
                                     @else
                                         <span class="text-emerald-600 dark:text-emerald-400 font-bold">100% Tercapai!</span>
                                     @endif
@@ -218,7 +226,7 @@
                                     <div class="text-right">
                                         <div class="text-[10px] uppercase font-bold text-muted/80">Saran Menabung</div>
                                         <div class="font-mono font-bold text-forest dark:text-emerald-400 text-[11px] mt-0.5">
-                                            Rp {{ number_format($monthlyRec, 0, ',', '.') }} <span class="font-sans text-[10px] text-muted">/ bln</span>
+                                            <span class="privacy-balance" data-raw-value="Rp {{ number_format($monthlyRec, 0, ',', '.') }}">Rp {{ number_format($monthlyRec, 0, ',', '.') }}</span> <span class="font-sans text-[10px] text-muted">/ bln</span>
                                         </div>
                                     </div>
                                 @endif

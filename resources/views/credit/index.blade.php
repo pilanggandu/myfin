@@ -13,6 +13,15 @@
         <div class="flex items-center gap-2">
             <button 
                 type="button" 
+                onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'credit-metrics\']')" 
+                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                title="Sembunyikan / Tampilkan Nominal Ringkasan Kredit"
+            >
+                <span class="privacy-toggle-icon text-muted"></span>
+                <span class="privacy-toggle-text">Nominal Ringkasan</span>
+            </button>
+            <button 
+                type="button" 
                 onclick="openCreditAccountModal()" 
                 class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
             >
@@ -83,7 +92,7 @@
     @endif
 
     <!-- Metric Overview Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div data-privacy-scope="credit-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <!-- Total Limit Kredit -->
         <div class="panel-card p-5">
             <div class="flex items-center justify-between text-muted text-xs mb-2">
@@ -91,7 +100,7 @@
                 <span class="text-base">💳</span>
             </div>
             <div class="font-serif text-2xl font-medium text-charcoal">
-                Rp {{ number_format($totalCreditLimit, 0, ',', '.') }}
+                <span class="privacy-balance" data-raw-value="Rp {{ number_format($totalCreditLimit, 0, ',', '.') }}">Rp {{ number_format($totalCreditLimit, 0, ',', '.') }}</span>
             </div>
             <div class="mt-2 text-xs text-muted">
                 Dari {{ $creditAccounts->whereNull('archived_at')->count() }} akun aktif
@@ -105,7 +114,7 @@
                 <span class="text-base">⏳</span>
             </div>
             <div class="font-serif text-2xl font-medium text-amber-600 dark:text-amber-400">
-                Rp {{ number_format($totalLiability, 0, ',', '.') }}
+                <span class="privacy-balance" data-raw-value="Rp {{ number_format($totalLiability, 0, ',', '.') }}">Rp {{ number_format($totalLiability, 0, ',', '.') }}</span>
             </div>
             <div class="mt-2 text-xs text-muted">
                 {{ $activePlans->count() }} rencana cicilan berjalan
@@ -119,7 +128,7 @@
                 <span class="text-base">✨</span>
             </div>
             <div class="font-serif text-2xl font-medium text-forest">
-                Rp {{ number_format($totalAvailableLimit, 0, ',', '.') }}
+                <span class="privacy-balance" data-raw-value="Rp {{ number_format($totalAvailableLimit, 0, ',', '.') }}">Rp {{ number_format($totalAvailableLimit, 0, ',', '.') }}</span>
             </div>
             <div class="mt-2 text-xs text-muted">
                 Dapat digunakan belanja
@@ -237,9 +246,19 @@
                                         {{ str_replace('_', ' ', $account->type) }}
                                     </span>
                                 </div>
-                                <span class="text-xs px-2 py-0.5 rounded font-bold {{ $usagePercent > 80 ? 'bg-red/10 text-red' : 'bg-forest/10 text-forest' }}">
-                                    {{ $usagePercent }}% Terpakai
-                                </span>
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    <span class="text-xs px-2 py-0.5 rounded font-bold {{ $usagePercent > 80 ? 'bg-red/10 text-red' : 'bg-forest/10 text-forest' }}">
+                                        {{ $usagePercent }}% Terpakai
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        onclick="toggleCardPrivacy(this)" 
+                                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                                        title="Sembunyikan / Tampilkan Nominal Kartu Ini"
+                                    >
+                                        <span class="privacy-toggle-icon"></span>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Progress Bar Limit -->
@@ -251,30 +270,30 @@
                             <div class="space-y-2 text-xs border-t border-line/60 pt-3">
                                 <div class="flex justify-between items-center">
                                     <span class="text-muted">Batas Limit:</span>
-                                    <span class="font-semibold text-charcoal">{{ $account->formatted_limit }}</span>
+                                    <span class="font-semibold text-charcoal privacy-balance" data-raw-value="{{ $account->formatted_limit }}">{{ $account->formatted_limit }}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <span class="text-muted">Limit Terpakai:</span>
-                                    <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $account->formatted_liability }}</span>
+                                    <span class="font-semibold text-amber-600 dark:text-amber-400 privacy-balance" data-raw-value="{{ $account->formatted_liability }}">{{ $account->formatted_liability }}</span>
                                 </div>
                                 @if ($account->nonInstallmentLiability() > 0)
                                     <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
                                         <span>• Pokok Cicilan:</span>
-                                        <span>Rp {{ number_format($account->installmentPrincipalLiability(), fmod($account->installmentPrincipalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($account->installmentPrincipalLiability(), fmod($account->installmentPrincipalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}">Rp {{ number_format($account->installmentPrincipalLiability(), fmod($account->installmentPrincipalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
                                     </div>
                                     <div class="flex justify-between items-center text-[11px] text-muted -mt-1 pl-2">
                                         <span>• Transaksi Non-Cicilan / Biaya:</span>
-                                        <span>Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}">Rp {{ number_format($account->nonInstallmentLiability(), fmod($account->nonInstallmentLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
                                     </div>
                                 @endif
                                 <div class="flex justify-between items-center">
                                     <span class="text-muted">Limit Tersedia:</span>
-                                    <span class="font-bold text-forest">{{ $account->formatted_available_limit }}</span>
+                                    <span class="font-bold text-forest privacy-balance" data-raw-value="{{ $account->formatted_available_limit }}">{{ $account->formatted_available_limit }}</span>
                                 </div>
                                 @if ($account->installmentInterestAndFeeLiability() > 0)
                                     <div class="flex justify-between items-center text-[11px] text-muted border-t border-dashed border-line/40 pt-1.5 mt-1">
                                         <span title="Total sisa cicilan termasuk bunga sampai lunas (tidak memotong limit kartu)">Sisa Cicilan (+ Bunga):</span>
-                                        <span class="font-medium text-charcoal">Rp {{ number_format($account->installmentTotalLiability(), fmod($account->installmentTotalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
+                                        <span class="font-medium text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($account->installmentTotalLiability(), fmod($account->installmentTotalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}">Rp {{ number_format($account->installmentTotalLiability(), fmod($account->installmentTotalLiability(), 1.0) == 0.0 ? 0 : 2, ',', '.') }}</span>
                                     </div>
                                 @endif
                                 @if ($account->billing_cycle_day || $account->due_day)

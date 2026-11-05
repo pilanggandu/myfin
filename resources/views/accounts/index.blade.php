@@ -23,31 +23,35 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div data-privacy-scope="accounts-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <x-metric-card 
             label="TOTAL SALDO TERSEDIA" 
             :value="'Rp ' . number_format($totalBalance, 0, ',', '.')" 
             :dark="true"
             sub="Seluruh rekening aktif & arsip" 
+            :toggle="true"
         />
         <x-metric-card 
             label="REKENING BANK" 
             :value="$accounts->where('type', 'bank')->count() . ' Rekening'" 
             :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'bank')->sum(fn($a) => $a->currentBalance()), 0, ',', '.')" 
+            :toggle="true"
         />
         <x-metric-card 
             label="E-WALLET & KAS TUNAI" 
             :value="$accounts->whereIn('type', ['e-wallet', 'cash'])->count() . ' Akun'" 
             :sub="'Saldo: Rp ' . number_format($accounts->whereIn('type', ['e-wallet', 'cash'])->sum(fn($a) => $a->currentBalance()), 0, ',', '.')" 
+            :toggle="true"
         />
         <x-metric-card 
             label="INVESTASI & RDN" 
             :value="$accounts->where('type', 'investment')->count() . ' Akun'" 
             :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'investment')->sum(fn($a) => $a->currentBalance()), 0, ',', '.')" 
+            :toggle="true"
         />
     </div>
 
-    <div class="panel-card p-0 overflow-hidden">
+    <div class="panel-card p-0 overflow-hidden" data-privacy-scope="accounts-table">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div class="flex items-center gap-2.5">
                 <div>
@@ -56,9 +60,9 @@
                 </div>
                 <button 
                     type="button" 
-                    onclick="toggleBalanceVisibility()" 
-                    class="privacy-toggle-btn w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs flex-shrink-0" 
-                    title="Sembunyikan / Tampilkan Saldo"
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs flex-shrink-0" 
+                    title="Sembunyikan / Tampilkan Saldo Tabel Rekening"
                 >
                     <span class="privacy-toggle-icon"></span>
                 </button>

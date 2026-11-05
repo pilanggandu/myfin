@@ -32,12 +32,12 @@
 
             <button 
                 type="button" 
-                onclick="toggleBalanceVisibility()" 
-                class="privacy-toggle-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
-                title="Sembunyikan / Tampilkan Nominal"
+                onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'budgets-metrics\']')" 
+                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                title="Sembunyikan / Tampilkan Saldo Ringkasan Anggaran"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
-                <span class="privacy-toggle-text">Sembunyikan Nominal</span>
+                <span class="privacy-toggle-text">Nominal Ringkasan</span>
             </button>
 
             @if ($availableCategories->isNotEmpty())
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Metric Overview Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div data-privacy-scope="budgets-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <x-metric-card 
             label="TOTAL BATAS ANGGARAN" 
             :value="'Rp ' . number_format($totalBudget, 0, ',', '.')" 
@@ -77,9 +77,19 @@
     </div>
 
     <!-- Budgets List Panel -->
-    <div class="panel-card p-0 overflow-hidden mb-6">
+    <div class="panel-card p-0 overflow-hidden mb-6" data-privacy-scope="budgets-list">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-            <span class="text-sm font-bold text-forest">Rincian Anggaran Kategori ({{ $periodDate->translatedFormat('F Y') }})</span>
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-forest">Rincian Anggaran Kategori ({{ $periodDate->translatedFormat('F Y') }})</span>
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                    title="Sembunyikan / Tampilkan Nominal Anggaran Kategori"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
+            </div>
             <span class="text-xs text-muted">{{ $budgets->count() }} kategori beranggaran</span>
         </div>
 

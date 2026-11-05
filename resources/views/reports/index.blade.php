@@ -14,12 +14,12 @@
         <div class="flex items-center gap-2 flex-wrap">
             <button 
                 type="button" 
-                onclick="toggleBalanceVisibility()" 
-                class="privacy-toggle-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
-                title="Sembunyikan / Tampilkan Nominal"
+                onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'reports-summary\']')" 
+                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                title="Sembunyikan / Tampilkan Nominal Ringkasan Laporan"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
-                <span class="privacy-toggle-text">Sembunyikan Nominal</span>
+                <span class="privacy-toggle-text">Nominal Ringkasan</span>
             </button>
 
             <!-- Filter Periode Laporan (Bulan & Tahun) -->
@@ -86,7 +86,7 @@
         <!-- ========================================== -->
 
         <!-- KPI Summary Bar Kas Periode -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-6">
+        <div data-privacy-scope="reports-summary" class="privacy-scope grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-6">
             <!-- Saldo Awal -->
             <div class="panel-card p-4 flex flex-col justify-between">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">Saldo Kas Awal</span>
@@ -282,9 +282,17 @@
                                     <span class="privacy-balance" data-raw-value="{{ $day->net >= 0 ? '+' : '' }}Rp {{ number_format($day->net, 0, ',', '.') }}">{{ $day->net >= 0 ? '+' : '' }}Rp {{ number_format($day->net, 0, ',', '.') }}</span>
                                 </div>
 
-                                <div class="px-2 py-0.5 rounded bg-panel dark:bg-line/40 border border-line text-[11px] font-mono text-charcoal">
+                                <div class="px-2 py-0.5 rounded bg-panel dark:bg-line/40 border border-line text-[11px] font-mono text-charcoal flex items-center gap-1.5">
                                     <span class="text-muted">Saldo Kas:</span>
                                     <span class="font-bold privacy-balance" data-raw-value="Rp {{ number_format($day->closing_balance, 0, ',', '.') }}">Rp {{ number_format($day->closing_balance, 0, ',', '.') }}</span>
+                                    <button 
+                                        type="button" 
+                                        onclick="toggleCardPrivacy(this)" 
+                                        class="privacy-card-toggle w-5 h-5 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10px]" 
+                                        title="Sembunyikan / Tampilkan Nominal Hari Ini"
+                                    >
+                                        <span class="privacy-toggle-icon"></span>
+                                    </button>
                                 </div>
                             </div>
                         </div>

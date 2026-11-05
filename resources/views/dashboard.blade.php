@@ -13,12 +13,12 @@
         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button 
                 type="button" 
-                onclick="toggleBalanceVisibility()" 
-                class="privacy-toggle-btn btn-arus-secondary inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold" 
-                title="Sembunyikan / Tampilkan Saldo"
+                onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'dashboard-metrics\']')" 
+                class="privacy-card-toggle btn-arus-secondary inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold" 
+                title="Sembunyikan / Tampilkan Saldo Ringkasan Atas"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
-                <span class="privacy-toggle-text">Sembunyikan Saldo</span>
+                <span class="privacy-toggle-text">Saldo Ringkasan</span>
             </button>
             <button type="button" onclick="openQuickTransactionModal()" class="btn-arus-primary cursor-pointer">
                 ⚡ Catat Cepat
@@ -33,30 +33,34 @@
     </div>
 
     <!-- Financial Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div data-privacy-scope="dashboard-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <x-metric-card 
             label="TOTAL SALDO KAS & BANK" 
             :value="'Rp ' . number_format($totalBalance, 0, ',', '.')" 
             :dark="true" 
             :sub="$accounts->count() . ' rekening aktif terdaftar'" 
+            :toggle="true"
         />
 
         <x-metric-card 
             label="PEMASUKAN BULAN INI" 
             :value="'Rp ' . number_format($monthlyIncome, 0, ',', '.')" 
             :sub="'Periode: ' . now()->translatedFormat('F Y')" 
+            :toggle="true"
         />
 
         <x-metric-card 
             label="PENGELUARAN BULAN INI" 
             :value="'Rp ' . number_format($monthlyExpense, 0, ',', '.')" 
             :sub="'Periode: ' . now()->translatedFormat('F Y')" 
+            :toggle="true"
         />
 
         <x-metric-card 
             label="ARUS KAS BERSIH" 
             :value="($netCashFlow >= 0 ? '+' : '') . 'Rp ' . number_format($netCashFlow, 0, ',', '.')" 
             :sub="'Selisih kas masuk vs keluar'" 
+            :toggle="true"
         />
     </div>
 
@@ -64,7 +68,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Recent Transactions (2 cols on desktop) -->
         <div class="lg:col-span-2">
-            <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between">
+            <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between" data-privacy-scope="dashboard-recent-tx">
                 <div>
                     <!-- Widget Header -->
                     <div class="px-5 sm:px-6 py-3.5 border-b border-line flex items-center justify-between">
@@ -88,6 +92,14 @@
                         </div>
 
                         <div class="flex items-center gap-2">
+                            <button 
+                                type="button" 
+                                onclick="toggleCardPrivacy(this)" 
+                                class="privacy-card-toggle w-7 h-7 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs flex-shrink-0" 
+                                title="Sembunyikan / Tampilkan Nominal Transaksi Terkini"
+                            >
+                                <span class="privacy-toggle-icon"></span>
+                            </button>
                             <button 
                                 type="button" 
                                 onclick="openQuickTransactionModal()" 
@@ -291,16 +303,16 @@
 
         <!-- Accounts Overview (1 col on desktop) -->
         <div>
-            <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between">
+            <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between" data-privacy-scope="dashboard-accounts">
                 <div>
                     <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-bold text-forest">Rekening & Dompet</span>
                             <button 
                                 type="button" 
-                                onclick="toggleBalanceVisibility()" 
-                                class="privacy-toggle-btn w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
-                                title="Sembunyikan / Tampilkan Saldo"
+                                onclick="toggleCardPrivacy(this)" 
+                                class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                                title="Sembunyikan / Tampilkan Saldo Rekening"
                             >
                                 <span class="privacy-toggle-icon"></span>
                             </button>
@@ -352,7 +364,7 @@
     </div>
 
     <!-- Ringkasan Jadwal & Tagihan Berulang -->
-    <div class="panel-card p-0 overflow-hidden mb-6">
+    <div class="panel-card p-0 overflow-hidden mb-6" data-privacy-scope="dashboard-recurring">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="w-6 h-6 rounded-md bg-forest/10 text-forest flex items-center justify-center text-xs font-bold">🔄</span>
@@ -362,6 +374,14 @@
                         {{ $recurringSummary['total_due_count'] }} Perlu Konfirmasi
                     </span>
                 @endif
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs ml-1" 
+                    title="Sembunyikan / Tampilkan Nominal Tagihan Berulang"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
             </div>
             <a href="{{ route('recurring.index') }}" class="text-xs font-bold text-forest hover:underline">
                 Kelola Semua Jadwal &rarr;
@@ -445,11 +465,19 @@
     </div>
 
     <!-- Ringkasan Anggaran Bulan Ini -->
-    <div class="panel-card p-0 overflow-hidden mb-6">
+    <div class="panel-card p-0 overflow-hidden mb-6" data-privacy-scope="dashboard-budgets">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="text-sm font-bold text-forest">Kontrol Anggaran Bulan Ini</span>
                 <span class="text-xs text-muted">({{ now()->translatedFormat('F Y') }})</span>
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs ml-1" 
+                    title="Sembunyikan / Tampilkan Nominal Anggaran"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
             </div>
             <a href="{{ route('budgets.index') }}" class="text-xs font-bold text-forest hover:underline">
                 Kelola Anggaran &rarr;
@@ -528,15 +556,23 @@
     </div>
 
     <!-- Ringkasan Kewajiban Kredit & Cicilan -->
-    <div class="panel-card p-0 overflow-hidden mb-6">
+    <div class="panel-card p-0 overflow-hidden mb-6" data-privacy-scope="dashboard-credit">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="text-sm font-bold text-forest">Kewajiban Kredit & Cicilan</span>
                 @if ($totalCreditLiability > 0)
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                        Kewajiban: Rp {{ number_format($totalCreditLiability, 0, ',', '.') }}
+                        Kewajiban: <span class="privacy-balance" data-raw-value="Rp {{ number_format($totalCreditLiability, 0, ',', '.') }}">Rp {{ number_format($totalCreditLiability, 0, ',', '.') }}</span>
                     </span>
                 @endif
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs ml-1" 
+                    title="Sembunyikan / Tampilkan Kewajiban Kredit"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
             </div>
             <a href="{{ route('credit.index') }}" class="text-xs font-bold text-forest hover:underline">
                 Kelola Kredit &rarr;
@@ -600,13 +636,21 @@
 
     <!-- Ringkasan Target & Bersama -->
     @if (isset($activeGoals) && $activeGoals->isNotEmpty())
-        <div class="panel-card p-0 overflow-hidden mb-6">
+        <div class="panel-card p-0 overflow-hidden mb-6" data-privacy-scope="dashboard-goals">
             <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="text-sm font-bold text-forest">Target Tabungan & Impian</span>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300 border border-forest/20">
                         {{ $activeGoals->count() }} Target Berjalan
                     </span>
+                    <button 
+                        type="button" 
+                        onclick="toggleCardPrivacy(this)" 
+                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs ml-1" 
+                        title="Sembunyikan / Tampilkan Saldo Target"
+                    >
+                        <span class="privacy-toggle-icon"></span>
+                    </button>
                 </div>
                 <a href="{{ route('goals.index') }}" class="text-xs font-bold text-forest hover:underline">
                     Lihat Semua Target &rarr;

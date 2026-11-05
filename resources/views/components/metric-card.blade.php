@@ -4,13 +4,26 @@
     'dark' => false,
     'sub' => null,
     'badge' => null,
+    'toggle' => false,
 ])
 
 <div {{ $attributes->merge(['class' => 'metric-card ' . ($dark ? 'dark' : '') . ' flex flex-col justify-between min-h-[140px]']) }}>
     <div>
-        <span class="text-[11px] font-bold tracking-[1.2px] uppercase {{ $dark ? 'text-emerald-200' : 'text-muted' }}">
-            {{ $label }}
-        </span>
+        <div class="flex items-center justify-between gap-1">
+            <span class="text-[11px] font-bold tracking-[1.2px] uppercase {{ $dark ? 'text-emerald-200' : 'text-muted' }}">
+                {{ $label }}
+            </span>
+            @if ($toggle)
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-5 h-5 rounded {{ $dark ? 'border border-white/20 text-white/70 hover:text-white bg-white/10' : 'border border-line text-muted hover:text-forest bg-panel' }} transition inline-flex items-center justify-center cursor-pointer text-[10px] flex-shrink-0" 
+                    title="Sembunyikan / Tampilkan Angka Metrik Ini"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
+            @endif
+        </div>
         <div class="font-serif text-3xl font-normal tracking-tight mt-3 {{ $dark ? 'text-white' : 'text-forest' }}">
             @if (str_contains((string)$value, 'Rp'))
                 <span class="privacy-balance" data-raw-value="{{ $value }}">{{ $value }}</span>

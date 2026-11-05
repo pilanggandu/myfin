@@ -73,7 +73,7 @@
     </div>
 
     <!-- Hero Card Progres Target Tabungan -->
-    <div class="panel-card p-0 overflow-hidden mb-6 border border-line shadow-sm">
+    <div class="panel-card p-0 overflow-hidden mb-6 border border-line shadow-sm" data-privacy-scope="goal-hero">
         <div class="h-3 w-full" style="background-color: {{ $goal->color ?: '#174C40' }};"></div>
 
         <div class="p-6 sm:p-8">
@@ -85,14 +85,24 @@
                             {{ $goal->icon ?: '🎯' }}
                         </div>
                         <div>
-                            <div class="text-xs text-muted">Total Terkumpul Saat Ini:</div>
+                            <div class="text-xs text-muted flex items-center gap-2">
+                                <span>Total Terkumpul Saat Ini:</span>
+                                <button 
+                                    type="button" 
+                                    onclick="toggleCardPrivacy(this)" 
+                                    class="privacy-card-toggle w-5 h-5 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10px]" 
+                                    title="Sembunyikan / Tampilkan Saldo Target Ini"
+                                >
+                                    <span class="privacy-toggle-icon"></span>
+                                </button>
+                            </div>
                             <div class="font-mono text-3xl sm:text-4xl font-bold text-forest dark:text-emerald-400">
                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->current_amount, 0, ',', '.') }}">
                                     Rp {{ number_format($goal->current_amount, 0, ',', '.') }}
                                 </span>
                             </div>
                             <div class="text-xs text-muted mt-0.5">
-                                dari sasaran <strong class="text-charcoal font-mono">Rp {{ number_format($goal->target_amount, 0, ',', '.') }}</strong>
+                                dari sasaran <strong class="text-charcoal font-mono"><span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->target_amount, 0, ',', '.') }}">Rp {{ number_format($goal->target_amount, 0, ',', '.') }}</span></strong>
                             </div>
                         </div>
                     </div>
@@ -232,11 +242,21 @@
     @endif
 
     <!-- Riwayat Transaksi Mutasi Target (Setoran & Penarikan) -->
-    <div class="panel-card p-0 overflow-hidden">
+    <div class="panel-card p-0 overflow-hidden" data-privacy-scope="goal-history">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-            <h2 class="text-sm font-bold text-forest dark:text-emerald-400">
-                Riwayat Setoran & Pencairan ({{ $goal->contributions->count() }})
-            </h2>
+            <div class="flex items-center gap-2">
+                <h2 class="text-sm font-bold text-forest dark:text-emerald-400">
+                    Riwayat Setoran & Pencairan ({{ $goal->contributions->count() }})
+                </h2>
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                    title="Sembunyikan / Tampilkan Mutasi Target"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
+            </div>
             <span class="text-xs text-muted">Urutan mutasi tabungan</span>
         </div>
 
