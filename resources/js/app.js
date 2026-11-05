@@ -1,3 +1,6 @@
+import $ from 'jquery';
+window.$ = window.jQuery = $;
+
 function applyTheme(theme) {
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (isDark) {
@@ -57,8 +60,36 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
     }
 });
 
+function initSidebarLiveClock() {
+    function tick() {
+        const dateEl = document.getElementById('sidebarLiveDate');
+        const timeEl = document.getElementById('sidebarLiveTime');
+        if (!dateEl && !timeEl) return;
+        
+        const now = new Date();
+        if (dateEl) {
+            const dateStr = now.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            dateEl.textContent = dateStr;
+        }
+        if (timeEl) {
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+    }
+    tick();
+    setInterval(tick, 1000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const saved = localStorage.getItem('arus-theme') || 'system';
     applyTheme(saved);
     updateThemeUI(saved);
+    initSidebarLiveClock();
 });
