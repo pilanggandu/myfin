@@ -10,6 +10,7 @@ use App\Http\Controllers\Credit\CreditAccountController;
 use App\Http\Controllers\Credit\InstallmentController;
 use App\Http\Controllers\Currencies\CurrencyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Goals\GoalController;
 use App\Http\Controllers\Members\MemberController;
 use App\Http\Controllers\Profile\ProfileController;
 use App\Http\Controllers\Recurring\RecurringScheduleController;
@@ -86,6 +87,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');
     Route::put('/budgets/{budget}', [BudgetController::class, 'update'])->name('budgets.update');
     Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
+
+    Route::get('/goals', [GoalController::class, 'index'])->name('goals.index');
+    Route::get('/goals/create', [GoalController::class, 'create'])->name('goals.create');
+    Route::post('/goals', [GoalController::class, 'store'])->name('goals.store');
+    Route::get('/goals/{goal}', [GoalController::class, 'show'])->name('goals.show');
+    Route::get('/goals/{goal}/edit', [GoalController::class, 'edit'])->name('goals.edit');
+    Route::put('/goals/{goal}', [GoalController::class, 'update'])->name('goals.update');
+    Route::delete('/goals/{goal}', [GoalController::class, 'destroy'])->name('goals.destroy');
+    Route::post('/goals/{goal}/contribute', [GoalController::class, 'contribute'])->name('goals.contribute');
+    Route::post('/goals/{goal}/withdraw', [GoalController::class, 'withdraw'])->name('goals.withdraw');
+    Route::post('/goals/{goal}/toggle-status', [GoalController::class, 'toggleStatus'])->name('goals.toggle-status');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])->name('reports.export-csv');

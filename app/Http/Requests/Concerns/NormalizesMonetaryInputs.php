@@ -34,6 +34,9 @@ trait NormalizesMonetaryInputs
             } elseif (str_contains($clean, ',')) {
                 // Comma as decimal: 150166,67 -> 150166.67
                 $clean = str_replace(',', '.', $clean);
+            } elseif (substr_count($clean, '.') > 1 || preg_match('/\.\d{3}(?:\.|$)/', $clean)) {
+                // Indonesian format with thousand dots and no decimal comma: e.g. "25.000.000" or "25.000"
+                $clean = str_replace('.', '', $clean);
             }
 
             return is_numeric($clean) ? round((float) $clean, 2) : null;

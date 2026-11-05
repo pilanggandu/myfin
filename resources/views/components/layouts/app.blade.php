@@ -95,7 +95,7 @@
             <!-- Navigation Links (Grouped & Collapsible) -->
             @php
                 $isKasActive = request()->routeIs(['transactions.*', 'accounts.*']);
-                $isPlanningActive = request()->routeIs(['budgets.*', 'credit.*', 'recurring.*', 'reports.*']);
+                $isPlanningActive = request()->routeIs(['budgets.*', 'credit.*', 'recurring.*', 'reports.*', 'goals.*']);
                 $isSettingsActive = request()->routeIs(['categories.*', 'members.*', 'currencies.*', 'reminders.*', 'spaces.*', 'profile.*']);
                 
                 // Server-side default open states
@@ -180,6 +180,10 @@
                             <span class="w-5 text-center text-sm">🎯</span>
                             <span class="truncate">Anggaran</span>
                         </a>
+                        <a href="{{ route('goals.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('goals.*') ? 'active' : '' }}">
+                            <span class="w-5 text-center text-sm">🏆</span>
+                            <span class="truncate">Target & Bersama</span>
+                        </a>
                         <a href="{{ route('credit.index') }}" class="sidebar-nav-child sidebar-nav-item {{ request()->routeIs('credit.*') ? 'active' : '' }}">
                             <span class="w-5 text-center text-sm">🛡️</span>
                             <span class="truncate">Kredit & Cicilan</span>
@@ -245,18 +249,6 @@
                             <span class="w-5 text-center text-sm">👤</span>
                             <span class="truncate">Profil Pengguna</span>
                         </a>
-                    </nav>
-                </div>
-
-                <!-- Grup 4: Fase Selanjutnya -->
-                <div class="pt-2 border-t border-line/40">
-                    <div class="px-2.5 py-1 text-[11px] font-bold tracking-wider text-muted/70 uppercase">Fase Selanjutnya</div>
-                    <nav class="space-y-0.5 mt-0.5">
-                        <span class="sidebar-nav-item disabled" title="Tersedia di Fase 6">
-                            <span class="w-5 text-center text-sm opacity-50">🎯</span>
-                            <span class="truncate">Target & Bersama</span>
-                            <span class="ml-auto text-[10px] font-bold text-muted bg-cream px-2 py-0.5 rounded">F6</span>
-                        </span>
                     </nav>
                 </div>
             </div>

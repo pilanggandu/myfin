@@ -97,6 +97,15 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
+        $activeGoals = $currentSpace
+            ? $currentSpace->goals()
+                ->active()
+                ->with('account')
+                ->orderByRaw('target_date IS NULL, target_date ASC')
+                ->take(3)
+                ->get()
+            : collect();
+
         return view('dashboard', [
             'space' => $currentSpace,
             'user' => $request->user(),
@@ -118,6 +127,7 @@ class DashboardController extends Controller
             'totalCreditLiability' => $totalCreditLiability,
             'totalAvailableCredit' => $totalAvailableCredit,
             'upcomingInstallments' => $upcomingInstallments,
+            'activeGoals' => $activeGoals,
         ]);
     }
 }

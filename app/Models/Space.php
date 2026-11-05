@@ -143,6 +143,21 @@ class Space extends Model
         return $this->hasMany(InstallmentPlan::class);
     }
 
+    public function goals(): HasMany
+    {
+        return $this->hasMany(Goal::class);
+    }
+
+    public function activeGoals(): HasMany
+    {
+        return $this->goals()->where('status', 'active');
+    }
+
+    public function goalContributions(): HasMany
+    {
+        return $this->hasMany(GoalContribution::class);
+    }
+
     public function totalBalance(): int
     {
         $total = 0;

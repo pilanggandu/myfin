@@ -598,9 +598,66 @@
         </div>
     </div>
 
+    <!-- Ringkasan Target & Bersama -->
+    @if (isset($activeGoals) && $activeGoals->isNotEmpty())
+        <div class="panel-card p-0 overflow-hidden mb-6">
+            <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-forest">Target Tabungan & Impian</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300 border border-forest/20">
+                        {{ $activeGoals->count() }} Target Berjalan
+                    </span>
+                </div>
+                <a href="{{ route('goals.index') }}" class="text-xs font-bold text-forest hover:underline">
+                    Lihat Semua Target &rarr;
+                </a>
+            </div>
+
+            <div class="p-5 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                @foreach ($activeGoals as $goal)
+                    <a href="{{ route('goals.show', $goal) }}" class="p-4 rounded-xl border border-line bg-sidebar/30 hover:bg-forest-light hover:border-sage transition block group">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-2xl">{{ $goal->icon ?: '🎯' }}</span>
+                                <div class="min-w-0">
+                                    <h4 class="text-xs font-bold text-charcoal group-hover:text-forest truncate">
+                                        {{ $goal->name }}
+                                    </h4>
+                                    <span class="text-[10px] text-muted block">
+                                        {{ $goal->target_date ? 'Tenggat: ' . $goal->target_date->translatedFormat('d M Y') : 'Tanpa tenggat' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-forest font-mono">
+                                {{ $goal->percentage() }}%
+                            </span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-cream dark:bg-line/50 rounded-full h-2 overflow-hidden my-2.5">
+                            <div 
+                                class="h-full rounded-full transition-all duration-300"
+                                style="width: {{ min(100, $goal->percentage()) }}%; background-color: {{ $goal->color ?: '#174C40' }}"
+                            ></div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-mono font-bold text-charcoal">
+                                <span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->current_amount, 0, ',', '.') }}">Rp {{ number_format($goal->current_amount, 0, ',', '.') }}</span>
+                            </span>
+                            <span class="text-muted font-mono">
+                                / <span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->target_amount, 0, ',', '.') }}">Rp {{ number_format($goal->target_amount, 0, ',', '.') }}</span>
+                            </span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <!-- Navigation Shortcuts -->
     <x-panel eyebrow="PINTASAN FITUR ARUS">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <a href="{{ route('transactions.index') }}" class="p-4 rounded-xl border border-line bg-cream/40 hover:bg-forest-light hover:border-sage transition block group">
                 <div class="font-bold text-sm text-forest group-hover:underline">Buku Transaksi</div>
                 <p class="text-xs text-muted mt-1 leading-normal m-0">Filter, cari, serta telusuri catatan kas masuk, keluar, dan mutasi saldo.</p>
@@ -609,6 +666,11 @@
             <a href="{{ route('credit.index') }}" class="p-4 rounded-xl border border-line bg-cream/40 hover:bg-forest-light hover:border-sage transition block group">
                 <div class="font-bold text-sm text-forest group-hover:underline">Kredit & Cicilan</div>
                 <p class="text-xs text-muted mt-1 leading-normal m-0">Kelola kartu kredit, paylater, limit, dan cicilan terjadwal.</p>
+            </a>
+
+            <a href="{{ route('goals.index') }}" class="p-4 rounded-xl border border-line bg-cream/40 hover:bg-forest-light hover:border-sage transition block group">
+                <div class="font-bold text-sm text-forest group-hover:underline">Target & Bersama</div>
+                <p class="text-xs text-muted mt-1 leading-normal m-0">Impian finansial, alokasi tabungan, dan patungan ruang bersama.</p>
             </a>
 
             <a href="{{ route('budgets.index') }}" class="p-4 rounded-xl border border-line bg-cream/40 hover:bg-forest-light hover:border-sage transition block group">
