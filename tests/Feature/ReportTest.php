@@ -300,4 +300,78 @@ class ReportTest extends TestCase
 
         $response->assertSessionHasErrors(['year']);
     }
+
+    public function test_daily_cashflow_raw_data_groups_by_day_and_computes_running_balance(): void
+    {
+        $service = app(TransactionService::class);
+
+        // Day 1: Inflow 5.000.000
+        $service->recordIncome($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->incomeCat->id,
+            'amount' => 5000000,
+            'transaction_date' => '2026-05-02',
+            'description' => 'Gaji 2 Mei',
+        ]);
+
+        // Day 2: Outflow 1.000.000
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->foodCat->id,
+            'amount' => 1000000,
+            'transaction_date' => '2026-05-05',
+            'description' => 'Makan 5 Mei',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&year=2026&month=5&sort_order=asc');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('dailyCashflows', function ($daily) {
+            $this->assertCount(2, $daily);
+
+            $day1 = $daily[0];
+            $this->assertEquals('2026-05-02', $day1->date);
+            $this->assertEquals(5000000, $day1->inflow);
+            $this->assertEquals(0, $day1->outflow);
+            $this->assertEquals(5000000, $day1->net);
+            // Starting balance is 10.000.000 (opening balance of BCA) + 5.000.000 = 15.000.000
+            $this->assertEquals(15000000, $day1->closing_balance);
+
+            $day2 = $daily[1];
+            $this->assertEquals('2026-05-05', $day2->date);
+            $this->assertEquals(0, $day2->inflow);
+            $this->assertEquals(1000000, $day2->outflow);
+            $this->assertEquals(-1000000, $day2->net);
+            $this->assertEquals(14000000, $day2->closing_balance);
+
+            return true;
+        });
+    }
+
+    public function test_daily_cashflow_can_be_exported_as_csv(): void
+    {
+        $service = app(TransactionService::class);
+
+        $service->recordIncome($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->incomeCat->id,
+            'amount' => 3500000,
+            'transaction_date' => '2026-05-10',
+            'description' => 'Freelance Desain',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports/export-csv?year=2026&month=5');
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
+
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Tanggal,Hari,Waktu,Keterangan', $content);
+        $this->assertStringContainsString('Freelance Desain', $content);
+        $this->assertStringContainsString('3500000', $content);
+    }
 }

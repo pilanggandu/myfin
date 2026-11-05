@@ -21,9 +21,9 @@ class DashboardController extends Controller
         $totalBalance = $currentSpace ? $currentSpace->totalBalance() : 0;
 
         $recentTransactions = $currentSpace ? $currentSpace->financialTransactions()
-            ->with(['category', 'entries.account'])
+            ->with(['category', 'entries.account', 'member', 'installmentPlan'])
             ->latestFirst()
-            ->take(5)
+            ->take(7)
             ->get() : collect();
 
         $monthlyIncome = 0;

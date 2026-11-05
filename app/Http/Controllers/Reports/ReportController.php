@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinancialTransaction;
+use App\Models\Space;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -17,16 +20,22 @@ class ReportController extends Controller
         $now = $space ? $space->now() : Carbon::now('Asia/Jakarta');
 
         $validated = $request->validate([
+            'tab' => ['nullable', 'string', 'in:daily,analytics'],
             'period_type' => ['nullable', 'string', 'in:month,custom'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
             'month' => ['nullable', 'integer', 'between:1,12'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date'],
+            'account_id' => ['nullable', 'integer'],
+            'sort_order' => ['nullable', 'string', 'in:asc,desc'],
         ]);
 
+        $activeTab = $validated['tab'] ?? 'daily';
         $periodType = $validated['period_type'] ?? 'month';
         $year = (int) ($validated['year'] ?? $now->year);
         $month = (int) ($validated['month'] ?? $now->month);
+        $selectedAccountId = ! empty($validated['account_id']) ? (int) $validated['account_id'] : null;
+        $sortOrder = $validated['sort_order'] ?? 'desc';
 
         if ($periodType === 'custom' && ! empty($validated['start_date']) && ! empty($validated['end_date'])) {
             $parsedStart = Carbon::parse($validated['start_date'])->startOfDay();
@@ -51,6 +60,7 @@ class ReportController extends Controller
 
         $spaceId = $space?->id;
 
+        // Ringkasan Pemasukan & Pengeluaran Kas
         $incomeQuery = FinancialTransaction::query()
             ->where('financial_transactions.space_id', $spaceId)
             ->posted()
@@ -83,6 +93,7 @@ class ReportController extends Controller
 
         $netCashFlow = $totalIncome - $totalExpense;
 
+        // Breakdown Kategori Pengeluaran
         $categoryBreakdown = DB::table('financial_transactions')
             ->join('transaction_entries', 'financial_transactions.id', '=', 'transaction_entries.transaction_id')
             ->join('categories', 'financial_transactions.category_id', '=', 'categories.id')
@@ -113,6 +124,7 @@ class ReportController extends Controller
             ];
         });
 
+        // Tren 6 Bulan Terakhir
         $monthlyTrend = [];
         $startOfCurrentMonth = $now->copy()->startOfMonth();
         for ($i = 5; $i >= 0; $i--) {
@@ -146,21 +158,293 @@ class ReportController extends Controller
             ];
         }
 
-        return view('reports.index', compact(
-            'space',
-            'periodType',
-            'year',
-            'month',
-            'startDate',
-            'endDate',
-            'periodLabel',
-            'totalIncome',
-            'totalExpense',
-            'netCashFlow',
-            'incomeCount',
-            'expenseCount',
-            'categoryBreakdown',
-            'monthlyTrend'
-        ));
+        // Kalkulasi Raw Data Arus Kas Harian
+        $dailyData = $this->buildDailyCashflowData($space, $startDate, $endDate, $selectedAccountId, $sortOrder);
+
+        return view('reports.index', array_merge([
+            'space' => $space,
+            'activeTab' => $activeTab,
+            'periodType' => $periodType,
+            'year' => $year,
+            'month' => $month,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'periodLabel' => $periodLabel,
+            'totalIncome' => $totalIncome,
+            'totalExpense' => $totalExpense,
+            'netCashFlow' => $netCashFlow,
+            'incomeCount' => $incomeCount,
+            'expenseCount' => $expenseCount,
+            'categoryBreakdown' => $categoryBreakdown,
+            'monthlyTrend' => $monthlyTrend,
+            'selectedAccountId' => $selectedAccountId,
+            'sortOrder' => $sortOrder,
+        ], $dailyData));
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $space = app('currentSpace');
+        $now = $space ? $space->now() : Carbon::now('Asia/Jakarta');
+
+        $validated = $request->validate([
+            'period_type' => ['nullable', 'string', 'in:month,custom'],
+            'year' => ['nullable', 'integer', 'between:2000,2100'],
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date'],
+            'account_id' => ['nullable', 'integer'],
+            'sort_order' => ['nullable', 'string', 'in:asc,desc'],
+        ]);
+
+        $periodType = $validated['period_type'] ?? 'month';
+        $year = (int) ($validated['year'] ?? $now->year);
+        $month = (int) ($validated['month'] ?? $now->month);
+        $selectedAccountId = ! empty($validated['account_id']) ? (int) $validated['account_id'] : null;
+        $sortOrder = $validated['sort_order'] ?? 'asc'; // Traditional export defaults to chronological
+
+        if ($periodType === 'custom' && ! empty($validated['start_date']) && ! empty($validated['end_date'])) {
+            $parsedStart = Carbon::parse($validated['start_date'])->startOfDay();
+            $parsedEnd = Carbon::parse($validated['end_date'])->endOfDay();
+
+            if ($parsedStart->gt($parsedEnd)) {
+                $temp = $parsedStart;
+                $parsedStart = $parsedEnd->startOfDay();
+                $parsedEnd = $temp->endOfDay();
+            }
+
+            $startDate = $parsedStart->toDateString();
+            $endDate = $parsedEnd->toDateString();
+            $filenameLabel = $parsedStart->format('Ymd').'_'.$parsedEnd->format('Ymd');
+        } else {
+            $cDate = Carbon::createFromDate($year, $month, 1, $space?->timezone ?: 'Asia/Jakarta');
+            $startDate = $cDate->copy()->startOfMonth()->toDateString();
+            $endDate = $cDate->copy()->endOfMonth()->toDateString();
+            $filenameLabel = $cDate->format('Y_m');
+        }
+
+        $dailyData = $this->buildDailyCashflowData($space, $startDate, $endDate, $selectedAccountId, $sortOrder);
+        $dailyCashflows = $dailyData['dailyCashflows'];
+
+        $filename = 'ARUS_Cashflow_RawData_'.$filenameLabel.'.csv';
+
+        return response()->streamDownload(function () use ($dailyCashflows) {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM for Microsoft Excel compatibility
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // CSV Header
+            fputcsv($handle, [
+                'Tanggal',
+                'Hari',
+                'Waktu',
+                'Keterangan',
+                'Jenis',
+                'Kategori',
+                'Rekening Sumber',
+                'Rekening Tujuan',
+                'Anggota',
+                'Kas Masuk (Rp)',
+                'Kas Keluar (Rp)',
+                'Net Kas (Rp)',
+                'Saldo Kas Penutupan (Rp)',
+            ]);
+
+            foreach ($dailyCashflows as $day) {
+                foreach ($day->items as $item) {
+                    $tx = $item->transaction;
+                    $src = $tx->sourceAccount();
+                    $dst = $tx->destinationAccount();
+
+                    $typeLabel = match ($tx->type) {
+                        'income' => 'Pemasukan',
+                        'expense' => 'Pengeluaran',
+                        'transfer' => 'Transfer',
+                        default => $tx->type,
+                    };
+
+                    fputcsv($handle, [
+                        $day->date,
+                        $day->day_name,
+                        $tx->formattedTime() ?: '-',
+                        $tx->description,
+                        $typeLabel,
+                        $tx->category?->name ?? ($tx->isTransfer() ? 'Transfer' : '-'),
+                        $src?->name ?? '-',
+                        $dst?->name ?? '-',
+                        $tx->member?->name ?? '-',
+                        $item->inflow > 0 ? $item->inflow : 0,
+                        $item->outflow > 0 ? $item->outflow : 0,
+                        $item->net,
+                        $day->closing_balance,
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Membangun ledger data mentah arus kas harian secara kronologis dan running balance.
+     *
+     * @return array{
+     *     startingCashBalance: int,
+     *     closingCashBalance: int,
+     *     dailyCashflows: array<int, object>,
+     *     cashAccounts: Collection,
+     *     totalPeriodInflow: int,
+     *     totalPeriodOutflow: int,
+     *     totalPeriodNet: int,
+     *     activeDaysCount: int
+     * }
+     */
+    private function buildDailyCashflowData(?Space $space, string $startDate, string $endDate, ?int $selectedAccountId = null, string $sortOrder = 'desc'): array
+    {
+        $spaceId = $space?->id;
+
+        $cashAccounts = $space
+            ? $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->orderBy('name')->get()
+            : collect();
+
+        // Saldo awal kas sebelum startDate
+        $openingBalanceQuery = DB::table('transaction_entries')
+            ->join('financial_transactions', 'transaction_entries.transaction_id', '=', 'financial_transactions.id')
+            ->join('accounts', 'transaction_entries.account_id', '=', 'accounts.id')
+            ->where('accounts.space_id', $spaceId)
+            ->whereNull('accounts.archived_at')
+            ->whereIn('accounts.type', ['bank', 'cash', 'e-wallet'])
+            ->where('financial_transactions.status', 'posted')
+            ->where('financial_transactions.transaction_date', '<', $startDate);
+
+        if ($selectedAccountId) {
+            $openingBalanceQuery->where('accounts.id', $selectedAccountId);
+            $initialOpeningBalance = (int) ($space?->accounts()->find($selectedAccountId)?->opening_balance ?? 0);
+        } else {
+            $initialOpeningBalance = (int) ($space?->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->sum('opening_balance') ?? 0);
+        }
+
+        $startingCashBalance = $initialOpeningBalance + (int) $openingBalanceQuery->sum('transaction_entries.amount_signed');
+
+        // Query transaksi posted pada rentang tanggal
+        $txQuery = FinancialTransaction::query()
+            ->where('financial_transactions.space_id', $spaceId)
+            ->posted()
+            ->whereBetween('financial_transactions.transaction_date', [$startDate, $endDate])
+            ->with(['category', 'entries.account', 'member', 'creator', 'installmentPlan.creditAccount']);
+
+        if ($selectedAccountId) {
+            $txQuery->whereHas('entries', function ($q) use ($selectedAccountId) {
+                $q->where('account_id', $selectedAccountId);
+            });
+        } else {
+            // Hanya transaksi yang melibatkan rekening kas aktual
+            $txQuery->whereHas('entries.account', function ($q) {
+                $q->whereIn('type', ['bank', 'cash', 'e-wallet']);
+            });
+        }
+
+        // Urutkan selalu kronologis terlebih dahulu agar saldo kas berjalan akurat
+        $transactions = $txQuery->oldestFirst()->get();
+
+        $groupedByDate = $transactions->groupBy(fn ($tx) => $tx->transaction_date->toDateString());
+
+        $runningBalance = $startingCashBalance;
+        $dailyLedger = [];
+        $totalPeriodInflow = 0;
+        $totalPeriodOutflow = 0;
+
+        foreach ($groupedByDate as $dateStr => $txs) {
+            $dayInflow = 0;
+            $dayOutflow = 0;
+            $dayItems = [];
+
+            foreach ($txs as $tx) {
+                $inflow = 0;
+                $outflow = 0;
+
+                if ($selectedAccountId) {
+                    $entry = $tx->entries->firstWhere('account_id', $selectedAccountId);
+                    $signed = $entry ? (int) $entry->amount_signed : 0;
+                    if ($signed > 0) {
+                        $inflow = $signed;
+                    } else {
+                        $outflow = abs($signed);
+                    }
+                } else {
+                    if ($tx->isIncome()) {
+                        $inflow = $tx->totalAmount();
+                    } elseif ($tx->isExpense()) {
+                        $outflow = $tx->totalAmount();
+                    } elseif ($tx->isTransfer()) {
+                        $src = $tx->sourceAccount();
+                        $dst = $tx->destinationAccount();
+                        $srcIsCash = $src && in_array($src->type, ['bank', 'cash', 'e-wallet']);
+                        $dstIsCash = $dst && in_array($dst->type, ['bank', 'cash', 'e-wallet']);
+
+                        if ($dstIsCash && ! $srcIsCash) {
+                            $inflow = $tx->totalAmount();
+                        } elseif ($srcIsCash && ! $dstIsCash) {
+                            $outflow = $tx->totalAmount();
+                        }
+                    }
+                }
+
+                $dayInflow += $inflow;
+                $dayOutflow += $outflow;
+
+                $dayItems[] = (object) [
+                    'transaction' => $tx,
+                    'inflow' => $inflow,
+                    'outflow' => $outflow,
+                    'net' => $inflow - $outflow,
+                ];
+            }
+
+            $dayNet = $dayInflow - $dayOutflow;
+            $runningBalance += $dayNet;
+
+            $totalPeriodInflow += $dayInflow;
+            $totalPeriodOutflow += $dayOutflow;
+
+            $cDate = Carbon::parse($dateStr);
+
+            $dailyLedger[] = (object) [
+                'date' => $dateStr,
+                'carbon' => $cDate,
+                'day_name' => $cDate->translatedFormat('l'),
+                'date_formatted' => $cDate->translatedFormat('d F Y'),
+                'date_short' => $cDate->translatedFormat('d M Y'),
+                'inflow' => $dayInflow,
+                'outflow' => $dayOutflow,
+                'net' => $dayNet,
+                'closing_balance' => $runningBalance,
+                'count' => count($dayItems),
+                'items' => $dayItems,
+            ];
+        }
+
+        $closingCashBalance = $runningBalance;
+        $totalPeriodNet = $totalPeriodInflow - $totalPeriodOutflow;
+
+        if ($sortOrder === 'desc') {
+            $dailyCashflows = array_reverse($dailyLedger);
+        } else {
+            $dailyCashflows = $dailyLedger;
+        }
+
+        return [
+            'startingCashBalance' => $startingCashBalance,
+            'closingCashBalance' => $closingCashBalance,
+            'dailyCashflows' => $dailyCashflows,
+            'cashAccounts' => $cashAccounts,
+            'totalPeriodInflow' => $totalPeriodInflow,
+            'totalPeriodOutflow' => $totalPeriodOutflow,
+            'totalPeriodNet' => $totalPeriodNet,
+            'activeDaysCount' => count($dailyLedger),
+        ];
     }
 }

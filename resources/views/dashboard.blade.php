@@ -66,78 +66,224 @@
         <div class="lg:col-span-2">
             <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between">
                 <div>
-                    <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-                        <span class="text-sm font-bold text-forest">Transaksi Terkini</span>
-                        <a href="{{ route('transactions.index') }}" class="text-xs font-bold text-forest hover:underline">
-                            Lihat semua &rarr;
-                        </a>
+                    <!-- Widget Header -->
+                    <div class="px-5 sm:px-6 py-3.5 border-b border-line flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-forest/10 dark:bg-forest/20 text-forest dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </span>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-sm font-bold text-forest dark:text-emerald-400 leading-tight">Transaksi Terkini</h2>
+                                    @if ($recentTransactions->isNotEmpty())
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cream dark:bg-line/50 text-muted">
+                                            {{ $recentTransactions->count() }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="text-[11px] text-muted leading-tight">Aktivitas arus kas & pencatatan terbaru</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button 
+                                type="button" 
+                                onclick="openQuickTransactionModal()" 
+                                class="px-2.5 py-1 text-xs font-semibold text-forest dark:text-emerald-400 bg-forest-light/60 dark:bg-forest-light/20 hover:bg-forest hover:text-white dark:hover:bg-forest rounded-md transition cursor-pointer"
+                                title="Catat Transaksi Cepat"
+                            >
+                                + Catat
+                            </button>
+                            <a href="{{ route('transactions.index') }}" class="text-xs font-bold text-muted hover:text-forest dark:hover:text-emerald-400 transition inline-flex items-center gap-0.5">
+                                <span>Semua</span>
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </a>
+                        </div>
                     </div>
 
                     @if ($recentTransactions->isEmpty())
-                        <div class="p-8 text-center text-xs text-muted">
-                            Belum ada transaksi pada ruang ini.
-                            <div class="mt-3">
+                        <div class="p-10 text-center space-y-3">
+                            <div class="w-12 h-12 mx-auto rounded-full bg-cream dark:bg-line/30 flex items-center justify-center text-xl">
+                                📝
+                            </div>
+                            <div class="font-bold text-charcoal text-sm">Belum Ada Transaksi</div>
+                            <p class="text-xs text-muted max-w-sm mx-auto">
+                                Belum ada catatan arus kas atau mutasi pada ruang ini. Mulai dengan mencatat transaksi harian Anda.
+                            </p>
+                            <div class="pt-1">
                                 <a href="{{ route('transactions.create') }}" class="btn-arus-primary inline-flex text-xs">
-                                    Catat Transaksi Pertama
+                                    + Catat Transaksi Pertama
                                 </a>
                             </div>
                         </div>
                     @else
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
-                                        <th class="py-2.5 px-5">Tanggal</th>
-                                        <th class="py-2.5 px-4">Keterangan</th>
-                                        <th class="py-2.5 px-4">Jenis</th>
-                                        <th class="py-2.5 px-5 text-right">Nominal</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-line">
-                                    @foreach ($recentTransactions as $tx)
-                                        @php
-                                            $isInc = $tx->isIncome();
-                                            $isExp = $tx->isExpense();
-                                            $amt = $tx->totalAmount();
-                                        @endphp
-                                        <tr class="hover:bg-cream/20 transition-colors {{ $tx->isVoid() ? 'opacity-50 line-through' : '' }}">
-                                            <td class="py-3 px-5 whitespace-nowrap text-muted">
-                                                <div class="font-medium text-charcoal">{{ $tx->transaction_date->format('d M') }}</div>
-                                                @if ($tx->formattedTime())
-                                                    <div class="text-[10px] text-muted/70 font-mono">{{ $tx->formattedTime() }}</div>
+                        <!-- List Feed Aktivitas Transaksi Modern -->
+                        <div class="divide-y divide-line">
+                            @php
+                                $spaceNow = $space ? $space->now() : now();
+                                $todayDate = $spaceNow->toDateString();
+                                $yesterdayDate = $spaceNow->copy()->subDay()->toDateString();
+                            @endphp
+
+                            @foreach ($recentTransactions as $tx)
+                                @php
+                                    $isInc = $tx->isIncome();
+                                    $isExp = $tx->isExpense();
+                                    $isTrans = $tx->isTransfer();
+                                    $amt = $tx->totalAmount();
+                                    $txDate = $tx->transaction_date;
+                                    $txDateString = $txDate->toDateString();
+                                    $isFuture = $txDateString > $todayDate;
+                                    $isToday = $txDateString === $todayDate;
+                                    $isYesterday = $txDateString === $yesterdayDate;
+                                    $isDiffYear = $txDate->year !== $spaceNow->year;
+                                    $isVoid = $tx->isVoid();
+
+                                    $sourceAcc = $tx->sourceAccount();
+                                    $destAcc = $tx->destinationAccount();
+                                @endphp
+
+                                <div class="px-5 sm:px-6 py-3.5 hover:bg-cream/30 dark:hover:bg-line/25 transition-colors group flex items-center justify-between gap-3 sm:gap-4 {{ $isVoid ? 'opacity-50 line-through' : '' }}">
+                                    <!-- Sisi Kiri: Icon Tipe & Info Transaksi -->
+                                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                                        <!-- Avatar Icon Tipe Transaksi -->
+                                        @if ($isInc)
+                                            <div class="w-10 h-10 rounded-xl bg-forest/10 dark:bg-forest/20 text-forest dark:text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform" title="Pemasukan Kas">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+                                                </svg>
+                                            </div>
+                                        @elseif ($isExp)
+                                            <div class="w-10 h-10 rounded-xl bg-red/10 dark:bg-red/20 text-red dark:text-rose-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform" title="Pengeluaran Kas">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                                                </svg>
+                                            </div>
+                                        @else
+                                            <div class="w-10 h-10 rounded-xl bg-cream dark:bg-line/50 text-charcoal flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform" title="Transfer Antar-Rekening">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                                </svg>
+                                            </div>
+                                        @endif
+
+                                        <!-- Detail Teks -->
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <a href="{{ route('transactions.show', $tx) }}" class="font-bold text-sm text-charcoal group-hover:text-forest dark:group-hover:text-emerald-400 transition truncate hover:underline" title="{{ $tx->description }}">
+                                                    {{ $tx->description }}
+                                                </a>
+
+                                                @if ($tx->installmentPlan)
+                                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-forest/10 dark:bg-forest/20 text-forest dark:text-emerald-400 border border-forest/20" title="Pembelian Cicilan">
+                                                        🛡️ Cicilan {{ $tx->installmentPlan->tenor }}x
+                                                    </span>
                                                 @endif
-                                            </td>
-                                            <td class="py-3 px-4">
-                                                <div class="font-bold text-charcoal">
-                                                    <a href="{{ route('transactions.show', $tx) }}" class="hover:text-forest hover:underline">
-                                                        {{ $tx->description }}
-                                                    </a>
-                                                </div>
-                                                <div class="text-[11px] text-muted">
-                                                    {{ $tx->category?->name ?? 'Transfer' }}
-                                                </div>
-                                            </td>
-                                            <td class="py-3 px-4 whitespace-nowrap">
-                                                <x-badge variant="default">
-                                                    {{ strtoupper($tx->type) }}
-                                                </x-badge>
-                                            </td>
-                                            <td class="py-3 px-5 whitespace-nowrap text-right font-bold {{ $isInc ? 'text-forest' : ($isExp ? 'text-red' : 'text-charcoal') }}">
-                                                <span class="privacy-balance" data-raw-value="{{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($amt, 0, ',', '.') }}">
-                                                    {{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($amt, 0, ',', '.') }}
+
+                                                @if ($tx->member)
+                                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold text-white shadow-2xs" style="background-color: {{ $tx->member->color ?: '#0f4c3a' }};">
+                                                        {{ $tx->member->name }}
+                                                    </span>
+                                                @endif
+
+                                                @if ($isVoid)
+                                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-muted/20 text-muted">
+                                                        VOID
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <!-- Metadata: Kategori & Rekening -->
+                                            <div class="flex items-center gap-1.5 text-xs text-muted mt-0.5 flex-wrap">
+                                                @if ($tx->category)
+                                                    <span class="font-medium text-charcoal/80 dark:text-muted">{{ $tx->category->name }}</span>
+                                                @else
+                                                    <span class="font-medium text-charcoal/80 dark:text-muted">Transfer</span>
+                                                @endif
+
+                                                <span class="text-line">&bull;</span>
+
+                                                @if ($isTrans)
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-mono text-muted">
+                                                        <span>{{ $sourceAcc?->name ?? 'Kas' }}</span>
+                                                        <span class="text-line">&rarr;</span>
+                                                        <span>{{ $destAcc?->name ?? 'Kas' }}</span>
+                                                    </span>
+                                                @elseif ($isExp)
+                                                    <span class="inline-flex items-center gap-1 text-[11px] text-muted">
+                                                        <span>💳 {{ $sourceAcc?->name ?? 'Rekening' }}</span>
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 text-[11px] text-muted">
+                                                        <span>💳 {{ $destAcc?->name ?? 'Rekening' }}</span>
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sisi Kanan: Tanggal & Nominal -->
+                                    <div class="text-right flex-shrink-0 flex flex-col items-end justify-center">
+                                        <!-- Nominal -->
+                                        <div class="font-mono text-sm sm:text-base font-bold {{ $isInc ? 'text-forest dark:text-emerald-400' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
+                                            <span class="privacy-balance" data-raw-value="{{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($amt, 0, ',', '.') }}">
+                                                {{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($amt, 0, ',', '.') }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Indikator Tanggal yang Jelas & Informatif -->
+                                        <div class="mt-0.5">
+                                            @if ($isFuture)
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30" title="Tanggal transaksi tercatat di masa depan (tahun {{ $txDate->year }})">
+                                                    <svg class="w-3 h-3 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                                    </svg>
+                                                    <span>{{ $txDate->translatedFormat('d M Y') }}</span>
+                                                    <span>&bull; Mendatang</span>
                                                 </span>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                                            @elseif ($isToday)
+                                                <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                    <span>Hari Ini</span>
+                                                    @if ($tx->formattedTime())
+                                                        <span class="text-muted/70 font-mono text-[10px]">({{ $tx->formattedTime() }})</span>
+                                                    @endif
+                                                </span>
+                                            @elseif ($isYesterday)
+                                                <span class="text-[11px] font-medium text-muted">
+                                                    <span>Kemarin</span>
+                                                    @if ($tx->formattedTime())
+                                                        <span class="text-muted/70 font-mono text-[10px]">({{ $tx->formattedTime() }})</span>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="text-[11px] font-medium text-muted">
+                                                    <span>{{ $txDate->translatedFormat($isDiffYear ? 'd M Y' : 'd M') }}</span>
+                                                    @if ($tx->formattedTime())
+                                                        <span class="text-muted/70 font-mono text-[10px]">({{ $tx->formattedTime() }})</span>
+                                                    @endif
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     @endif
                 </div>
 
-                <div class="p-3 bg-cream/20 border-t border-line text-right">
-                    <a href="{{ route('transactions.index') }}" class="text-xs font-bold text-forest hover:underline">
-                        Buka Riwayat Catatan Transaksi &rarr;
+                <!-- Widget Footer -->
+                <div class="p-3 bg-cream/20 border-t border-line flex items-center justify-between text-xs">
+                    <span class="text-[11px] text-muted">
+                        Menampilkan {{ $recentTransactions->count() }} mutasi keuangan terkini
+                    </span>
+                    <a href="{{ route('transactions.index') }}" class="font-bold text-forest dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
+                        <span>Buka Catatan Transaksi Lengkap</span>
+                        <span>&rarr;</span>
                     </a>
                 </div>
             </div>
