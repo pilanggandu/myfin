@@ -145,6 +145,11 @@ class FinancialTransaction extends Model
         return $this->status === 'void';
     }
 
+    public function isVoided(): bool
+    {
+        return $this->isVoid();
+    }
+
     public function isIncome(): bool
     {
         return $this->type === 'income';

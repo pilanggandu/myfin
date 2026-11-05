@@ -244,7 +244,7 @@
                                         <a href="{{ route('transactions.show', $tx) }}" class="text-xs font-bold text-charcoal hover:text-forest truncate">
                                             {{ $tx->description ?: ($tx->category?->name ?? 'Transaksi Kas') }}
                                         </a>
-                                        @if ($tx->isVoided())
+                                        @if ($tx->isVoid())
                                             <span class="text-[9.5px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 font-semibold uppercase">
                                                 Batal
                                             </span>
@@ -265,7 +265,7 @@
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border {{ $tx->type === 'income' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900' : ($tx->type === 'expense' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900' : 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900') }}">
                                         {{ $tx->type }}
                                     </span>
-                                    <span class="text-xs font-bold font-mono privacy-balance {{ $tx->isVoided() ? 'line-through text-muted' : ($tx->type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : ($tx->type === 'expense' ? 'text-rose-600 dark:text-rose-400' : 'text-charcoal')) }}" data-raw-value="{{ ($tx->type === 'income' ? '+' : ($tx->type === 'expense' ? '-' : '⇄ ')) . 'Rp ' . number_format($amount, 0, ',', '.') }}">
+                                    <span class="text-xs font-bold font-mono privacy-balance {{ $tx->isVoid() ? 'line-through text-muted' : ($tx->type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : ($tx->type === 'expense' ? 'text-rose-600 dark:text-rose-400' : 'text-charcoal')) }}" data-raw-value="{{ ($tx->type === 'income' ? '+' : ($tx->type === 'expense' ? '-' : '⇄ ')) . 'Rp ' . number_format($amount, 0, ',', '.') }}">
                                         {{ ($tx->type === 'income' ? '+' : ($tx->type === 'expense' ? '-' : '⇄ ')) . 'Rp ' . number_format($amount, 0, ',', '.') }}
                                     </span>
                                 </div>
