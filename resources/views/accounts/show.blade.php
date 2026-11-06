@@ -25,6 +25,17 @@
             <a href="{{ route('transactions.create') }}" class="btn-arus-primary">
                 + Catat Transaksi
             </a>
+            @if (! $account->isArchived())
+                <button 
+                    type="button" 
+                    onclick="openAdjustModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $account->currentBalance() }})" 
+                    class="btn-arus-secondary inline-flex items-center gap-1.5 cursor-pointer"
+                    title="Sesuaikan saldo rekening ini agar sesuai dengan saldo fisik riil"
+                >
+                    <span>⚖️</span>
+                    <span>Penyesuaian Saldo</span>
+                </button>
+            @endif
             <a href="{{ route('accounts.edit', $account) }}" class="btn-arus-secondary">
                 Ubah
             </a>
@@ -194,4 +205,6 @@
             </div>
         </div>
     @endif
+
+    <x-adjust-balance-modal />
 </x-layouts.app>

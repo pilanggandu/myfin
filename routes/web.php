@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/accounts/{account}/archive', [AccountController::class, 'archive'])->name('accounts.archive');
     Route::post('/accounts/{account}/unarchive', [AccountController::class, 'unarchive'])->name('accounts.unarchive');
     Route::post('/accounts/{account}/set-default', [AccountController::class, 'setDefault'])->name('accounts.setDefault');
+    Route::post('/accounts/{account}/adjust', [AccountController::class, 'adjust'])->name('accounts.adjust');
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');

@@ -10,7 +10,7 @@ trait NormalizesMonetaryInputs
             return null;
         }
 
-        if (is_numeric($value)) {
+        if (is_int($value) || is_float($value)) {
             return round((float) $value, 2);
         }
 
