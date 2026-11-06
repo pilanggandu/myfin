@@ -478,4 +478,70 @@ class RecurringTest extends TestCase
         $this->assertNotNull($occurrence);
         $this->assertNull($occurrence->amount);
     }
+
+    public function test_user_can_create_recurring_schedule_with_flexible_account(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/recurring', [
+                'type' => 'expense',
+                'name' => 'Belanja Pasar Bulanan',
+                'category_id' => $this->internetCat->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-05',
+                'amount' => 500000,
+            ]);
+
+        $schedule = RecurringSchedule::where('name', 'Belanja Pasar Bulanan')->first();
+        $this->assertNotNull($schedule);
+        $response->assertRedirect("/recurring/{$schedule->id}");
+        $this->assertNull($schedule->source_account_id);
+    }
+
+    public function test_user_can_confirm_flexible_schedule_by_selecting_account(): void
+    {
+        $schedule = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Wifi Kamar Kos',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => null,
+            'frequency' => 'monthly',
+            'anchor_day' => 5,
+            'start_date' => '2026-11-05',
+            'next_due_date' => '2026-11-05',
+            'amount' => 250000,
+            'status' => 'active',
+            'created_by' => $this->userA->id,
+        ]);
+
+        $gopayBefore = $this->gopay->currentBalance();
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post("/recurring/{$schedule->id}/confirm", [
+                'due_date' => '2026-11-05',
+                'source_account_id' => $this->gopay->id,
+                'amount' => 250000,
+            ]);
+
+        $response->assertSessionHas('status');
+        $this->assertEquals($gopayBefore - 250000, $this->gopay->fresh()->currentBalance());
+    }
+
+    public function test_transfer_schedule_still_requires_source_account(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/recurring', [
+                'type' => 'transfer',
+                'name' => 'Tabungan Otomatis',
+                'destination_account_id' => $this->gopay->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-05',
+                'amount' => 100000,
+            ]);
+
+        $response->assertSessionHasErrors('source_account_id');
+    }
 }

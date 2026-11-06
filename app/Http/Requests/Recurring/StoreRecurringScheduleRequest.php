@@ -29,7 +29,7 @@ class StoreRecurringScheduleRequest extends FormRequest
                     ->whereNull('archived_at'),
             ],
             'source_account_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
@@ -58,6 +58,13 @@ class StoreRecurringScheduleRequest extends FormRequest
                     ->whereNull('archived_at'),
             ];
         } elseif ($type === 'transfer') {
+            $rules['source_account_id'] = [
+                'required',
+                'integer',
+                Rule::exists('accounts', 'id')
+                    ->where('space_id', $spaceId)
+                    ->whereNull('archived_at'),
+            ];
             $rules['destination_account_id'] = [
                 'required',
                 'integer',

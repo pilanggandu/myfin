@@ -109,7 +109,7 @@
                     @if ($recurring->isExpense())
                         <div>
                             <span class="text-muted block text-[11px] mb-0.5">Rekening Sumber:</span>
-                            <span class="font-bold text-charcoal">{{ $recurring->sourceAccount?->name }}</span>
+                            <span class="font-bold text-charcoal">{{ $recurring->sourceAccount?->name ?: 'Pilih saat bayar (Fleksibel)' }}</span>
                         </div>
                         <div>
                             <span class="text-muted block text-[11px] mb-0.5">Pos Pengeluaran:</span>
@@ -304,6 +304,22 @@
                     <div class="text-xs text-muted flex items-center gap-1">
                         <span>Periode Jatuh Tempo:</span>
                         <span id="modalDueDateLabel" class="font-bold text-charcoal">{{ $recurring->next_due_date->format('d F Y') }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="modalShowSourceAccount" class="block text-xs font-bold text-charcoal mb-1">
+                        Rekening Pembayaran <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="source_account_id" id="modalShowSourceAccount" class="field-select w-full text-xs" required>
+                        @foreach ($accounts as $acc)
+                            <option value="{{ $acc->id }}" {{ (string)$recurring->source_account_id === (string)$acc->id ? 'selected' : '' }}>
+                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="text-[11px] text-muted mt-1">
+                        Pilih rekening/dompet yang digunakan untuk transaksi ini.
                     </div>
                 </div>
 

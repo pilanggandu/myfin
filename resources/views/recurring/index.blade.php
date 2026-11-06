@@ -158,7 +158,11 @@
                                 <td class="py-3.5 px-4">
                                     @if ($item->isExpense())
                                         <div class="font-medium text-charcoal">
-                                            {{ $item->sourceAccount?->name }}
+                                            @if ($item->sourceAccount)
+                                                {{ $item->sourceAccount->name }}
+                                            @else
+                                                <span class="text-xs text-muted font-normal italic">Rekening Fleksibel</span>
+                                            @endif
                                         </div>
                                         <div class="text-[10px] text-muted flex items-center gap-1">
                                             <span>Pos:</span>
@@ -220,7 +224,7 @@
                                         @if (!$item->isArchived())
                                             <button 
                                                 type="button" 
-                                                onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}')"
+                                                onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}', {{ $item->source_account_id ?: 'null' }})"
                                                 class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest/90 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer"
                                                 title="Konfirmasi & Catat Transaksi"
                                             >
@@ -309,6 +313,22 @@
                 </div>
 
                 <div>
+                    <label for="modalSourceAccountId" class="block text-xs font-bold text-charcoal mb-1">
+                        Rekening Pembayaran <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="source_account_id" id="modalSourceAccountId" class="field-select w-full text-xs" required>
+                        @foreach ($accounts as $acc)
+                            <option value="{{ $acc->id }}">
+                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="text-[11px] text-muted mt-1" id="modalAccountHelp">
+                        Pilih rekening/dompet yang digunakan untuk transaksi ini.
+                    </div>
+                </div>
+
+                <div>
                     <label for="modalAmount" class="block text-xs font-bold text-charcoal mb-1">
                         Nominal Transaksi (Rp) <span class="text-rose-500">*</span>
                     </label>
@@ -388,7 +408,7 @@
     </div>
 
     <script>
-        function openConfirmModal(id, name, dueDate, amount, isVariable, type) {
+        function openConfirmModal(id, name, dueDate, amount, isVariable, type, sourceAccountId = null) {
             const modal = document.getElementById('confirmOccurrenceModal');
             const form = document.getElementById('confirmOccurrenceForm');
             form.action = '/recurring/' + id + '/confirm';
@@ -396,6 +416,11 @@
             document.getElementById('modalScheduleName').textContent = name;
             document.getElementById('modalDueDate').value = dueDate;
             document.getElementById('modalDueDateLabel').textContent = dueDate;
+
+            const accountSelect = document.getElementById('modalSourceAccountId');
+            if (accountSelect && sourceAccountId) {
+                accountSelect.value = sourceAccountId;
+            }
 
             const amountInput = document.getElementById('modalAmount');
             amountInput.value = amount > 0 ? amount : '';

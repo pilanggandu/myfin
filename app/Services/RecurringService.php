@@ -26,13 +26,20 @@ class RecurringService
         $startDate = Carbon::parse($data['start_date']);
         $anchorDay = (int) $startDate->day;
 
-        $sourceAccount = Account::where('space_id', $space->id)
-            ->where('id', $data['source_account_id'])
-            ->first();
+        $sourceAccount = null;
+        if (! empty($data['source_account_id'])) {
+            $sourceAccount = Account::where('space_id', $space->id)
+                ->where('id', $data['source_account_id'])
+                ->first();
 
-        if (! $sourceAccount || $sourceAccount->isArchived()) {
+            if (! $sourceAccount || $sourceAccount->isArchived()) {
+                throw ValidationException::withMessages([
+                    'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                ]);
+            }
+        } elseif ($type === 'transfer') {
             throw ValidationException::withMessages([
-                'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                'source_account_id' => 'Rekening sumber transfer wajib dipilih.',
             ]);
         }
 
@@ -41,7 +48,7 @@ class RecurringService
 
         if ($type === 'transfer') {
             $destAccountId = (int) ($data['destination_account_id'] ?? 0);
-            if ($destAccountId === (int) $sourceAccount->id) {
+            if ($destAccountId === (int) $sourceAccount?->id) {
                 throw ValidationException::withMessages([
                     'destination_account_id' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
                 ]);
@@ -101,7 +108,7 @@ class RecurringService
                 'name' => $data['name'],
                 'member_id' => $memberId,
                 'category_id' => $category?->id,
-                'source_account_id' => $sourceAccount->id,
+                'source_account_id' => $sourceAccount?->id,
                 'destination_account_id' => $destAccount?->id,
                 'frequency' => $data['frequency'],
                 'anchor_day' => $anchorDay,
@@ -133,13 +140,20 @@ class RecurringService
         $space = $schedule->space;
         $type = $schedule->type;
 
-        $sourceAccount = Account::where('space_id', $space->id)
-            ->where('id', $data['source_account_id'])
-            ->first();
+        $sourceAccount = null;
+        if (! empty($data['source_account_id'])) {
+            $sourceAccount = Account::where('space_id', $space->id)
+                ->where('id', $data['source_account_id'])
+                ->first();
 
-        if (! $sourceAccount || $sourceAccount->isArchived()) {
+            if (! $sourceAccount || $sourceAccount->isArchived()) {
+                throw ValidationException::withMessages([
+                    'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                ]);
+            }
+        } elseif ($type === 'transfer') {
             throw ValidationException::withMessages([
-                'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                'source_account_id' => 'Rekening sumber transfer wajib dipilih.',
             ]);
         }
 
@@ -148,7 +162,7 @@ class RecurringService
 
         if ($type === 'transfer') {
             $destAccountId = (int) ($data['destination_account_id'] ?? 0);
-            if ($destAccountId === (int) $sourceAccount->id) {
+            if ($destAccountId === (int) $sourceAccount?->id) {
                 throw ValidationException::withMessages([
                     'destination_account_id' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
                 ]);
@@ -208,7 +222,7 @@ class RecurringService
             'name' => $data['name'],
             'member_id' => $memberId,
             'category_id' => $category?->id,
-            'source_account_id' => $sourceAccount->id,
+            'source_account_id' => $sourceAccount?->id,
             'destination_account_id' => $destAccount?->id,
             'frequency' => $data['frequency'],
             'anchor_day' => $anchorDay,
@@ -263,7 +277,13 @@ class RecurringService
 
             $sourceAccountId = ! empty($overrideData['source_account_id'])
                 ? (int) $overrideData['source_account_id']
-                : (int) $lockedSchedule->source_account_id;
+                : (int) ($lockedSchedule->source_account_id ?? 0);
+
+            if (! $sourceAccountId) {
+                throw ValidationException::withMessages([
+                    'source_account_id' => 'Silakan pilih rekening pembayaran untuk transaksi ini.',
+                ]);
+            }
 
             $sourceAccount = Account::where('space_id', $space->id)
                 ->where('id', $sourceAccountId)

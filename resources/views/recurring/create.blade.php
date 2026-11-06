@@ -169,16 +169,17 @@
 
                         <div>
                             <label for="sourceAccountExpense" class="block text-xs font-bold text-charcoal mb-1">
-                                Rekening Sumber Pembayaran <span class="text-rose-500">*</span>
+                                Rekening Sumber Pembayaran <span class="text-[10px] text-muted font-normal">(Opsional / Fleksibel)</span>
                             </label>
                             <select name="source_account_id" id="sourceAccountExpense" class="field-select w-full text-xs">
-                                <option value="">Pilih Rekening Asal...</option>
+                                <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
                                 @foreach ($accounts as $acc)
                                     <option value="{{ $acc->id }}" {{ (string)old('source_account_id') === (string)$acc->id ? 'selected' : '' }}>
                                         {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                     </option>
                                 @endforeach
                             </select>
+                            <div class="text-[11px] text-muted mt-1">Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba.</div>
                             @error('source_account_id')
                                 <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
                             @enderror
