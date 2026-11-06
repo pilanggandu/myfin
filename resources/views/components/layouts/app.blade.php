@@ -250,6 +250,7 @@
                             id="globalSearchInput"
                             placeholder="Cari transaksi, rekening, atau catatan... ⌘K" 
                             class="field-input pl-9 pr-12 text-xs h-8.5 rounded-lg w-full bg-panel"
+                            style="padding-left: 34px !important; padding-right: 48px !important;"
                             onkeydown="if(event.key==='Enter'){ window.location.href='{{ route('transactions.index') }}?search=' + encodeURIComponent(this.value); }"
                         />
                         <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">

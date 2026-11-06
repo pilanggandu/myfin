@@ -54,6 +54,7 @@
                         value="{{ request('search') }}" 
                         placeholder="Cari transaksi berdasarkan keterangan..." 
                         class="field-input h-10 pl-9 pr-3 text-xs w-full" 
+                        style="padding-left: 36px !important;"
                     />
                 </div>
 

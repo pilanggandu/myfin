@@ -36,8 +36,8 @@
                         <label for="adjustModalTargetDisplay" class="block text-xs font-bold text-charcoal mb-1">
                             Saldo Riil Baru (Target)
                         </label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted font-bold text-sm">
+                        <div class="relative field-prefix-wrapper">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted font-bold text-sm select-none z-10">
                                 Rp
                             </span>
                             <input 
@@ -46,7 +46,8 @@
                                 id="adjustModalTargetDisplay" 
                                 placeholder="0" 
                                 required
-                                class="field-input pl-10 pr-3 font-mono font-bold text-base w-full bg-panel"
+                                class="field-input has-prefix font-mono font-bold text-base w-full bg-panel"
+                                style="padding-left: 44px !important;"
                                 oninput="onAdjustTargetInput(this.value)"
                             />
                             <input type="hidden" name="target_balance" id="adjustModalTargetHidden" required />
