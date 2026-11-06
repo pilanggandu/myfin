@@ -452,4 +452,30 @@ class RecurringTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_user_can_create_recurring_schedule_with_variable_amount(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/recurring', [
+                'type' => 'expense',
+                'name' => 'Tagihan Listrik PLN',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-05',
+                'end_date' => '2026-11-10',
+                'is_variable_amount' => '1',
+            ]);
+
+        $schedule = RecurringSchedule::where('name', 'Tagihan Listrik PLN')->first();
+        $this->assertNotNull($schedule);
+        $response->assertRedirect("/recurring/{$schedule->id}");
+        $this->assertTrue($schedule->is_variable_amount);
+        $this->assertNull($schedule->amount);
+
+        $occurrence = RecurringOccurrence::where('recurring_schedule_id', $schedule->id)->first();
+        $this->assertNotNull($occurrence);
+        $this->assertNull($occurrence->amount);
+    }
 }

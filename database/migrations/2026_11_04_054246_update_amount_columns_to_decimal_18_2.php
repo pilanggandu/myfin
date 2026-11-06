@@ -67,13 +67,13 @@ return new class extends Migration
 
         if (Schema::hasTable('recurring_schedules')) {
             Schema::table('recurring_schedules', function (Blueprint $table) {
-                $table->decimal('amount', 18, 2)->change();
+                $table->decimal('amount', 18, 2)->nullable()->change();
             });
         }
 
         if (Schema::hasTable('recurring_occurrences')) {
             Schema::table('recurring_occurrences', function (Blueprint $table) {
-                $table->decimal('amount', 18, 2)->change();
+                $table->decimal('amount', 18, 2)->nullable()->change();
             });
         }
     }
@@ -139,13 +139,13 @@ return new class extends Migration
 
         if (Schema::hasTable('recurring_schedules')) {
             Schema::table('recurring_schedules', function (Blueprint $table) {
-                $table->bigInteger('amount')->change();
+                $table->bigInteger('amount')->nullable()->change();
             });
         }
 
         if (Schema::hasTable('recurring_occurrences')) {
             Schema::table('recurring_occurrences', function (Blueprint $table) {
-                $table->bigInteger('amount')->change();
+                $table->bigInteger('amount')->nullable()->change();
             });
         }
     }
