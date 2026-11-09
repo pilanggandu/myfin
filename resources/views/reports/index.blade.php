@@ -462,7 +462,7 @@
 
                 <div class="overflow-x-auto">
                     <div class="min-w-[680px]">
-                        <div class="grid grid-cols-7 border-b border-line bg-cream/30 dark:bg-line/20 text-center text-xs font-bold text-muted py-2">
+                        <div class="grid grid-cols-7 calendar-grid-7 border-b border-line bg-cream/30 dark:bg-line/20 text-center text-xs font-bold text-muted py-2" style="display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)) !important;">
                             <div class="py-1">Sen</div>
                             <div class="py-1">Sel</div>
                             <div class="py-1">Rab</div>
@@ -474,7 +474,7 @@
 
                         <div class="divide-y divide-line">
                             @foreach ($calendarWeeks as $week)
-                                <div class="grid grid-cols-7 divide-x divide-line">
+                                <div class="grid grid-cols-7 calendar-grid-7 divide-x divide-line" style="display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)) !important;">
                                     @foreach ($week as $day)
                                         <div 
                                             @if ($day->is_current_month) onclick="openCalendarDayModal('{{ $day->date }}')" @endif
