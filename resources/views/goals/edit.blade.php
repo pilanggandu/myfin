@@ -3,7 +3,7 @@
         <!-- Breadcrumb & Header -->
         <div class="mb-6">
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET & BERSAMA / EDIT</div>
-            <h1 class="font-serif text-3xl text-forest dark:text-emerald-400 font-normal tracking-tight mt-1 mb-0.5">
+            <h1 class="font-serif text-3xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Edit Target: {{ $goal->name }}
             </h1>
             <p class="text-xs text-muted">
@@ -20,7 +20,7 @@
                 <!-- Info Utama Target -->
                 <div class="panel-card p-5 sm:p-6 space-y-4">
                     <div class="flex items-center justify-between border-b border-line pb-2">
-                        <h2 class="text-sm font-bold text-forest dark:text-emerald-400">
+                        <h2 class="text-sm font-bold text-forest">
                             1. Informasi Target Finansial
                         </h2>
                         <span class="text-[11px] text-muted">ID: #{{ $goal->id }}</span>
@@ -167,7 +167,7 @@
 
                 <!-- Penempatan Rekening & Kategori -->
                 <div class="panel-card p-5 sm:p-6 space-y-4">
-                    <h2 class="text-sm font-bold text-forest dark:text-emerald-400 border-b border-line pb-2">
+                    <h2 class="text-sm font-bold text-forest border-b border-line pb-2">
                         2. Rekening Penampung & Kategori
                     </h2>
 
@@ -263,7 +263,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <span id="previewStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300 border border-forest/20">
+                                <span id="previewStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest border border-forest/20">
                                     {{ ucfirst($goal->status) }}
                                 </span>
                             </div>
@@ -272,7 +272,7 @@
                             <div class="mt-4 pt-3 border-t border-line/60">
                                 <div class="flex items-baseline justify-between text-xs mb-1">
                                     <span class="text-muted">Terkumpul saat ini</span>
-                                    <span class="font-mono font-bold text-forest dark:text-emerald-400">
+                                    <span class="font-mono font-bold text-forest">
                                         Rp {{ number_format($goal->current_amount, 0, ',', '.') }}
                                     </span>
                                 </div>
@@ -301,7 +301,7 @@
                             <!-- Target Date & Recommendation Info -->
                             <div id="previewRecommendationBox" class="mt-4 p-3 rounded-lg bg-cream/70 dark:bg-line/30 text-xs space-y-1">
                                 <div class="text-[10px] uppercase font-bold tracking-wider text-muted">Rekomendasi Rutin</div>
-                                <div class="font-bold text-forest dark:text-emerald-400" id="previewMonthlyRec">
+                                <div class="font-bold text-forest" id="previewMonthlyRec">
                                     Rp {{ number_format($goal->monthlyRecommendation(), 0, ',', '.') }} <span class="text-[11px] font-normal text-muted">/ bulan</span>
                                 </div>
                                 <div class="text-[10px] text-muted" id="previewDaysRemaining">

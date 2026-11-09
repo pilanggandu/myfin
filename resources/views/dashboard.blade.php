@@ -560,7 +560,7 @@
                 </div>
                 <div class="p-2 rounded bg-panel border border-line">
                     <span class="block text-[10px] uppercase font-bold text-muted">Limit Tersedia</span>
-                    <span class="text-xs font-bold font-mono text-emerald-600 block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalAvailableCredit, 0, ',', '.') }}">
+                    <span class="text-xs font-bold font-mono text-forest block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalAvailableCredit, 0, ',', '.') }}">
                         Rp {{ number_format($totalAvailableCredit, 0, ',', '.') }}
                     </span>
                 </div>

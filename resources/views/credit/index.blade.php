@@ -304,7 +304,7 @@
                                 @else
                                     <div class="flex justify-between items-center text-[11px] border-t border-dashed border-line/50 pt-2 mt-2">
                                         <span class="text-amber-600 dark:text-amber-400 font-medium">⚠️ Belum set tgl cetak & tempo</span>
-                                        <button type="button" onclick="editCreditAccount({{ json_encode($account) }})" class="text-[10px] text-forest dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                                        <button type="button" onclick="editCreditAccount({{ json_encode($account) }})" class="text-[10px] text-forest font-bold hover:underline cursor-pointer">
                                             Atur
                                         </button>
                                     </div>

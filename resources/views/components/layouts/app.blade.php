@@ -80,7 +80,7 @@
                                 @csrf
                                 <button type="submit" class="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-forest-light transition cursor-pointer {{ (int)$currentSpace?->id === (int)$spaceItem->id ? 'bg-forest-light font-bold text-forest' : 'text-charcoal' }}">
                                     <span class="truncate max-w-[130px]">{{ $spaceItem->name }}</span>
-                                    <span class="text-[9.5px] px-1.5 py-0.5 rounded {{ $spaceItem->isPersonal() ? 'bg-cream text-charcoal' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' }}">
+                                    <span class="text-[9.5px] px-1.5 py-0.5 rounded {{ $spaceItem->isPersonal() ? 'bg-cream text-charcoal' : 'bg-forest-light text-forest' }}">
                                         {{ $spaceItem->isPersonal() ? 'Personal' : 'Bersama' }}
                                     </span>
                                 </button>
@@ -101,7 +101,7 @@
             <div class="nav-section-label">JENIS RUANG</div>
             <div class="px-2.5 py-1.5 rounded-lg bg-panel border border-line flex items-center justify-between text-xs flex-shrink-0">
                 <span class="font-medium text-charcoal flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full {{ $currentSpace?->isPersonal() ? 'bg-blue-500' : 'bg-emerald-500' }}"></span>
+                    <span class="w-2 h-2 rounded-full {{ $currentSpace?->isPersonal() ? 'bg-blue-500' : 'bg-forest' }}"></span>
                     {{ $currentSpace?->isPersonal() ? 'Personal' : 'Bersama' }}
                 </span>
                 <a href="{{ route('spaces.index') }}" class="text-[11px] text-forest font-semibold hover:underline">

@@ -387,7 +387,7 @@
                         </div>
                         <div class="py-2.5 flex justify-between items-center">
                             <span class="text-muted">Status Rekening:</span>
-                            <span class="font-semibold {{ $account->isArchived() ? 'text-muted' : 'text-emerald-600 dark:text-emerald-400' }}">
+                            <span class="font-semibold {{ $account->isArchived() ? 'text-muted' : 'text-forest' }}">
                                 {{ $account->isArchived() ? 'Diarsipkan' : 'Aktif' }}
                             </span>
                         </div>
@@ -435,7 +435,7 @@
             } else if (type === 'investment') {
                 visualCard.style.background = 'linear-gradient(135deg, #064e3b 0%, #022c22 60%, #047857 100%)';
                 previewBadge.textContent = 'INVESTASI / RDN';
-                previewBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+                previewBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-forest-light text-forest border border-forest/20';
                 previewCategory.textContent = 'Rekening RDN / Sekuritas / Portofolio';
             }
 

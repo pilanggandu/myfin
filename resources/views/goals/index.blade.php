@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / PERENCANAAN</div>
-            <h1 class="font-serif text-3xl sm:text-4xl text-forest dark:text-emerald-400 font-normal tracking-tight mt-1 mb-0.5">
+            <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Target Tabungan & Bersama
             </h1>
             <p class="text-xs text-muted">
@@ -60,25 +60,25 @@
     <div class="flex items-center gap-1.5 mb-6 overflow-x-auto pb-1">
         <a 
             href="{{ route('goals.index', ['status' => 'active']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'active' ? 'bg-forest text-white dark:bg-emerald-600' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'active' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Aktif ({{ $activeCount }})
         </a>
         <a 
             href="{{ route('goals.index', ['status' => 'achieved']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'achieved' ? 'bg-forest text-white dark:bg-emerald-600' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'achieved' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Tercapai 🎉 ({{ $achievedCount }})
         </a>
         <a 
             href="{{ route('goals.index', ['status' => 'paused']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'paused' ? 'bg-forest text-white dark:bg-emerald-600' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'paused' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Dijeda
         </a>
         <a 
             href="{{ route('goals.index', ['status' => 'all']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'all' ? 'bg-forest text-white dark:bg-emerald-600' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'all' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Semua
         </a>
@@ -124,7 +124,7 @@
                                         {{ $goal->icon ?: '🎯' }}
                                     </div>
                                     <div class="min-w-0">
-                                        <h3 class="font-bold text-base text-charcoal truncate group-hover:text-forest dark:group-hover:text-emerald-400 transition" title="{{ $goal->name }}">
+                                        <h3 class="font-bold text-base text-charcoal truncate group-hover:text-forest transition" title="{{ $goal->name }}">
                                             <a href="{{ route('goals.show', $goal) }}">
                                                 {{ $goal->name }}
                                             </a>
@@ -140,7 +140,7 @@
 
                                 <div class="flex items-center gap-1.5 flex-shrink-0">
                                     @if ($isAchieved)
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/15 text-forest border border-forest/30 whitespace-nowrap">
                                             🎉 Tercapai
                                         </span>
                                     @elseif ($isPaused)
@@ -148,7 +148,7 @@
                                             Dijeda
                                         </span>
                                     @else
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300 border border-forest/20 whitespace-nowrap">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest border border-forest/20 whitespace-nowrap">
                                             Aktif
                                         </span>
                                     @endif
@@ -176,7 +176,7 @@
                                         Terkumpul:
                                     </div>
                                     <div class="text-right">
-                                        <span class="font-mono text-base font-bold text-forest dark:text-emerald-400">
+                                        <span class="font-mono text-base font-bold text-forest">
                                             <span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->current_amount, 0, ',', '.') }}">
                                                 Rp {{ number_format($goal->current_amount, 0, ',', '.') }}
                                             </span>
@@ -198,7 +198,7 @@
                                     @if (! $isAchieved)
                                         <span>Sisa: <strong class="font-mono text-charcoal"><span class="privacy-balance" data-raw-value="Rp {{ number_format($rem, 0, ',', '.') }}">Rp {{ number_format($rem, 0, ',', '.') }}</span></strong></span>
                                     @else
-                                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">100% Tercapai!</span>
+                                        <span class="text-forest font-bold">100% Tercapai!</span>
                                     @endif
                                 </div>
                             </div>
@@ -225,7 +225,7 @@
                                 @if ($monthlyRec !== null && ! $isAchieved)
                                     <div class="text-right">
                                         <div class="text-[10px] uppercase font-bold text-muted/80">Saran Menabung</div>
-                                        <div class="font-mono font-bold text-forest dark:text-emerald-400 text-[11px] mt-0.5">
+                                        <div class="font-mono font-bold text-forest text-[11px] mt-0.5">
                                             <span class="privacy-balance" data-raw-value="Rp {{ number_format($monthlyRec, 0, ',', '.') }}">Rp {{ number_format($monthlyRec, 0, ',', '.') }}</span> <span class="font-sans text-[10px] text-muted">/ bln</span>
                                         </div>
                                     </div>
@@ -236,7 +236,7 @@
 
                     <!-- Card Actions -->
                     <div class="p-3 bg-cream/20 border-t border-line flex items-center justify-between gap-2">
-                        <a href="{{ route('goals.show', $goal) }}" class="text-xs font-bold text-forest dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
+                        <a href="{{ route('goals.show', $goal) }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1">
                             <span>Detail & Riwayat</span>
                             <span>&rarr;</span>
                         </a>
@@ -261,7 +261,7 @@
         <div class="panel-card w-full max-w-md p-6 bg-panel rounded-2xl shadow-xl space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-line">
                 <div>
-                    <h3 class="font-bold text-base text-forest dark:text-emerald-400">Setor Tabungan</h3>
+                    <h3 class="font-bold text-base text-forest">Setor Tabungan</h3>
                     <p class="text-xs text-muted" id="modalGoalNameSubtitle">Target Tabungan</p>
                 </div>
                 <button type="button" onclick="closeContributeModal()" class="text-muted hover:text-charcoal p-1 rounded">

@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / LAPORAN</div>
-            <h1 class="font-serif text-3xl sm:text-4xl text-forest dark:text-emerald-400 font-normal tracking-tight mt-1 mb-0.5">
+            <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Laporan Keuangan & Arus Kas
             </h1>
             <p class="text-xs text-muted">
@@ -55,14 +55,14 @@
     <div class="flex items-center gap-2 mb-6 border-b border-line">
         <a 
             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily'])) }}" 
-            class="px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 {{ $activeTab === 'daily' ? 'border-forest text-forest dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 {{ $activeTab === 'daily' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
             <span>Arus Kas Harian (Raw Data)</span>
             @if ($activeDaysCount > 0)
-                <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono {{ $activeTab === 'daily' ? 'bg-forest/15 text-forest dark:bg-emerald-400/20 dark:text-emerald-300' : 'bg-cream text-muted dark:bg-line/50' }}">
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono {{ $activeTab === 'daily' ? 'bg-forest/15 text-forest' : 'bg-cream text-muted dark:bg-line/50' }}">
                     {{ $activeDaysCount }} hari
                 </span>
             @endif
@@ -70,7 +70,7 @@
 
         <a 
             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'analytics'])) }}" 
-            class="px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 {{ $activeTab === 'analytics' ? 'border-forest text-forest dark:border-emerald-400 dark:text-emerald-400' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 {{ $activeTab === 'analytics' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
@@ -102,9 +102,9 @@
 
             <!-- Kas Masuk (Inflow) -->
             <div class="panel-card p-4 flex flex-col justify-between">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-forest dark:text-emerald-400">Total Kas Masuk</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-forest">Total Kas Masuk</span>
                 <div class="mt-2">
-                    <div class="text-base sm:text-lg font-mono font-bold text-forest dark:text-emerald-400">
+                    <div class="text-base sm:text-lg font-mono font-bold text-forest">
                         <span class="privacy-balance" data-raw-value="+Rp {{ number_format($totalPeriodInflow, 0, ',', '.') }}">
                             +Rp {{ number_format($totalPeriodInflow, 0, ',', '.') }}
                         </span>
@@ -130,7 +130,7 @@
             <div class="panel-card p-4 flex flex-col justify-between">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-charcoal">Net Arus Kas</span>
                 <div class="mt-2">
-                    <div class="text-base sm:text-lg font-mono font-bold {{ $totalPeriodNet >= 0 ? 'text-forest dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
+                    <div class="text-base sm:text-lg font-mono font-bold {{ $totalPeriodNet >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
                         <span class="privacy-balance" data-raw-value="{{ $totalPeriodNet >= 0 ? '+' : '' }}Rp {{ number_format($totalPeriodNet, 0, ',', '.') }}">
                             {{ $totalPeriodNet >= 0 ? '+' : '' }}Rp {{ number_format($totalPeriodNet, 0, ',', '.') }}
                         </span>
@@ -143,7 +143,7 @@
             <div class="panel-card p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">Saldo Kas Akhir</span>
                 <div class="mt-2">
-                    <div class="text-base sm:text-lg font-mono font-bold text-forest dark:text-emerald-400">
+                    <div class="text-base sm:text-lg font-mono font-bold text-forest">
                         <span class="privacy-balance" data-raw-value="Rp {{ number_format($closingCashBalance, 0, ',', '.') }}">
                             Rp {{ number_format($closingCashBalance, 0, ',', '.') }}
                         </span>
@@ -216,7 +216,7 @@
                         class="btn-arus-secondary h-9 px-3.5 text-xs font-bold inline-flex items-center gap-1.5"
                         title="Unduh data mentah arus kas harian format CSV untuk Excel"
                     >
-                        <svg class="w-4 h-4 text-forest dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="w-4 h-4 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                         </svg>
                         <span>Export CSV</span>
@@ -250,7 +250,7 @@
                         <div class="px-4 sm:px-6 py-3 bg-cream/40 dark:bg-line/25 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                             <!-- Kiri: Tanggal & Label Relatif -->
                             <div class="flex items-center gap-2.5">
-                                <span class="w-8 h-8 rounded-lg bg-forest/10 dark:bg-forest/20 text-forest dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                                <span class="w-8 h-8 rounded-lg bg-forest/10 dark:bg-forest/20 text-forest flex items-center justify-center flex-shrink-0">
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
                                     </svg>
@@ -285,7 +285,7 @@
                             <!-- Kanan: Subtotal Arus Kas Hari Tersebut & Saldo Berjalan -->
                             <div class="flex items-center gap-3 sm:gap-4 flex-wrap text-xs">
                                 @if ($day->inflow > 0)
-                                    <div class="flex items-center gap-1 font-mono font-bold text-forest dark:text-emerald-400">
+                                    <div class="flex items-center gap-1 font-mono font-bold text-forest">
                                         <span class="text-[10px] font-sans font-medium text-muted">Masuk:</span>
                                         <span class="privacy-balance" data-raw-value="+Rp {{ number_format($day->inflow, 0, ',', '.') }}">+Rp {{ number_format($day->inflow, 0, ',', '.') }}</span>
                                     </div>
@@ -298,7 +298,7 @@
                                     </div>
                                 @endif
 
-                                <div class="flex items-center gap-1 font-mono font-bold {{ $day->net >= 0 ? 'text-forest dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
+                                <div class="flex items-center gap-1 font-mono font-bold {{ $day->net >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
                                     <span class="text-[10px] font-sans font-medium text-muted">Net:</span>
                                     <span class="privacy-balance" data-raw-value="{{ $day->net >= 0 ? '+' : '' }}Rp {{ number_format($day->net, 0, ',', '.') }}">{{ $day->net >= 0 ? '+' : '' }}Rp {{ number_format($day->net, 0, ',', '.') }}</span>
                                 </div>
@@ -350,7 +350,7 @@
                                             <!-- Deskripsi -->
                                             <td class="py-2.5 px-3">
                                                 <div class="font-bold text-charcoal">
-                                                    <a href="{{ route('transactions.show', $tx) }}" class="hover:text-forest dark:hover:text-emerald-400 hover:underline">
+                                                    <a href="{{ route('transactions.show', $tx) }}" class="hover:text-forest hover:underline">
                                                         {{ $tx->description }}
                                                     </a>
                                                 </div>
@@ -386,7 +386,7 @@
                                             <!-- Tipe -->
                                             <td class="py-2.5 px-3 whitespace-nowrap">
                                                 @if ($isInc)
-                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-forest/10 dark:bg-forest/20 text-forest dark:text-emerald-400">
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-forest/10 dark:bg-forest/20 text-forest">
                                                         MASUK
                                                     </span>
                                                 @elseif ($isExp)
@@ -401,7 +401,7 @@
                                             </td>
 
                                             <!-- Nominal Arus Kas -->
-                                            <td class="py-2.5 px-4 sm:px-6 text-right font-mono font-bold whitespace-nowrap {{ $isInc ? 'text-forest dark:text-emerald-400' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
+                                            <td class="py-2.5 px-4 sm:px-6 text-right font-mono font-bold whitespace-nowrap {{ $isInc ? 'text-forest' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
                                                 <span class="privacy-balance" data-raw-value="{{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}">
                                                     {{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}
                                                 </span>
@@ -446,7 +446,7 @@
 
                     <div class="flex items-center gap-3 text-[11px] text-muted flex-wrap">
                         <span class="inline-flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-forest dark:bg-emerald-400"></span>
+                            <span class="w-2 h-2 rounded-full bg-forest"></span>
                             <span>Masuk (+)</span>
                         </span>
                         <span class="inline-flex items-center gap-1.5">
@@ -478,11 +478,11 @@
                                     @foreach ($week as $day)
                                         <div 
                                             @if ($day->is_current_month) onclick="openCalendarDayModal('{{ $day->date }}')" @endif
-                                            class="calendar-day-cell h-[120px] p-2 flex flex-col justify-between transition-colors relative select-none overflow-hidden {{ $day->is_current_month ? 'bg-panel cursor-pointer hover:bg-cream/50 dark:hover:bg-line/30' : 'bg-cream/20 dark:bg-line/10 opacity-40 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-forest dark:ring-emerald-400 bg-forest/5 dark:bg-emerald-400/5 z-1' : '' }}"
+                                            class="calendar-day-cell h-[120px] p-2 flex flex-col justify-between transition-colors relative select-none overflow-hidden {{ $day->is_current_month ? 'bg-panel cursor-pointer hover:bg-cream/50 dark:hover:bg-line/30' : 'bg-cream/20 dark:bg-line/10 opacity-40 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-forest bg-forest/5 z-1' : '' }}"
                                             style="height: 120px !important; min-height: 120px !important; max-height: 120px !important; box-sizing: border-box !important;"
                                         >
                                             <div class="flex items-center justify-between gap-1">
-                                                <span class="inline-flex items-center justify-center text-xs font-bold {{ $day->is_today ? 'w-5 h-5 rounded-full bg-forest text-cream dark:bg-emerald-400 dark:text-forest text-[11px]' : ($day->is_weekend ? 'text-red/90 dark:text-rose-400' : 'text-charcoal') }}">
+                                                <span class="inline-flex items-center justify-center text-xs font-bold {{ $day->is_today ? 'w-5 h-5 rounded-full bg-forest text-cream text-[11px]' : ($day->is_weekend ? 'text-red/90 dark:text-rose-400' : 'text-charcoal') }}">
                                                     {{ $day->day_number }}
                                                 </span>
                                                 @if ($day->count > 0)
@@ -496,7 +496,7 @@
                                                 @if ($day->has_transactions)
                                                     <div class="space-y-0.5 text-[11px] font-mono leading-tight">
                                                         @if ($day->inflow > 0)
-                                                            <div class="text-forest dark:text-emerald-400 font-semibold truncate flex items-center justify-between" title="Masuk: Rp {{ number_format($day->inflow, 0, ',', '.') }}">
+                                                            <div class="text-forest font-semibold truncate flex items-center justify-between" title="Masuk: Rp {{ number_format($day->inflow, 0, ',', '.') }}">
                                                                 <span class="text-[9px] font-sans font-normal opacity-70">In</span>
                                                                 <span class="privacy-balance" data-raw-value="+Rp {{ number_format($day->inflow, 0, ',', '.') }}">+{{ number_format($day->inflow, 0, ',', '.') }}</span>
                                                             </div>
@@ -507,7 +507,7 @@
                                                                 <span class="privacy-balance" data-raw-value="-Rp {{ number_format($day->outflow, 0, ',', '.') }}">-{{ number_format($day->outflow, 0, ',', '.') }}</span>
                                                             </div>
                                                         @endif
-                                                        <div class="pt-0.5 border-t border-line/60 flex items-center justify-between font-bold text-[10px] {{ $day->net >= 0 ? 'text-forest dark:text-emerald-400' : 'text-red dark:text-rose-400' }}" title="Net: {{ $day->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($day->net), 0, ',', '.') }}">
+                                                        <div class="pt-0.5 border-t border-line/60 flex items-center justify-between font-bold text-[10px] {{ $day->net >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}" title="Net: {{ $day->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($day->net), 0, ',', '.') }}">
                                                             <span class="text-[9px] font-sans font-normal opacity-70">Net</span>
                                                             <span class="privacy-balance" data-raw-value="{{ $day->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($day->net), 0, ',', '.') }}">{{ $day->net >= 0 ? '+' : '-' }}{{ number_format(abs($day->net), 0, ',', '.') }}</span>
                                                         </div>
@@ -555,7 +555,7 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Kas Masuk</span>
-                                    <div id="calModalInflow" class="text-sm sm:text-base font-mono font-bold text-forest dark:text-emerald-400">Rp 0</div>
+                                    <div id="calModalInflow" class="text-sm sm:text-base font-mono font-bold text-forest">Rp 0</div>
                                 </div>
                                 <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Kas Keluar</span>
@@ -632,7 +632,7 @@
                     const netEl = document.getElementById('calModalNet');
                     netEl.textContent = (net >= 0 ? '+Rp ' : '-Rp ') + Number(Math.abs(net)).toLocaleString('id-ID');
                     if (net >= 0) {
-                        netEl.className = 'text-sm sm:text-base font-mono font-bold text-forest dark:text-emerald-400';
+                        netEl.className = 'text-sm sm:text-base font-mono font-bold text-forest';
                     } else {
                         netEl.className = 'text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400';
                     }
@@ -661,8 +661,8 @@
                             let amountPrefix = '';
 
                             if (item.type === 'income') {
-                                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-forest/10 dark:bg-forest/20 text-forest dark:text-emerald-400">MASUK</span>';
-                                amountClass = 'text-forest dark:text-emerald-400';
+                                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-forest/10 dark:bg-forest/20 text-forest">MASUK</span>';
+                                amountClass = 'text-forest';
                                 amountPrefix = '+Rp ';
                             } else if (item.type === 'expense') {
                                 typeBadge = '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red/10 dark:bg-red/20 text-red dark:text-rose-400">KELUAR</span>';
@@ -696,7 +696,7 @@
                                 <td class="py-2.5 px-3 font-mono text-[11px] text-muted whitespace-nowrap">${accountStr}</td>
                                 <td class="py-2.5 px-3 font-mono font-bold text-right whitespace-nowrap ${amountClass}">${formattedNominal}</td>
                                 <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                                    <a href="${item.url}" class="text-[11px] font-semibold text-forest dark:text-emerald-400 hover:underline inline-flex items-center gap-0.5">
+                                    <a href="${item.url}" class="text-[11px] font-semibold text-forest hover:underline inline-flex items-center gap-0.5">
                                         Detail &rarr;
                                     </a>
                                 </td>
@@ -764,7 +764,7 @@
             <div class="panel-card p-0 overflow-hidden flex flex-col justify-between">
                 <div>
                     <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-                        <span class="text-sm font-bold text-forest dark:text-emerald-400">Sebaran Pengeluaran per Kategori</span>
+                        <span class="text-sm font-bold text-forest">Sebaran Pengeluaran per Kategori</span>
                         <span class="text-xs text-muted">{{ $categoryBreakdown->count() }} kategori</span>
                     </div>
 
@@ -802,7 +802,7 @@
                                                 <td class="py-2.5 px-3 text-right font-mono font-bold text-charcoal">
                                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($cat->amount, 0, ',', '.') }}">Rp {{ number_format($cat->amount, 0, ',', '.') }}</span>
                                                 </td>
-                                                <td class="py-2.5 px-3 text-right font-bold text-forest dark:text-emerald-400">
+                                                <td class="py-2.5 px-3 text-right font-bold text-forest">
                                                     {{ $cat->percentage }}%
                                                 </td>
                                             </tr>
@@ -823,7 +823,7 @@
             <div class="panel-card p-0 overflow-hidden flex flex-col justify-between">
                 <div>
                     <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-                        <span class="text-sm font-bold text-forest dark:text-emerald-400">Tren Arus Kas (6 Bulan Terakhir)</span>
+                        <span class="text-sm font-bold text-forest">Tren Arus Kas (6 Bulan Terakhir)</span>
                         <span class="text-xs text-muted">Pemasukan vs Pengeluaran</span>
                     </div>
 
@@ -839,7 +839,7 @@
                                 <thead>
                                     <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
                                         <th class="py-2.5 px-3">Periode</th>
-                                        <th class="py-2.5 px-3 text-right text-forest dark:text-emerald-400">Pemasukan</th>
+                                        <th class="py-2.5 px-3 text-right text-forest">Pemasukan</th>
                                         <th class="py-2.5 px-3 text-right text-red dark:text-rose-400">Pengeluaran</th>
                                         <th class="py-2.5 px-3 text-right">Net Cash Flow</th>
                                     </tr>
@@ -850,13 +850,13 @@
                                             <td class="py-2.5 px-3 font-semibold text-charcoal">
                                                 {{ $m->label }}
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono font-semibold text-forest dark:text-emerald-400">
+                                            <td class="py-2.5 px-3 text-right font-mono font-semibold text-forest">
                                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($m->income, 0, ',', '.') }}">Rp {{ number_format($m->income, 0, ',', '.') }}</span>
                                             </td>
                                             <td class="py-2.5 px-3 text-right font-mono font-semibold text-red dark:text-rose-400">
                                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($m->expense, 0, ',', '.') }}">Rp {{ number_format($m->expense, 0, ',', '.') }}</span>
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono font-bold {{ $m->net >= 0 ? 'text-forest dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
+                                            <td class="py-2.5 px-3 text-right font-mono font-bold {{ $m->net >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
                                                 <span class="privacy-balance" data-raw-value="{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}">{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}</span>
                                             </td>
                                         </tr>

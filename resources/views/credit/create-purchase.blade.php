@@ -256,7 +256,7 @@
                                 <label for="first_due_date" class="block text-xs font-semibold text-charcoal">
                                     Tanggal Jatuh Tempo Pertama
                                 </label>
-                                <button type="button" onclick="autoSetDueDate(true)" class="text-[10px] text-forest dark:text-emerald-400 font-semibold hover:underline cursor-pointer">
+                                <button type="button" onclick="autoSetDueDate(true)" class="text-[10px] text-forest font-semibold hover:underline cursor-pointer">
                                     Hitung Ulang dari Siklus Kartu
                                 </button>
                             </div>

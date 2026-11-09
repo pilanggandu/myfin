@@ -4,8 +4,8 @@
 @php
     $classes = match($variant) {
         'personal' => 'bg-cream text-charcoal',
-        'shared' => 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300',
-        'active' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200',
+        'shared' => 'bg-forest-light text-forest',
+        'active' => 'bg-forest-light text-forest',
         'inactive' => 'bg-cream text-muted',
         default => 'bg-ivory text-charcoal border border-line',
     };

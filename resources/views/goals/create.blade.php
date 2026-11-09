@@ -3,7 +3,7 @@
         <!-- Breadcrumb & Header -->
         <div class="mb-6">
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET & BERSAMA</div>
-            <h1 class="font-serif text-3xl text-forest dark:text-emerald-400 font-normal tracking-tight mt-1 mb-0.5">
+            <h1 class="font-serif text-3xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Buat Target Tabungan Baru
             </h1>
             <p class="text-xs text-muted">
@@ -18,7 +18,7 @@
             <div class="lg:col-span-2 space-y-6">
                 <!-- Info Utama Target -->
                 <div class="panel-card p-5 sm:p-6 space-y-4">
-                    <h2 class="text-sm font-bold text-forest dark:text-emerald-400 border-b border-line pb-2">
+                    <h2 class="text-sm font-bold text-forest border-b border-line pb-2">
                         1. Informasi Target Finansial
                     </h2>
 
@@ -147,7 +147,7 @@
 
                 <!-- Alokasi Rekening & Setoran Awal -->
                 <div class="panel-card p-5 sm:p-6 space-y-4">
-                    <h2 class="text-sm font-bold text-forest dark:text-emerald-400 border-b border-line pb-2">
+                    <h2 class="text-sm font-bold text-forest border-b border-line pb-2">
                         2. Rekening Penampung & Setoran Awal
                     </h2>
 
@@ -241,7 +241,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300 border border-forest/20">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest border border-forest/20">
                                     Aktif
                                 </span>
                             </div>
@@ -251,7 +251,7 @@
                                 <div class="flex items-baseline justify-between gap-2 mb-1.5 text-xs">
                                     <span class="text-muted">Terkumpul:</span>
                                     <div class="text-right">
-                                        <span id="previewCurrent" class="font-mono text-base font-bold text-forest dark:text-emerald-400">
+                                        <span id="previewCurrent" class="font-mono text-base font-bold text-forest">
                                             Rp 0
                                         </span>
                                         <span id="previewTarget" class="text-[11px] text-muted"> / Rp 0</span>
@@ -271,7 +271,7 @@
                             <!-- Preview Smart Recommendation -->
                             <div id="previewRecBox" class="mt-4 p-3 rounded-xl bg-cream/40 dark:bg-line/30 border border-line text-xs space-y-1 hidden">
                                 <div class="text-[10px] uppercase font-bold text-muted">Rekomendasi Cerdas</div>
-                                <div class="font-mono text-sm font-bold text-forest dark:text-emerald-400" id="previewMonthlyRec">
+                                <div class="font-mono text-sm font-bold text-forest" id="previewMonthlyRec">
                                     Rp 0 / bln
                                 </div>
                                 <div class="text-[10px] text-muted" id="previewRecSubtitle">
@@ -282,7 +282,7 @@
                     </div>
 
                     <div class="p-4 rounded-xl bg-forest-light/30 dark:bg-forest-light/10 border border-forest/15 text-xs text-muted leading-relaxed">
-                        <strong class="text-forest dark:text-emerald-400 block mb-1">💡 Tips Menabung:</strong>
+                        <strong class="text-forest block mb-1">💡 Tips Menabung:</strong>
                         Menetapkan tenggat tanggal akan membantu ARUS membagi target menjadi nominal menabung bulanan yang terukur dan tidak membebani arus kas bulanan Anda.
                     </div>
                 </div>

@@ -18,11 +18,11 @@
             <div>
                 <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET FINANSIAL</div>
                 <div class="flex items-center gap-2 mt-0.5">
-                    <h1 class="font-serif text-2xl sm:text-3xl text-forest dark:text-emerald-400 font-normal tracking-tight">
+                    <h1 class="font-serif text-2xl sm:text-3xl text-forest font-normal tracking-tight">
                         {{ $goal->name }}
                     </h1>
                     @if ($isAchieved)
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-forest/15 text-forest border border-forest/30">
                             🎉 Tercapai
                         </span>
                     @elseif ($isPaused)
@@ -30,7 +30,7 @@
                             Dijeda
                         </span>
                     @else
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300 border border-forest/20">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-forest/10 text-forest border border-forest/20">
                             Aktif
                         </span>
                     @endif
@@ -96,7 +96,7 @@
                                     <span class="privacy-toggle-icon"></span>
                                 </button>
                             </div>
-                            <div class="font-mono text-3xl sm:text-4xl font-bold text-forest dark:text-emerald-400">
+                            <div class="font-mono text-3xl sm:text-4xl font-bold text-forest">
                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($goal->current_amount, 0, ',', '.') }}">
                                     Rp {{ number_format($goal->current_amount, 0, ',', '.') }}
                                 </span>
@@ -120,7 +120,7 @@
                             @if (! $isAchieved)
                                 <span class="text-muted">Kurang: <strong class="font-mono text-charcoal">Rp {{ number_format($rem, 0, ',', '.') }}</strong></span>
                             @else
-                                <span class="font-bold text-emerald-600 dark:text-emerald-400">Target Berhasil Dipenuhi! 🎊</span>
+                                <span class="font-bold text-forest">Target Berhasil Dipenuhi! 🎊</span>
                             @endif
                         </div>
                     </div>
@@ -164,8 +164,8 @@
 
                         @if ($monthlyRec !== null && ! $isAchieved)
                             <div class="p-3 rounded-xl bg-forest-light/60 dark:bg-forest-light/20 border border-forest/20 text-xs">
-                                <span class="text-[10px] uppercase font-bold text-forest dark:text-emerald-400 block mb-0.5">Rekomendasi Cerdas</span>
-                                <div class="font-mono text-base font-bold text-forest dark:text-emerald-400">
+                                <span class="text-[10px] uppercase font-bold text-forest block mb-0.5">Rekomendasi Cerdas</span>
+                                <div class="font-mono text-base font-bold text-forest">
                                     Rp {{ number_format($monthlyRec, 0, ',', '.') }} <span class="font-sans text-xs text-muted font-normal">/ bln</span>
                                 </div>
                                 @if ($dailyRec !== null)
@@ -208,7 +208,7 @@
             <div class="flex items-center justify-between mb-4 border-b border-line pb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-base">🤝</span>
-                    <h2 class="text-sm font-bold text-forest dark:text-emerald-400">Kolaborasi Tabungan Bersama</h2>
+                    <h2 class="text-sm font-bold text-forest">Kolaborasi Tabungan Bersama</h2>
                 </div>
                 <span class="text-xs text-muted">{{ $memberBreakdown->count() }} kontributor aktif</span>
             </div>
@@ -228,7 +228,7 @@
                         </div>
 
                         <div class="text-right flex-shrink-0">
-                            <div class="font-mono text-xs font-bold text-forest dark:text-emerald-400">
+                            <div class="font-mono text-xs font-bold text-forest">
                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($mb->amount, 0, ',', '.') }}">
                                     Rp {{ number_format($mb->amount, 0, ',', '.') }}
                                 </span>
@@ -245,7 +245,7 @@
     <div class="panel-card p-0 overflow-hidden" data-privacy-scope="goal-history">
         <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <h2 class="text-sm font-bold text-forest dark:text-emerald-400">
+                <h2 class="text-sm font-bold text-forest">
                     Riwayat Setoran & Pencairan ({{ $goal->contributions->count() }})
                 </h2>
                 <button 
@@ -288,7 +288,7 @@
 
                                 <td class="py-3 px-4 whitespace-nowrap">
                                     @if ($isDep)
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-forest/10 text-forest dark:bg-forest/25 dark:text-emerald-300">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-forest/10 text-forest">
                                             SETORAN
                                         </span>
                                     @else
@@ -322,7 +322,7 @@
                                     @endif
                                 </td>
 
-                                <td class="py-3 px-5 whitespace-nowrap text-right font-mono font-bold {{ $isDep ? 'text-forest dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
+                                <td class="py-3 px-5 whitespace-nowrap text-right font-mono font-bold {{ $isDep ? 'text-forest' : 'text-red dark:text-rose-400' }}">
                                     <span class="privacy-balance" data-raw-value="{{ $isDep ? '+' : '-' }}Rp {{ number_format($item->amount, 0, ',', '.') }}">
                                         {{ $isDep ? '+' : '-' }}Rp {{ number_format($item->amount, 0, ',', '.') }}
                                     </span>
@@ -339,7 +339,7 @@
     <div id="depositModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 hidden">
         <div class="panel-card w-full max-w-md p-6 bg-panel rounded-2xl shadow-xl space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-line">
-                <h3 class="font-bold text-base text-forest dark:text-emerald-400">Setor Tabungan</h3>
+                <h3 class="font-bold text-base text-forest">Setor Tabungan</h3>
                 <button type="button" onclick="closeDepositModal()" class="text-muted hover:text-charcoal p-1 rounded">
                     &times;
                 </button>

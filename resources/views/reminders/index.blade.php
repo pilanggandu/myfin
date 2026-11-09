@@ -83,10 +83,10 @@
             </div>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/40">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-forest-light text-forest border border-forest/20">
                 EMAIL: GRATIS
             </span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/40">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-forest-light text-forest border border-forest/20">
                 WHATSAPP: GRATIS
             </span>
         </div>
@@ -212,8 +212,8 @@
 
                                 <td class="py-4 px-4 whitespace-nowrap">
                                     @if ($rem->is_active)
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest border border-forest/20">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>
                                             Aktif
                                         </span>
                                     @else

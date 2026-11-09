@@ -32,7 +32,7 @@
                     <span class="fw-bold text-truncate" style="color: var(--arus-forest); max-width: 170px;" title="{{ $currentSpace?->name }}">
                         {{ $currentSpace?->name ?? 'Belum ada ruang' }}
                     </span>
-                    <span class="badge {{ $currentSpace?->isPersonal() ? 'bg-secondary' : 'bg-success' }}">
+                    <span class="badge {{ $currentSpace?->isPersonal() ? 'bg-secondary' : 'bg-primary' }}">
                         {{ $currentSpace?->isPersonal() ? 'Personal' : 'Bersama' }}
                     </span>
                 </div>
@@ -106,7 +106,7 @@
                                         @csrf
                                         <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between {{ (int)$currentSpace?->id === (int)$spaceItem->id ? 'active fw-bold' : '' }}">
                                             <span class="text-truncate" style="max-width: 150px;">{{ $spaceItem->name }}</span>
-                                            <span class="badge {{ $spaceItem->isPersonal() ? 'bg-secondary' : 'bg-success' }} ms-2">
+                                            <span class="badge {{ $spaceItem->isPersonal() ? 'bg-secondary' : 'bg-primary' }} ms-2">
                                                 {{ $spaceItem->isPersonal() ? 'Personal' : 'Bersama' }}
                                             </span>
                                         </button>

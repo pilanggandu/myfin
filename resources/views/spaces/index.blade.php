@@ -51,8 +51,8 @@
                         </div>
                         <div class="flex-shrink-0">
                             @if ($isActive)
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest border border-forest/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>
                                     Aktif
                                 </span>
                             @else
@@ -145,8 +145,8 @@
                             </td>
                             <td class="py-4 px-4 whitespace-nowrap">
                                 @if ($isActive)
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest border border-forest/20">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>
                                         Sedang Aktif
                                     </span>
                                 @else

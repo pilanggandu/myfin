@@ -721,7 +721,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-charcoal mb-2">Jenis Nota <span class="text-red">*</span></label>
                     <div class="grid grid-cols-2 gap-3">
-                        <label class="relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 text-forest" id="labelNoteTypeCredit">
+                        <label class="relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-forest-light/50 border-forest text-forest" id="labelNoteTypeCredit">
                             <div class="flex items-center gap-2 mb-1">
                                 <input type="radio" name="type" value="credit_note" checked onchange="onNoteTypeChange(this.value)" class="text-forest focus:ring-forest">
                                 <span class="font-bold text-xs">▼ Nota Kredit</span>
@@ -841,7 +841,7 @@
             if (!labelCredit || !labelDebit) return;
 
             if (type === 'credit_note') {
-                labelCredit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 text-forest';
+                labelCredit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-forest-light/50 border-forest text-forest';
                 labelDebit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-amber-500 transition border-line text-muted';
             } else {
                 labelDebit.className = 'relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-amber-500 transition bg-amber-50/50 dark:bg-amber-950/20 border-amber-500 text-amber-800 dark:text-amber-300';

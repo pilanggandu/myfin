@@ -319,7 +319,7 @@
                                     @if ($isVoid)
                                         <x-badge variant="inactive">VOID</x-badge>
                                     @else
-                                        <span class="text-emerald-700 dark:text-emerald-400 font-bold text-[11px]">POSTED</span>
+                                        <span class="text-forest font-bold text-[11px]">POSTED</span>
                                     @endif
                                 </div>
                             </div>
@@ -454,7 +454,7 @@
                                     @if ($isVoid)
                                         <x-badge variant="inactive">VOID</x-badge>
                                     @else
-                                        <span class="text-emerald-700 dark:text-emerald-400 font-bold text-[11px]">POSTED</span>
+                                        <span class="text-forest font-bold text-[11px]">POSTED</span>
                                     @endif
                                 </td>
                                 <td class="py-4 px-4 whitespace-nowrap text-right font-bold text-sm {{ $amountColor }} {{ $isVoid ? 'line-through' : '' }}">
