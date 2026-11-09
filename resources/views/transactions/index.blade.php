@@ -310,6 +310,11 @@
                                         {{ $prefix }} Rp {{ number_format($amount, 0, ',', '.') }}
                                     </span>
                                 </div>
+                                @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0)
+                                    <div class="text-[10px] text-muted font-normal mt-0.5">
+                                        + fee Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}
+                                    </div>
+                                @endif
                                 <div>
                                     @if ($isVoid)
                                         <x-badge variant="inactive">VOID</x-badge>
@@ -456,6 +461,11 @@
                                     <span class="privacy-balance" data-raw-value="{{ $prefix }} Rp {{ number_format($amount, 0, ',', '.') }}">
                                         {{ $prefix }} Rp {{ number_format($amount, 0, ',', '.') }}
                                     </span>
+                                    @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0)
+                                        <div class="text-[10px] text-muted font-normal mt-0.5">
+                                            + fee Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-right">
                                     <div class="inline-flex items-center justify-end gap-1.5">

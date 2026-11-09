@@ -83,7 +83,15 @@ class ReportController extends Controller
             ->whereBetween('financial_transactions.transaction_date', [$startDate, $endDate])
             ->join('transaction_entries', 'financial_transactions.id', '=', 'transaction_entries.transaction_id');
 
-        $totalExpense = (int) $expenseQuery->sum(DB::raw('ABS(transaction_entries.amount_signed)'));
+        $directExpense = (int) $expenseQuery->sum(DB::raw('ABS(transaction_entries.amount_signed)'));
+        $transferFeeSum = (int) FinancialTransaction::query()
+            ->where('space_id', $spaceId)
+            ->posted()
+            ->transfer()
+            ->whereBetween('transaction_date', [$startDate, $endDate])
+            ->sum('fee_amount');
+
+        $totalExpense = $directExpense + $transferFeeSum;
         $expenseCount = FinancialTransaction::query()
             ->where('space_id', $spaceId)
             ->posted()
@@ -93,7 +101,6 @@ class ReportController extends Controller
 
         $netCashFlow = $totalIncome - $totalExpense;
 
-        // Breakdown Kategori Pengeluaran
         $categoryBreakdown = DB::table('financial_transactions')
             ->join('transaction_entries', 'financial_transactions.id', '=', 'transaction_entries.transaction_id')
             ->join('categories', 'financial_transactions.category_id', '=', 'categories.id')
@@ -111,20 +118,65 @@ class ReportController extends Controller
             ->orderByDesc('total_amount')
             ->get();
 
-        $categoryBreakdown = $categoryBreakdown->map(function ($item) use ($totalExpense) {
-            $amount = (int) $item->total_amount;
-            $percentage = $totalExpense > 0 ? round(($amount / $totalExpense) * 100, 1) : 0;
+        $transferFeesByCategory = DB::table('financial_transactions')
+            ->join('categories', 'financial_transactions.fee_category_id', '=', 'categories.id')
+            ->where('financial_transactions.space_id', $spaceId)
+            ->where('financial_transactions.status', 'posted')
+            ->where('financial_transactions.type', 'transfer')
+            ->where('financial_transactions.fee_amount', '>', 0)
+            ->whereBetween('financial_transactions.transaction_date', [$startDate, $endDate])
+            ->groupBy('categories.id', 'categories.name')
+            ->select(
+                'categories.id',
+                'categories.name',
+                DB::raw('COUNT(DISTINCT financial_transactions.id) as transaction_count'),
+                DB::raw('SUM(financial_transactions.fee_amount) as total_amount')
+            )
+            ->get()
+            ->keyBy('id');
 
-            return (object) [
-                'id' => $item->id,
-                'name' => $item->name,
-                'count' => (int) $item->transaction_count,
-                'amount' => $amount,
+        $combinedCategories = collect();
+        $processedFeeCatIds = [];
+
+        foreach ($categoryBreakdown as $catItem) {
+            $catId = $catItem->id;
+            $catAmount = (int) $catItem->total_amount;
+            $catCount = (int) $catItem->transaction_count;
+
+            if ($transferFeesByCategory->has($catId)) {
+                $feeItem = $transferFeesByCategory->get($catId);
+                $catAmount += (int) $feeItem->total_amount;
+                $catCount += (int) $feeItem->transaction_count;
+                $processedFeeCatIds[] = $catId;
+            }
+
+            $percentage = $totalExpense > 0 ? round(($catAmount / $totalExpense) * 100, 1) : 0;
+            $combinedCategories->push((object) [
+                'id' => $catId,
+                'name' => $catItem->name,
+                'count' => $catCount,
+                'amount' => $catAmount,
                 'percentage' => $percentage,
-            ];
-        });
+            ]);
+        }
 
-        // Tren 6 Bulan Terakhir
+        foreach ($transferFeesByCategory as $catId => $feeItem) {
+            if (! in_array($catId, $processedFeeCatIds)) {
+                $catAmount = (int) $feeItem->total_amount;
+                $catCount = (int) $feeItem->transaction_count;
+                $percentage = $totalExpense > 0 ? round(($catAmount / $totalExpense) * 100, 1) : 0;
+                $combinedCategories->push((object) [
+                    'id' => $catId,
+                    'name' => $feeItem->name,
+                    'count' => $catCount,
+                    'amount' => $catAmount,
+                    'percentage' => $percentage,
+                ]);
+            }
+        }
+
+        $categoryBreakdown = $combinedCategories->sortByDesc('amount')->values();
+
         $monthlyTrend = [];
         $startOfCurrentMonth = $now->copy()->startOfMonth();
         for ($i = 5; $i >= 0; $i--) {
@@ -148,13 +200,22 @@ class ReportController extends Controller
                 ->whereBetween('financial_transactions.transaction_date', [$mStart, $mEnd])
                 ->sum(DB::raw('ABS(transaction_entries.amount_signed)'));
 
+            $mTransferFee = (int) DB::table('financial_transactions')
+                ->where('space_id', $spaceId)
+                ->where('status', 'posted')
+                ->where('type', 'transfer')
+                ->whereBetween('transaction_date', [$mStart, $mEnd])
+                ->sum('fee_amount');
+
+            $mTotalExpense = $mExpense + $mTransferFee;
+
             $monthlyTrend[] = (object) [
                 'label' => $mDate->translatedFormat('M Y'),
                 'year' => (int) $mDate->year,
                 'month' => (int) $mDate->month,
                 'income' => $mIncome,
-                'expense' => $mExpense,
-                'net' => $mIncome - $mExpense,
+                'expense' => $mTotalExpense,
+                'net' => $mIncome - $mTotalExpense,
             ];
         }
 
@@ -388,7 +449,11 @@ class ReportController extends Controller
                         if ($dstIsCash && ! $srcIsCash) {
                             $inflow = $tx->totalAmount();
                         } elseif ($srcIsCash && ! $dstIsCash) {
-                            $outflow = $tx->totalAmount();
+                            $outflow = $tx->totalAmount() + (float) ($tx->fee_amount ?? 0);
+                        } else {
+                            if ((float) ($tx->fee_amount ?? 0) > 0) {
+                                $outflow = (float) $tx->fee_amount;
+                            }
                         }
                     }
                 }

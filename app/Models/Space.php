@@ -207,6 +207,7 @@ class Space extends Model
             'Kesehatan',
             'Hiburan & Rekreasi',
             'Pendidikan',
+            'Biaya Layanan & Admin',
             'Lainnya',
         ];
 

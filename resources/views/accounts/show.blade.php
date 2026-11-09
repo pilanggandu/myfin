@@ -141,6 +141,11 @@
                                     <span class="privacy-balance" data-raw-value="{{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}">
                                         {{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}
                                     </span>
+                                    @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0 && ! $isPositive)
+                                        <div class="text-[10px] text-muted font-normal mt-0.5">
+                                            Termasuk fee Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

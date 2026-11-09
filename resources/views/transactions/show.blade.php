@@ -98,6 +98,29 @@
                         </span>
                     </div>
 
+                    @if ($transaction->isTransfer() && (float)($transaction->fee_amount ?? 0) > 0)
+                        <div class="py-3 flex justify-between items-center">
+                            <span class="text-muted">Biaya Admin Transfer</span>
+                            <span class="font-bold text-red">
+                                Rp {{ number_format($transaction->fee_amount, 0, ',', '.') }}
+                            </span>
+                        </div>
+                        @if ($transaction->feeCategory)
+                            <div class="py-3 flex justify-between items-center">
+                                <span class="text-muted">Kategori Biaya Admin</span>
+                                <span class="font-bold text-charcoal">
+                                    {{ $transaction->feeCategory->name }}
+                                </span>
+                            </div>
+                        @endif
+                        <div class="py-3 flex justify-between items-center">
+                            <span class="text-muted">Total Pengurangan Rekening Asal</span>
+                            <span class="font-bold text-charcoal">
+                                Rp {{ number_format($transaction->totalDeductedFromSource(), 0, ',', '.') }}
+                            </span>
+                        </div>
+                    @endif
+
                     @if ($transaction->member)
                         <div class="py-3 flex justify-between items-center">
                             <span class="text-muted">Pihak / Member</span>

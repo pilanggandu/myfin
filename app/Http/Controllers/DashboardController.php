@@ -38,13 +38,21 @@ class DashboardController extends Controller
                 ->get()
                 ->sum(fn ($t) => $t->totalAmount());
 
-            $monthlyExpense = (int) $currentSpace->financialTransactions()
+            $directExpense = (int) $currentSpace->financialTransactions()
                 ->posted()
                 ->expense()
                 ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
                 ->with('entries')
                 ->get()
                 ->sum(fn ($t) => $t->totalAmount());
+
+            $transferFees = (int) $currentSpace->financialTransactions()
+                ->posted()
+                ->transfer()
+                ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                ->sum('fee_amount');
+
+            $monthlyExpense = $directExpense + $transferFees;
         }
 
         $netCashFlow = $monthlyIncome - $monthlyExpense;

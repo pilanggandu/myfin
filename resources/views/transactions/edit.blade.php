@@ -283,6 +283,85 @@
                                 <span>Rekening tujuan transfer tidak boleh sama dengan rekening asal.</span>
                             </div>
                         </div>
+
+                        <div class="p-4 rounded-xl bg-sidebar/50 border border-line space-y-3">
+                            <div class="flex items-center justify-between">
+                                <label for="fee_amount_display" class="block text-xs font-bold text-charcoal">
+                                    Biaya Admin Transfer <span class="text-[11px] font-normal text-muted">(Opsional)</span>
+                                </label>
+                                <span class="text-[11px] text-muted">Dipotong dari rekening asal</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                                <div>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted font-bold text-xs select-none">
+                                            Rp
+                                        </div>
+                                        <input 
+                                            type="hidden" 
+                                            id="fee_amount" 
+                                            name="fee_amount" 
+                                            value="{{ old('fee_amount', (float)($transaction->fee_amount ?? 0)) }}"
+                                        >
+                                        <input 
+                                            type="text" 
+                                            inputmode="numeric" 
+                                            id="fee_amount_display" 
+                                            placeholder="0" 
+                                            value="{{ old('fee_amount', (float)($transaction->fee_amount ?? 0)) > 0 ? number_format((float)old('fee_amount', $transaction->fee_amount), 0, ',', '.') : '0' }}" 
+                                            class="field-input w-full has-prefix pl-10 font-mono text-sm"
+                                            oninput="onFeeDisplayInput(this.value)"
+                                        >
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                        <button type="button" onclick="setFeePreset(0)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
+                                            Gratis (Rp 0)
+                                        </button>
+                                        <button type="button" onclick="setFeePreset(2500)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
+                                            BI-FAST (Rp 2.500)
+                                        </button>
+                                        <button type="button" onclick="setFeePreset(6500)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
+                                            Online (Rp 6.500)
+                                        </button>
+                                        <button type="button" onclick="setFeePreset(1000)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
+                                            Top-Up (Rp 1.000)
+                                        </button>
+                                    </div>
+                                    @error('fee_amount')
+                                        <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="fee_category_id" class="block text-xs font-bold text-charcoal mb-1.5">
+                                        Kategori Biaya Admin
+                                    </label>
+                                    <select 
+                                        name="fee_category_id" 
+                                        id="fee_category_id" 
+                                        class="field-select w-full text-xs"
+                                        onchange="updateReceipt()"
+                                    >
+                                        @foreach ($expenseCategories as $cat)
+                                            <option 
+                                                value="{{ $cat->id }}" 
+                                                data-name="{{ $cat->name }}"
+                                                {{ (string)old('fee_category_id', $transaction->fee_category_id) === (string)$cat->id ? 'selected' : '' }}
+                                            >
+                                                {{ $cat->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-[11px] text-muted mt-1.5">
+                                        Biaya admin dicatat sebagai beban pengeluaran pada kategori ini.
+                                    </p>
+                                    @error('fee_category_id')
+                                        <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
                         @error('source_account_id')
                             <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
                         @enderror
@@ -613,6 +692,24 @@
             });
         }
 
+        function onFeeDisplayInput(val) {
+            const cleanDigits = val.replace(/\D/g, '');
+            const num = parseInt(cleanDigits, 10) || 0;
+            const feeInput = document.getElementById('fee_amount');
+            const feeDisplay = document.getElementById('fee_amount_display');
+            if (feeInput) feeInput.value = num;
+            if (feeDisplay) feeDisplay.value = num > 0 ? num.toLocaleString('id-ID') : (cleanDigits === '' ? '' : '0');
+            updateReceipt();
+        }
+
+        function setFeePreset(val) {
+            const feeInput = document.getElementById('fee_amount');
+            const feeDisplay = document.getElementById('fee_amount_display');
+            if (feeInput) feeInput.value = val;
+            if (feeDisplay) feeDisplay.value = val > 0 ? val.toLocaleString('id-ID') : '0';
+            updateReceipt();
+        }
+
         function updateReceipt() {
             const amountVal = parseFloat(document.getElementById('amountInput').value) || 0;
             const dateVal = document.getElementById('transaction_date').value;
@@ -715,8 +812,17 @@
                 receiptBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-slate-500/10 text-charcoal border border-line';
                 receiptNominal.textContent = '⇄ ' + formatRupiah(amountVal);
                 receiptNominal.className = 'font-mono text-2xl sm:text-3xl font-bold text-charcoal tracking-tight';
-                amountSignPreview.textContent = 'Rotasi Kas (⇄)';
-                amountSignPreview.className = 'text-[11px] font-bold text-charcoal';
+
+                const feeInput = document.getElementById('fee_amount');
+                const feeVal = feeInput ? (parseFloat(feeInput.value) || 0) : 0;
+
+                if (feeVal > 0) {
+                    amountSignPreview.textContent = `Rotasi Kas (⇄) • Admin: ${formatRupiah(feeVal)}`;
+                    amountSignPreview.className = 'text-[11px] font-bold text-rose-500';
+                } else {
+                    amountSignPreview.textContent = 'Rotasi Kas (⇄)';
+                    amountSignPreview.className = 'text-[11px] font-bold text-charcoal';
+                }
 
                 const srcSelect = document.getElementById('source_account_id');
                 const dstSelect = document.getElementById('destination_account_id');
@@ -732,9 +838,11 @@
                 if (selectedSrc && selectedSrc.value && selectedDst && selectedDst.value) {
                     const srcBal = parseInt(selectedSrc.getAttribute('data-balance'), 10) || 0;
                     const dstBal = parseInt(selectedDst.getAttribute('data-balance'), 10) || 0;
+                    const totalSourceDeduction = amountVal + feeVal;
+
                     balanceSimulation.classList.remove('hidden');
                     balanceSimulation.innerHTML = `
-                        <div class="space-y-1">
+                        <div class="space-y-1.5">
                             <div class="flex justify-between">
                                 <span>${srcName}:</span>
                                 <span class="font-semibold">${formatRupiah(srcBal)}</span>
@@ -743,6 +851,16 @@
                                 <span>${dstName}:</span>
                                 <span class="font-semibold">${formatRupiah(dstBal)}</span>
                             </div>
+                            ${feeVal > 0 ? `
+                            <div class="pt-1.5 mt-1 border-t border-line/40 text-[11px] flex justify-between text-muted">
+                                <span>Total Pengurangan Asal:</span>
+                                <span class="font-bold text-red">${formatRupiah(totalSourceDeduction)}</span>
+                            </div>
+                            <div class="flex justify-between text-[11px] text-muted">
+                                <span>Beban Biaya Admin:</span>
+                                <span class="font-bold text-red">${formatRupiah(feeVal)}</span>
+                            </div>
+                            ` : ''}
                         </div>
                     `;
                 }

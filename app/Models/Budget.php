@@ -44,7 +44,7 @@ class Budget extends Model
         $start = sprintf('%04d-%02d-01', $this->year, $this->month);
         $end = Carbon::createFromDate($this->year, $this->month, 1)->endOfMonth()->toDateString();
 
-        return (int) FinancialTransaction::query()
+        $directExpense = (int) FinancialTransaction::query()
             ->where('financial_transactions.space_id', $this->space_id)
             ->where('financial_transactions.category_id', $this->category_id)
             ->posted()
@@ -52,6 +52,16 @@ class Budget extends Model
             ->whereBetween('financial_transactions.transaction_date', [$start, $end])
             ->join('transaction_entries', 'financial_transactions.id', '=', 'transaction_entries.transaction_id')
             ->sum(DB::raw('ABS(transaction_entries.amount_signed)'));
+
+        $transferFees = (int) FinancialTransaction::query()
+            ->where('space_id', $this->space_id)
+            ->where('fee_category_id', $this->category_id)
+            ->posted()
+            ->transfer()
+            ->whereBetween('transaction_date', [$start, $end])
+            ->sum('fee_amount');
+
+        return $directExpense + $transferFees;
     }
 
     public function remainingAmount(): int

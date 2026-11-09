@@ -162,6 +162,118 @@ class TransactionTest extends TestCase
         $this->assertNull($transfer->category_id);
     }
 
+    public function test_transfer_with_admin_fee_deducts_fee_from_source_account(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/transactions', [
+                'type' => 'transfer',
+                'source_account_id' => $this->bca->id,
+                'destination_account_id' => $this->gopay->id,
+                'amount' => '100.000',
+                'fee_amount' => '2.500',
+                'fee_category_id' => $this->expenseCat->id,
+                'transaction_date' => '2026-01-10',
+                'description' => 'Transfer Antar Bank BI-FAST',
+            ]);
+
+        $response->assertRedirect('/transactions');
+
+        $transfer = FinancialTransaction::where('type', 'transfer')->latest('id')->first();
+        $this->assertNotNull($transfer);
+        $this->assertEquals(100000, $transfer->totalAmount());
+        $this->assertEquals(2500, (float) $transfer->fee_amount);
+        $this->assertEquals($this->expenseCat->id, $transfer->fee_category_id);
+        $this->assertEquals(102500, $transfer->totalDeductedFromSource());
+
+        $sourceEntry = $transfer->entries->firstWhere('account_id', $this->bca->id);
+        $destEntry = $transfer->entries->firstWhere('account_id', $this->gopay->id);
+
+        $this->assertNotNull($sourceEntry);
+        $this->assertNotNull($destEntry);
+        $this->assertEquals(-102500, (float) $sourceEntry->amount_signed);
+        $this->assertEquals(100000, (float) $destEntry->amount_signed);
+    }
+
+    public function test_correcting_transfer_updates_admin_fee_and_entries_atomically(): void
+    {
+        $service = app(TransactionService::class);
+        $transfer = $service->recordTransfer($this->spaceA, $this->userA, [
+            'source_account_id' => $this->bca->id,
+            'destination_account_id' => $this->gopay->id,
+            'amount' => 100000,
+            'fee_amount' => 2500,
+            'fee_category_id' => $this->expenseCat->id,
+            'transaction_date' => '2026-01-10',
+            'description' => 'Transfer BI-FAST',
+        ]);
+
+        $corrected = $service->correctTransaction($transfer, $this->userA, [
+            'type' => 'transfer',
+            'source_account_id' => $this->bca->id,
+            'destination_account_id' => $this->gopay->id,
+            'amount' => 200000,
+            'fee_amount' => 6500,
+            'fee_category_id' => $this->expenseCat->id,
+            'version' => $transfer->version,
+            'description' => 'Transfer Online Realtime',
+            'reason' => 'Ubah ke transfer online',
+        ]);
+
+        $this->assertEquals(2, $corrected->version);
+        $this->assertEquals(200000, $corrected->totalAmount());
+        $this->assertEquals(6500, (float) $corrected->fee_amount);
+        $this->assertEquals(206500, $corrected->totalDeductedFromSource());
+
+        $sourceEntry = $corrected->entries->firstWhere('account_id', $this->bca->id);
+        $destEntry = $corrected->entries->firstWhere('account_id', $this->gopay->id);
+        $this->assertEquals(-206500, (float) $sourceEntry->amount_signed);
+        $this->assertEquals(200000, (float) $destEntry->amount_signed);
+
+        $revision = $corrected->revisions()->first();
+        $this->assertNotNull($revision);
+        $this->assertEquals(2500, $revision->before_data['fee_amount']);
+        $this->assertEquals(6500, $revision->after_data['fee_amount']);
+    }
+
+    public function test_transfer_fee_validation_rejects_negative_or_cross_space_category(): void
+    {
+        $catB = Category::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Expense B',
+            'type' => 'expense',
+        ]);
+
+        $responseNegative = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/transactions', [
+                'type' => 'transfer',
+                'source_account_id' => $this->bca->id,
+                'destination_account_id' => $this->gopay->id,
+                'amount' => 100000,
+                'fee_amount' => -500,
+                'transaction_date' => '2026-01-10',
+                'description' => 'Transfer Invalid Fee',
+            ]);
+
+        $responseNegative->assertSessionHasErrors(['fee_amount']);
+
+        $responseCrossSpace = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/transactions', [
+                'type' => 'transfer',
+                'source_account_id' => $this->bca->id,
+                'destination_account_id' => $this->gopay->id,
+                'amount' => 100000,
+                'fee_amount' => 2500,
+                'fee_category_id' => $catB->id,
+                'transaction_date' => '2026-01-10',
+                'description' => 'Transfer Cross Space Cat',
+            ]);
+
+        $responseCrossSpace->assertSessionHasErrors(['fee_category_id']);
+    }
+
     public function test_idempotency_via_request_key(): void
     {
         $service = app(TransactionService::class);

@@ -25,7 +25,7 @@ class FinancialTransactionController extends Controller
         $space = app('currentSpace');
 
         $query = $space->financialTransactions()
-            ->with(['category', 'entries.account', 'creator', 'member']);
+            ->with(['category', 'feeCategory', 'entries.account', 'creator', 'member']);
 
         $sort = $request->input('sort', 'date_desc');
         if ($sort === 'date_asc' || $request->input('direction') === 'asc') {
@@ -161,7 +161,7 @@ class FinancialTransactionController extends Controller
     {
         Gate::authorize('view', $transaction);
 
-        $transaction->load(['entries.account', 'category', 'creator', 'updater', 'revisions.actor', 'member']);
+        $transaction->load(['entries.account', 'category', 'feeCategory', 'creator', 'updater', 'revisions.actor', 'member']);
 
         return view('transactions.show', compact('transaction'));
     }
@@ -181,7 +181,7 @@ class FinancialTransactionController extends Controller
         $expenseCategories = $space->activeCategories()->expense()->orderBy('name')->get();
         $members = $space->customMembers()->active()->orderBy('name')->get();
 
-        $transaction->load(['entries.account', 'category', 'member']);
+        $transaction->load(['entries.account', 'category', 'feeCategory', 'member']);
 
         return view('transactions.edit', compact(
             'transaction',

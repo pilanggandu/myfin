@@ -20,6 +20,9 @@ class UpdateTransactionRequest extends FormRequest
         if ($this->has('amount')) {
             $this->merge(['amount' => $this->normalizeMonetaryInput($this->input('amount'))]);
         }
+        if ($this->has('fee_amount')) {
+            $this->merge(['fee_amount' => $this->normalizeMonetaryInput($this->input('fee_amount'))]);
+        }
     }
 
     public function rules(): array
@@ -76,6 +79,15 @@ class UpdateTransactionRequest extends FormRequest
                     ->where('space_id', $spaceId)
                     ->whereNull('archived_at'),
             ];
+            $rules['fee_amount'] = ['nullable', 'numeric', 'min:0'];
+            $rules['fee_category_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')
+                    ->where('space_id', $spaceId)
+                    ->where('type', 'expense')
+                    ->whereNull('archived_at'),
+            ];
         }
 
         return $rules;
@@ -100,6 +112,9 @@ class UpdateTransactionRequest extends FormRequest
             'destination_account_id.required' => 'Rekening tujuan transfer wajib dipilih.',
             'destination_account_id.exists' => 'Rekening tujuan transfer tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
             'destination_account_id.different' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
+            'fee_amount.numeric' => 'Biaya admin transfer harus berupa angka.',
+            'fee_amount.min' => 'Biaya admin transfer tidak boleh bernilai negatif.',
+            'fee_category_id.exists' => 'Kategori biaya admin tidak valid atau telah diarsipkan.',
         ];
     }
 }

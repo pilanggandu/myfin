@@ -244,6 +244,50 @@ class TransactionService
                     ]);
                 }
 
+                $feeAmount = isset($data['fee_amount']) ? round((float) $data['fee_amount'], 2) : 0.0;
+                if ($feeAmount < 0) {
+                    throw ValidationException::withMessages([
+                        'fee_amount' => 'Biaya admin transfer tidak boleh negatif.',
+                    ]);
+                }
+
+                $feeCategoryId = null;
+                if ($feeAmount > 0) {
+                    if (! empty($data['fee_category_id'])) {
+                        $cat = Category::where('space_id', $space->id)
+                            ->where('id', $data['fee_category_id'])
+                            ->expense()
+                            ->active()
+                            ->first();
+
+                        if (! $cat) {
+                            throw ValidationException::withMessages([
+                                'fee_category_id' => 'Kategori biaya admin tidak valid atau telah diarsipkan.',
+                            ]);
+                        }
+
+                        $feeCategoryId = $cat->id;
+                    } else {
+                        $cat = Category::where('space_id', $space->id)
+                            ->expense()
+                            ->active()
+                            ->where(function ($q) {
+                                $q->where('name', 'like', '%Admin%')
+                                    ->orWhere('name', 'like', '%Layanan%');
+                            })
+                            ->first();
+
+                        if (! $cat) {
+                            $cat = Category::where('space_id', $space->id)
+                                ->expense()
+                                ->active()
+                                ->first();
+                        }
+
+                        $feeCategoryId = $cat?->id;
+                    }
+                }
+
                 $transaction = FinancialTransaction::create([
                     'space_id' => $space->id,
                     'type' => 'transfer',
@@ -251,6 +295,8 @@ class TransactionService
                     'transaction_time' => ! empty($data['transaction_time']) ? $data['transaction_time'] : now()->format('H:i:s'),
                     'description' => $data['description'],
                     'category_id' => null,
+                    'fee_amount' => $feeAmount,
+                    'fee_category_id' => $feeCategoryId,
                     'member_id' => $data['member_id'] ?? null,
                     'status' => 'posted',
                     'request_key' => $requestKey,
@@ -260,7 +306,7 @@ class TransactionService
 
                 $transaction->entries()->create([
                     'account_id' => $sourceAccount->id,
-                    'amount_signed' => -$amount,
+                    'amount_signed' => -($amount + $feeAmount),
                 ]);
 
                 $transaction->entries()->create([
@@ -315,10 +361,13 @@ class TransactionService
                 ]);
             }
 
-            $lockedTransaction->load(['entries.account', 'category']);
+            $lockedTransaction->load(['entries.account', 'category', 'feeCategory']);
             $beforeSnapshot = [
                 'type' => $lockedTransaction->type,
                 'amount' => $lockedTransaction->totalAmount(),
+                'fee_amount' => (float) ($lockedTransaction->fee_amount ?? 0),
+                'fee_category_id' => $lockedTransaction->fee_category_id,
+                'fee_category_name' => $lockedTransaction->feeCategory?->name,
                 'transaction_date' => $lockedTransaction->transaction_date->toDateString(),
                 'description' => $lockedTransaction->description,
                 'category_id' => $lockedTransaction->category_id,
@@ -441,10 +490,55 @@ class TransactionService
                     ]);
                 }
 
+                $feeAmount = array_key_exists('fee_amount', $data) ? round((float) $data['fee_amount'], 2) : (float) ($lockedTransaction->fee_amount ?? 0);
+                if ($feeAmount < 0) {
+                    throw ValidationException::withMessages([
+                        'fee_amount' => 'Biaya admin transfer tidak boleh negatif.',
+                    ]);
+                }
+
+                $feeCategoryId = null;
+                if ($feeAmount > 0) {
+                    $targetCatId = array_key_exists('fee_category_id', $data) ? $data['fee_category_id'] : $lockedTransaction->fee_category_id;
+                    if (! empty($targetCatId)) {
+                        $cat = Category::where('space_id', $space->id)
+                            ->where('id', $targetCatId)
+                            ->expense()
+                            ->active()
+                            ->first();
+
+                        if (! $cat) {
+                            throw ValidationException::withMessages([
+                                'fee_category_id' => 'Kategori biaya admin tidak valid atau telah diarsipkan.',
+                            ]);
+                        }
+
+                        $feeCategoryId = $cat->id;
+                    } else {
+                        $cat = Category::where('space_id', $space->id)
+                            ->expense()
+                            ->active()
+                            ->where(function ($q) {
+                                $q->where('name', 'like', '%Admin%')
+                                    ->orWhere('name', 'like', '%Layanan%');
+                            })
+                            ->first();
+
+                        if (! $cat) {
+                            $cat = Category::where('space_id', $space->id)
+                                ->expense()
+                                ->active()
+                                ->first();
+                        }
+
+                        $feeCategoryId = $cat?->id;
+                    }
+                }
+
                 $lockedTransaction->entries()->delete();
                 $lockedTransaction->entries()->create([
                     'account_id' => $sourceAccount->id,
-                    'amount_signed' => -$amount,
+                    'amount_signed' => -($amount + $feeAmount),
                 ]);
                 $lockedTransaction->entries()->create([
                     'account_id' => $destAccount->id,
@@ -458,15 +552,20 @@ class TransactionService
                 'transaction_time' => array_key_exists('transaction_time', $data) ? $data['transaction_time'] : $lockedTransaction->transaction_time,
                 'description' => $data['description'] ?? $lockedTransaction->description,
                 'category_id' => $categoryId,
+                'fee_amount' => $type === 'transfer' ? ($feeAmount ?? 0) : 0,
+                'fee_category_id' => $type === 'transfer' ? ($feeCategoryId ?? null) : null,
                 'member_id' => array_key_exists('member_id', $data) ? $data['member_id'] : $lockedTransaction->member_id,
                 'updated_by' => $actor->id,
                 'version' => $lockedTransaction->version + 1,
             ]);
 
-            $lockedTransaction->load(['entries.account', 'category']);
+            $lockedTransaction->load(['entries.account', 'category', 'feeCategory']);
             $afterSnapshot = [
                 'type' => $lockedTransaction->type,
                 'amount' => $lockedTransaction->totalAmount(),
+                'fee_amount' => (float) ($lockedTransaction->fee_amount ?? 0),
+                'fee_category_id' => $lockedTransaction->fee_category_id,
+                'fee_category_name' => $lockedTransaction->feeCategory?->name,
                 'transaction_date' => $lockedTransaction->transaction_date->toDateString(),
                 'description' => $lockedTransaction->description,
                 'category_id' => $lockedTransaction->category_id,
@@ -504,11 +603,14 @@ class TransactionService
                 return $lockedTransaction;
             }
 
-            $lockedTransaction->load(['entries.account', 'category']);
+            $lockedTransaction->load(['entries.account', 'category', 'feeCategory']);
 
             $beforeSnapshot = [
                 'type' => $lockedTransaction->type,
                 'amount' => $lockedTransaction->totalAmount(),
+                'fee_amount' => (float) ($lockedTransaction->fee_amount ?? 0),
+                'fee_category_id' => $lockedTransaction->fee_category_id,
+                'fee_category_name' => $lockedTransaction->feeCategory?->name,
                 'transaction_date' => $lockedTransaction->transaction_date->toDateString(),
                 'description' => $lockedTransaction->description,
                 'category_id' => $lockedTransaction->category_id,

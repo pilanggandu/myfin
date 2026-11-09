@@ -20,6 +20,8 @@ class FinancialTransaction extends Model
         'transaction_time',
         'description',
         'category_id',
+        'fee_amount',
+        'fee_category_id',
         'member_id',
         'status',
         'request_key',
@@ -32,6 +34,7 @@ class FinancialTransaction extends Model
     {
         return [
             'transaction_date' => 'date',
+            'fee_amount' => 'decimal:2',
             'version' => 'integer',
         ];
     }
@@ -44,6 +47,11 @@ class FinancialTransaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function feeCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'fee_category_id');
     }
 
     public function member(): BelongsTo
@@ -181,6 +189,15 @@ class FinancialTransaction extends Model
         $entry = $this->entries->firstWhere('amount_signed', '>', 0);
 
         return $entry ? (int) $entry->amount_signed : 0;
+    }
+
+    public function totalDeductedFromSource(): int|float
+    {
+        if ($this->isTransfer()) {
+            return $this->totalAmount() + (float) ($this->fee_amount ?? 0);
+        }
+
+        return $this->totalAmount();
     }
 
     public function sourceAccount(): ?Account
