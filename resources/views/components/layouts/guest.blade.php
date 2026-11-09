@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $title ?? 'Masuk' }} - ARUS Keuangan</title>
+    <link rel="icon" type="image/png" href="{{ asset('arus-logo.png') }}">
 
     <script>
         (function() {
@@ -40,7 +41,7 @@
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <!-- Brand Header matching prototype -->
         <div class="flex items-center justify-center gap-3 mb-8">
-            <span class="brandmark">a.</span>
+            <img src="{{ asset('arus-logo.png') }}" alt="" class="arus-logo">
             <div>
                 <span class="font-serif text-3xl text-forest tracking-tight block leading-none">arus</span>
                 <span class="block text-[9px] font-bold tracking-[2px] text-muted uppercase mt-1">PERSONAL FINANCE</span>
