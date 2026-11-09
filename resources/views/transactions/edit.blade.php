@@ -294,10 +294,10 @@
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                                 <div>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted font-bold text-xs select-none">
+                                    <div class="relative field-prefix-wrapper">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted font-bold text-xs select-none z-10">
                                             Rp
-                                        </div>
+                                        </span>
                                         <input 
                                             type="hidden" 
                                             id="fee_amount" 
@@ -310,7 +310,8 @@
                                             id="fee_amount_display" 
                                             placeholder="0" 
                                             value="{{ old('fee_amount', (float)($transaction->fee_amount ?? 0)) > 0 ? number_format((float)old('fee_amount', $transaction->fee_amount), 0, ',', '.') : '0' }}" 
-                                            class="field-input w-full has-prefix pl-10 font-mono text-sm"
+                                            class="field-input w-full has-prefix font-mono text-sm"
+                                            style="padding-left: 44px !important;"
                                             oninput="onFeeDisplayInput(this.value)"
                                         >
                                     </div>
