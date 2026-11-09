@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $title ?? 'Dashboard' }} - ARUS Keuangan</title>
-    <link rel="icon" type="image/png" href="{{ asset('arus-logo.png') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('arus-logo.svg') }}">
 
     <script>
         (function() {
@@ -36,7 +36,7 @@
     <div class="flex flex-1 min-h-screen">
         <aside id="appSidebar" class="fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] bg-sidebar border-r border-line flex flex-col py-4 px-3.5 overflow-y-auto overscroll-contain transform -translate-x-full transition-transform duration-200 ease-in-out lg:translate-x-0 lg:sticky lg:inset-auto lg:top-0 lg:h-screen lg:flex-shrink-0" aria-label="Navigasi Utama">
             <div class="flex items-center gap-2.5 px-1 pb-3.5 border-b border-line flex-shrink-0">
-                <img src="{{ asset('arus-logo.png') }}" alt="" class="arus-logo">
+                <img src="{{ asset('arus-logo.svg') }}" alt="" class="arus-logo">
                 <div class="min-w-0 flex-1">
                     <span class="text-base font-bold text-forest tracking-tight block leading-tight">ARUS</span>
                     <span class="block text-[9.5px] font-bold tracking-[1.2px] text-muted uppercase">MANAJEMEN KEUANGAN</span>

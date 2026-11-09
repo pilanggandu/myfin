@@ -700,7 +700,7 @@
                     <div class="panel-card p-5 sm:p-6 rounded-2xl border border-line bg-panel shadow-sm space-y-5">
                         <div class="flex items-center justify-between border-b border-line pb-3">
                             <div class="flex items-center gap-2">
-                                <img src="{{ asset('arus-logo.png') }}" alt="" class="arus-logo arus-logo-small">
+                                <img src="{{ asset('arus-logo.svg') }}" alt="" class="arus-logo arus-logo-small">
                                 <div>
                                     <div class="text-[10px] font-bold text-muted uppercase tracking-wider">STRUK PEMBUKUAN</div>
                                     <div class="text-xs font-bold text-charcoal">Pratinjau Entri</div>
