@@ -149,7 +149,7 @@
 
             <!-- Main Content Body -->
             <main class="flex-grow-1 p-3 p-md-4">
-                <div class="container-fluid px-0" style="max-width: 1140px;">
+                <div class="container-fluid px-0">
                     <!-- Notifikasi Global -->
                     @if (session('success'))
                         <div class="alert arus-alert-success alert-dismissible fade show mb-4" role="alert">
