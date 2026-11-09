@@ -254,6 +254,163 @@ class AuthTest extends TestCase
         $this->assertEquals('google-uid-777', $existing->google_id);
     }
 
+    public function test_authenticated_user_can_bind_google_account(): void
+    {
+        config([
+            'services.google.client_id' => 'mock-client-id',
+            'services.google.client_secret' => 'mock-client-secret',
+        ]);
+
+        $user = User::factory()->create([
+            'email' => 'myaccount@example.com',
+            'google_id' => null,
+            'has_password' => true,
+        ]);
+
+        $abstractUser = Mockery::mock(SocialiteUser::class);
+        $abstractUser->shouldReceive('getId')->andReturn('google-uid-newbind');
+        $abstractUser->shouldReceive('getName')->andReturn('Google User Name');
+        $abstractUser->shouldReceive('getEmail')->andReturn('googleemail@gmail.com');
+        $abstractUser->shouldReceive('getAvatar')->andReturn('https://avatar.example.com/bind.jpg');
+
+        $provider = Mockery::mock('Laravel\Socialite\Two\GoogleProvider');
+        $provider->shouldReceive('user')->andReturn($abstractUser);
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+        $response = $this->actingAs($user)
+            ->withSession(['google_auth_action' => 'bind'])
+            ->get(route('auth.google.callback'));
+
+        $response->assertRedirect(route('profile.edit'));
+        $response->assertSessionHas('success');
+
+        $user->refresh();
+        $this->assertEquals('google-uid-newbind', $user->google_id);
+    }
+
+    public function test_authenticated_user_cannot_bind_google_account_if_already_taken(): void
+    {
+        config([
+            'services.google.client_id' => 'mock-client-id',
+            'services.google.client_secret' => 'mock-client-secret',
+        ]);
+
+        User::factory()->create([
+            'email' => 'other@example.com',
+            'google_id' => 'google-uid-taken',
+        ]);
+
+        $user = User::factory()->create([
+            'email' => 'myaccount@example.com',
+            'google_id' => null,
+            'has_password' => true,
+        ]);
+
+        $abstractUser = Mockery::mock(SocialiteUser::class);
+        $abstractUser->shouldReceive('getId')->andReturn('google-uid-taken');
+        $abstractUser->shouldReceive('getName')->andReturn('Other User');
+        $abstractUser->shouldReceive('getEmail')->andReturn('othergoogle@gmail.com');
+        $abstractUser->shouldReceive('getAvatar')->andReturn(null);
+
+        $provider = Mockery::mock('Laravel\Socialite\Two\GoogleProvider');
+        $provider->shouldReceive('user')->andReturn($abstractUser);
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+        $response = $this->actingAs($user)
+            ->withSession(['google_auth_action' => 'bind'])
+            ->get(route('auth.google.callback'));
+
+        $response->assertRedirect(route('profile.edit'));
+        $response->assertSessionHas('error');
+
+        $user->refresh();
+        $this->assertNull($user->google_id);
+    }
+
+    public function test_user_can_unlink_google_when_has_password(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-uid-unlink',
+            'has_password' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post(route('profile.google.unlink'));
+
+        $response->assertRedirect(route('profile.edit'));
+        $response->assertSessionHas('success');
+
+        $user->refresh();
+        $this->assertNull($user->google_id);
+    }
+
+    public function test_user_cannot_unlink_google_without_password(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-uid-unlink',
+            'has_password' => false,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post(route('profile.google.unlink'));
+
+        $response->assertRedirect(route('profile.edit'));
+        $response->assertSessionHas('error');
+
+        $user->refresh();
+        $this->assertEquals('google-uid-unlink', $user->google_id);
+    }
+
+    public function test_sso_user_can_create_password_without_current_password(): void
+    {
+        $user = User::factory()->create([
+            'has_password' => false,
+            'password' => Hash::make('random-temp'),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->put(route('profile.password'), [
+                'password' => 'MyNewPassword123!',
+                'password_confirmation' => 'MyNewPassword123!',
+            ]);
+
+        $response->assertRedirect(route('profile.edit'));
+        $response->assertSessionHas('success');
+
+        $user->refresh();
+        $this->assertTrue($user->has_password);
+        $this->assertTrue(Hash::check('MyNewPassword123!', $user->password));
+    }
+
+    public function test_standard_user_requires_current_password_to_update_password(): void
+    {
+        $user = User::factory()->create([
+            'has_password' => true,
+            'password' => Hash::make('OldPassword123!'),
+        ]);
+
+        $failResponse = $this->actingAs($user)
+            ->put(route('profile.password'), [
+                'password' => 'MyNewPassword123!',
+                'password_confirmation' => 'MyNewPassword123!',
+            ]);
+
+        $failResponse->assertSessionHasErrors('current_password');
+
+        $successResponse = $this->actingAs($user)
+            ->put(route('profile.password'), [
+                'current_password' => 'OldPassword123!',
+                'password' => 'MyNewPassword123!',
+                'password_confirmation' => 'MyNewPassword123!',
+            ]);
+
+        $successResponse->assertRedirect(route('profile.edit'));
+        $successResponse->assertSessionHas('success');
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('MyNewPassword123!', $user->password));
+    }
+
     public function test_user_can_login_with_valid_credentials(): void
     {
         $user = User::factory()->create([

@@ -4,8 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\Installment;
+use App\Models\InstallmentPlan;
+use App\Models\RecurringSchedule;
 use App\Models\Space;
 use App\Models\User;
+use App\Services\CreditService;
 use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -439,5 +443,94 @@ class ReportTest extends TestCase
         $response->assertSee('Gaji Bulanan Mei');
         $response->assertSee('Makan Siang Resto');
         $response->assertSee('calDayData-2026-05-15');
+    }
+
+    public function test_daily_cashflow_calendar_view_displays_bills_and_installments_without_distorting_cashflow(): void
+    {
+        RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Langganan Internet',
+            'category_id' => $this->foodCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 20,
+            'start_date' => '2026-01-01',
+            'next_due_date' => '2026-05-20',
+            'amount' => 450000,
+            'status' => 'active',
+            'created_by' => $this->userA->id,
+        ]);
+
+        $creditService = app(CreditService::class);
+        $creditAccount = $creditService->createCreditAccount($this->spaceA, [
+            'name' => 'BCA Card Platinum',
+            'type' => 'credit_card',
+            'credit_limit' => 20000000,
+            'billing_cycle_day' => 5,
+            'due_day' => 25,
+        ]);
+
+        $plan = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAccount->id,
+            'category_id' => $this->foodCat->id,
+            'name' => 'Cicilan iPhone',
+            'total_amount' => 12000000,
+            'tenor' => 12,
+            'interest_rate' => 0,
+            'admin_fee' => 0,
+            'start_date' => '2026-05-01',
+            'status' => 'active',
+        ]);
+
+        Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $plan->id,
+            'installment_number' => 1,
+            'due_date' => '2026-05-25',
+            'principal_amount' => 1000000,
+            'interest_amount' => 0,
+            'fee_amount' => 0,
+            'total_amount' => 1000000,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=5');
+
+        $response->assertStatus(200);
+        $response->assertSeeText('Tagihan & Cicilan');
+        $response->assertSee('Langganan Internet');
+        $response->assertSee('Cicilan iPhone');
+
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $recurringDay = null;
+            $installmentDay = null;
+
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-05-20') {
+                        $recurringDay = $day;
+                    }
+                    if ($day->date === '2026-05-25') {
+                        $installmentDay = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($recurringDay);
+            $this->assertEquals(1, $recurringDay->bills_count);
+            $this->assertEquals(450000, $recurringDay->bills_total_amount);
+            $this->assertEquals(0, $recurringDay->outflow);
+
+            $this->assertNotNull($installmentDay);
+            $this->assertEquals(1, $installmentDay->bills_count);
+            $this->assertEquals(1000000, $installmentDay->bills_total_amount);
+            $this->assertEquals(0, $installmentDay->outflow);
+
+            return true;
+        });
     }
 }

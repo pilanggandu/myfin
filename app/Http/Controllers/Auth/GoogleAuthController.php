@@ -13,10 +13,18 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect(): RedirectResponse
+    public function redirect(Request $request): RedirectResponse
     {
         if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret'))) {
-            return redirect()->route('login')->with('warning', 'Integrasi Google SSO belum dikonfigurasi. Harap atur GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET pada file .env.');
+            $route = Auth::check() ? 'profile.edit' : 'login';
+
+            return redirect()->route($route)->with('warning', 'Integrasi Google SSO belum dikonfigurasi. Harap atur GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET pada file .env.');
+        }
+
+        if (Auth::check() || $request->query('action') === 'bind') {
+            session(['google_auth_action' => 'bind']);
+        } else {
+            session()->forget('google_auth_action');
         }
 
         return Socialite::driver('google')->redirect();
@@ -24,19 +32,47 @@ class GoogleAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
+        $isBinding = session('google_auth_action') === 'bind' && Auth::check();
+
         if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret'))) {
-            return redirect()->route('login')->with('warning', 'Integrasi Google SSO belum dikonfigurasi di server.');
+            $route = $isBinding ? 'profile.edit' : 'login';
+
+            return redirect()->route($route)->with('warning', 'Integrasi Google SSO belum dikonfigurasi di server.');
         }
 
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (\Throwable $e) {
-            return redirect()->route('login')->with('error', 'Autentikasi Google dibatalkan atau terjadi kesalahan: '.$e->getMessage());
+            $route = $isBinding ? 'profile.edit' : 'login';
+
+            return redirect()->route($route)->with('error', 'Autentikasi Google dibatalkan atau terjadi kesalahan: '.$e->getMessage());
         }
 
         $email = strtolower(trim($googleUser->getEmail()));
         if (empty($email)) {
-            return redirect()->route('login')->with('error', 'Akun Google tidak menyediakan alamat email yang valid.');
+            $route = $isBinding ? 'profile.edit' : 'login';
+
+            return redirect()->route($route)->with('error', 'Akun Google tidak menyediakan alamat email yang valid.');
+        }
+
+        if ($isBinding) {
+            session()->forget('google_auth_action');
+            $currentUser = Auth::user();
+
+            $conflict = User::where('google_id', $googleUser->getId())
+                ->where('id', '!=', $currentUser->id)
+                ->first();
+
+            if ($conflict) {
+                return redirect()->route('profile.edit')->with('error', 'Akun Google ini sudah terhubung dengan akun pengguna lain.');
+            }
+
+            $currentUser->update([
+                'google_id' => $googleUser->getId(),
+                'avatar' => $currentUser->avatar ?: $googleUser->getAvatar(),
+            ]);
+
+            return redirect()->route('profile.edit')->with('success', 'Akun Google berhasil ditautkan ke profil Anda.');
         }
 
         $user = User::where('google_id', $googleUser->getId())
@@ -76,6 +112,7 @@ class GoogleAuthController extends Controller
             'google_id' => $googleUser->getId(),
             'avatar' => $googleUser->getAvatar(),
             'password' => Hash::make(Str::random(32)),
+            'has_password' => false,
             'email_verified_at' => now(),
         ]);
 
@@ -85,5 +122,18 @@ class GoogleAuthController extends Controller
         session(['active_space_id' => $personalSpace->id]);
 
         return redirect()->route('dashboard')->with('success', 'Selamat datang di ARUS! Akun Anda berhasil didaftarkan melalui Google.');
+    }
+
+    public function unlink(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user->has_password) {
+            return redirect()->route('profile.edit')->with('error', 'Buat kata sandi akun terlebih dahulu sebelum memutuskan tautan Google agar Anda tidak kehilangan akses masuk.');
+        }
+
+        $user->update(['google_id' => null]);
+
+        return redirect()->route('profile.edit')->with('success', 'Tautan akun Google berhasil diputuskan.');
     }
 }

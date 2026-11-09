@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinancialTransaction;
+use App\Models\Installment;
+use App\Models\RecurringSchedule;
 use App\Models\Space;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -29,6 +31,7 @@ class ReportController extends Controller
             'end_date' => ['nullable', 'date'],
             'account_id' => ['nullable', 'integer'],
             'sort_order' => ['nullable', 'string', 'in:asc,desc'],
+            'show_bills' => ['nullable', 'string', 'in:0,1,true,false'],
         ]);
 
         $activeTab = $validated['tab'] ?? 'daily';
@@ -38,6 +41,7 @@ class ReportController extends Controller
         $month = (int) ($validated['month'] ?? $now->month);
         $selectedAccountId = ! empty($validated['account_id']) ? (int) $validated['account_id'] : null;
         $sortOrder = $validated['sort_order'] ?? 'desc';
+        $showBills = $request->has('show_bills') ? $request->boolean('show_bills') : true;
 
         if ($periodType === 'custom' && ! empty($validated['start_date']) && ! empty($validated['end_date'])) {
             $parsedStart = Carbon::parse($validated['start_date'])->startOfDay();
@@ -252,6 +256,7 @@ class ReportController extends Controller
             'selectedAccountId' => $selectedAccountId,
             'sortOrder' => $sortOrder,
             'calendarWeeks' => $calendarWeeks,
+            'showBills' => $showBills,
         ], $dailyData));
     }
 
@@ -543,6 +548,18 @@ class ReportController extends Controller
         $endDayOfWeek = $endOfMonth->dayOfWeekIso;
         $calendarEnd = $endOfMonth->copy()->addDays(7 - $endDayOfWeek);
 
+        $installments = $space ? Installment::where('space_id', $space->id)
+            ->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
+            ->with(['installmentPlan.creditAccount'])
+            ->get() : collect();
+
+        $recurringSchedules = $space ? RecurringSchedule::where('space_id', $space->id)
+            ->active()
+            ->with(['category', 'sourceAccount', 'occurrences' => function ($q) use ($calendarStart, $calendarEnd) {
+                $q->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()]);
+            }])
+            ->get() : collect();
+
         $calendarWeeks = [];
         $currentDay = $calendarStart->copy();
 
@@ -575,6 +592,84 @@ class ReportController extends Controller
                     }
                 }
 
+                $dayBills = [];
+
+                foreach ($installments as $inst) {
+                    if ($inst->due_date->toDateString() === $dateStr) {
+                        $dayBills[] = [
+                            'id' => $inst->id,
+                            'kind' => 'installment',
+                            'title' => $inst->installmentPlan?->name ?? 'Cicilan Kartu Kredit',
+                            'subtitle' => ($inst->installmentPlan?->creditAccount?->name ?? 'Kartu Kredit').' (Ke-'.$inst->installment_number.'/'.($inst->installmentPlan?->tenor ?? '-').')',
+                            'amount' => (float) $inst->total_amount,
+                            'status' => $inst->status,
+                            'status_label' => $inst->status === 'paid' ? 'Lunas' : 'Belum Lunas',
+                            'url' => $inst->installment_plan_id ? route('credit.plans.show', $inst->installment_plan_id) : route('credit.index'),
+                        ];
+                    }
+                }
+
+                foreach ($recurringSchedules as $sch) {
+                    $schStart = Carbon::parse($sch->start_date, $timezone)->startOfDay();
+                    $schEnd = $sch->end_date ? Carbon::parse($sch->end_date, $timezone)->endOfDay() : null;
+
+                    if ($currentDay->lt($schStart)) {
+                        continue;
+                    }
+                    if ($schEnd && $currentDay->gt($schEnd)) {
+                        continue;
+                    }
+
+                    $isDue = false;
+                    if ($sch->frequency === 'daily') {
+                        $isDue = true;
+                    } elseif ($sch->frequency === 'weekly') {
+                        $isDue = ($currentDay->dayOfWeekIso === $schStart->dayOfWeekIso);
+                    } elseif ($sch->frequency === 'yearly') {
+                        $anchor = (int) ($sch->anchor_day ?: $schStart->day);
+                        $isDue = ($currentDay->month === $schStart->month && $currentDay->day === min($anchor, (int) $currentDay->daysInMonth));
+                    } else {
+                        $anchor = (int) ($sch->anchor_day ?: $schStart->day);
+                        $isDue = ($currentDay->day === min($anchor, (int) $currentDay->daysInMonth));
+                    }
+
+                    if ($isDue) {
+                        $occ = $sch->occurrences->first(function ($o) use ($dateStr) {
+                            return $o->due_date->toDateString() === $dateStr;
+                        });
+
+                        if ($occ && $occ->status === 'skipped') {
+                            continue;
+                        }
+
+                        $status = ($occ && $occ->status === 'confirmed') ? 'paid' : 'pending';
+                        $amount = (float) (($occ && ! is_null($occ->amount)) ? $occ->amount : ($sch->amount ?? 0));
+
+                        $dayBills[] = [
+                            'id' => $sch->id,
+                            'kind' => 'recurring',
+                            'title' => $sch->name,
+                            'subtitle' => $sch->category?->name ?? ($sch->isTransfer() ? 'Transfer Rutin' : 'Tagihan Rutin'),
+                            'amount' => $amount,
+                            'status' => $status,
+                            'status_label' => $status === 'paid' ? 'Lunas' : 'Belum Lunas',
+                            'url' => route('recurring.show', $sch),
+                        ];
+                    }
+                }
+
+                $billsPendingCount = 0;
+                $billsTotalAmount = 0;
+                $billsPendingAmount = 0;
+
+                foreach ($dayBills as $b) {
+                    $billsTotalAmount += $b['amount'];
+                    if ($b['status'] !== 'paid') {
+                        $billsPendingCount++;
+                        $billsPendingAmount += $b['amount'];
+                    }
+                }
+
                 $week[] = (object) [
                     'date' => $dateStr,
                     'day_number' => $currentDay->day,
@@ -589,6 +684,11 @@ class ReportController extends Controller
                     'count' => $cashflow ? $cashflow->count : 0,
                     'modal_items' => $modalItems,
                     'closing_balance' => $cashflow ? $cashflow->closing_balance : null,
+                    'bills' => $dayBills,
+                    'bills_count' => count($dayBills),
+                    'bills_pending_count' => $billsPendingCount,
+                    'bills_total_amount' => $billsTotalAmount,
+                    'bills_pending_amount' => $billsPendingAmount,
                 ];
 
                 $currentDay->addDay();

@@ -28,6 +28,7 @@ class User extends Authenticatable
         'daily_reminder_enabled',
         'daily_reminder_time',
         'password',
+        'has_password',
     ];
 
     protected $hidden = [
@@ -42,6 +43,7 @@ class User extends Authenticatable
             'email_notifications_enabled' => 'boolean',
             'whatsapp_notifications_enabled' => 'boolean',
             'daily_reminder_enabled' => 'boolean',
+            'has_password' => 'boolean',
             'password' => 'hashed',
         ];
     }

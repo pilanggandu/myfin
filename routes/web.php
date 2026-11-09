@@ -30,15 +30,15 @@ Route::middleware('guest')->group(function () {
     Route::post('/register/verify-otp', [AuthController::class, 'verifyOtp'])->name('register.otp.verify');
     Route::post('/register/resend-otp', [AuthController::class, 'resendOtp'])->name('register.otp.resend');
 
-    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
-    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
-
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetOtp'])->name('password.email');
     Route::get('/forgot-password/verify-otp', [ForgotPasswordController::class, 'showVerifyOtp'])->name('password.otp.show');
     Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 'verifyResetOtp'])->name('password.otp.verify');
     Route::post('/forgot-password/resend-otp', [ForgotPasswordController::class, 'resendOtp'])->name('password.otp.resend');
 });
+
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::post('/profile/clean-data', [ProfileController::class, 'cleanData'])->name('profile.clean-data');
+    Route::post('/profile/google/unlink', [GoogleAuthController::class, 'unlink'])->name('profile.google.unlink');
 
     Route::get('/spaces', [SpaceController::class, 'index'])->name('spaces.index');
     Route::get('/spaces/create', [SpaceController::class, 'create'])->name('spaces.create');

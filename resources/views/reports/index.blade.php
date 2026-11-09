@@ -444,7 +444,19 @@
                         </a>
                     </div>
 
-                    <div class="flex items-center gap-3 text-[11px] text-muted flex-wrap">
+                    <div class="flex items-center gap-2 sm:gap-3 text-[11px] text-muted flex-wrap">
+                        <button 
+                            type="button" 
+                            id="toggleBillsBtn"
+                            onclick="toggleCalendarBills()" 
+                            class="px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                            title="Tampilkan atau sembunyikan tagihan & cicilan jatuh tempo"
+                        >
+                            <span>🔔</span>
+                            <span>Tagihan & Cicilan</span>
+                            <span id="billsStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        </button>
+
                         <span class="inline-flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-forest"></span>
                             <span>Masuk (+)</span>
@@ -513,6 +525,13 @@
                                                         </div>
                                                     </div>
                                                 @endif
+
+                                                @if ($day->bills_count > 0)
+                                                    <div class="calendar-bill-indicator mt-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 truncate flex items-center justify-between" title="{{ $day->bills_count }} Tagihan & Cicilan (Rp {{ number_format($day->bills_total_amount, 0, ',', '.') }})">
+                                                        <span class="truncate">🔔 {{ $day->bills_count }} Tagihan</span>
+                                                        <span class="font-mono text-[8px] shrink-0 ml-0.5">{{ $day->bills_pending_count > 0 ? $day->bills_pending_count . ' due' : '✓' }}</span>
+                                                    </div>
+                                                @endif
                                             </div>
 
                                             <div id="calDayData-{{ $day->date }}" class="hidden" 
@@ -523,7 +542,8 @@
                                                 data-net="{{ $day->net }}" 
                                                 data-count="{{ $day->count }}" 
                                                 data-create-url="{{ route('transactions.create', ['date' => $day->date]) }}"
-                                                data-items="{{ json_encode($day->modal_items, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}">
+                                                data-items="{{ json_encode($day->modal_items, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}"
+                                                data-bills="{{ json_encode($day->bills, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}">
                                             </div>
                                         </div>
                                     @endforeach
@@ -591,6 +611,19 @@
                                         <tbody id="calModalTbody" class="divide-y divide-line font-medium text-charcoal">
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+
+                            <div id="calModalBillsSection" class="border-t border-line pt-4 hidden">
+                                <div class="flex items-center justify-between mb-2.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs">🔔</span>
+                                        <h4 class="text-xs font-bold uppercase tracking-wider text-charcoal">Kewajiban Tagihan & Cicilan</h4>
+                                    </div>
+                                    <span id="calModalBillsCountBadge" class="text-[11px] font-mono text-amber-600 dark:text-amber-400 font-semibold"></span>
+                                </div>
+
+                                <div id="calModalBillsList" class="space-y-2 max-h-[220px] overflow-y-auto">
                                 </div>
                             </div>
                         </div>
@@ -705,6 +738,53 @@
                         });
                     }
 
+                    const bills = JSON.parse(dataEl.dataset.bills || '[]');
+                    const billsSection = document.getElementById('calModalBillsSection');
+                    const billsList = document.getElementById('calModalBillsList');
+                    const billsBadge = document.getElementById('calModalBillsCountBadge');
+
+                    if (bills && bills.length > 0) {
+                        billsSection.classList.remove('hidden');
+                        billsBadge.textContent = bills.length + ' kewajiban';
+                        billsList.innerHTML = '';
+
+                        bills.forEach(function(bill) {
+                            const itemEl = document.createElement('div');
+                            itemEl.className = 'p-3 rounded-xl border border-line bg-cream/20 dark:bg-line/20 flex items-center justify-between gap-3 text-xs';
+
+                            const isPaid = bill.status === 'paid';
+                            const badgeColor = isPaid
+                                ? 'bg-forest/10 dark:bg-forest/20 text-forest'
+                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+                            const icon = bill.kind === 'installment' ? '💳' : '🔔';
+
+                            itemEl.innerHTML = `
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="text-base shrink-0">${icon}</span>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-charcoal truncate">${bill.title}</div>
+                                        <div class="text-[11px] text-muted truncate">${bill.subtitle}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <div class="text-right">
+                                        <div class="font-mono font-bold text-charcoal">Rp ${Number(bill.amount).toLocaleString('id-ID')}</div>
+                                        <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold ${badgeColor}">
+                                            ${bill.status_label}
+                                        </span>
+                                    </div>
+                                    <a href="${bill.url}" class="px-2.5 py-1.5 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-[11px] font-semibold text-charcoal transition">
+                                        Lihat &rarr;
+                                    </a>
+                                </div>
+                            `;
+                            billsList.appendChild(itemEl);
+                        });
+                    } else {
+                        billsSection.classList.add('hidden');
+                        billsList.innerHTML = '';
+                    }
+
                     const modal = document.getElementById('calendarDayModal');
                     modal.classList.remove('hidden');
                     document.body.classList.add('overflow-hidden');
@@ -716,6 +796,27 @@
                         modal.classList.add('hidden');
                     }
                     document.body.classList.remove('overflow-hidden');
+                }
+
+                let calendarBillsVisible = true;
+                function toggleCalendarBills() {
+                    calendarBillsVisible = !calendarBillsVisible;
+                    const badges = document.querySelectorAll('.calendar-bill-indicator');
+                    badges.forEach(function(el) {
+                        el.style.display = calendarBillsVisible ? '' : 'none';
+                    });
+
+                    const btn = document.getElementById('toggleBillsBtn');
+                    const dot = document.getElementById('billsStatusDot');
+                    if (btn && dot) {
+                        if (calendarBillsVisible) {
+                            btn.className = 'px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+                            dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+                        } else {
+                            btn.className = 'px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-panel text-muted border-line hover:text-charcoal';
+                            dot.className = 'w-1.5 h-1.5 rounded-full bg-muted/40';
+                        }
+                    }
                 }
 
                 document.addEventListener('keydown', function(e) {

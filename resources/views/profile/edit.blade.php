@@ -38,24 +38,29 @@
             </form>
         </x-panel>
 
-        <!-- Ubah Kata Sandi -->
-        <x-panel title="Ubah Kata Sandi">
+        <x-panel :title="$user->has_password ? 'Ubah Kata Sandi' : 'Buat Kata Sandi Akun'" :subtitle="!$user->has_password ? 'Akun Anda belum memiliki kata sandi mandiri. Buat kata sandi agar dapat masuk menggunakan email dan password.' : 'Perbarui kata sandi untuk mengamankan akun Anda.'">
             <form method="POST" action="{{ route('profile.password') }}" novalidate>
                 @csrf
                 @method('PUT')
 
-                <x-input 
-                    name="current_password" 
-                    label="Kata Sandi Saat Ini" 
-                    type="password" 
-                    required 
-                    autocomplete="current-password"
-                    placeholder="Masukkan kata sandi saat ini" 
-                />
+                @if (! $user->has_password)
+                    <div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                        Akun Anda didaftarkan melalui Google SSO. Tentukan kata sandi agar Anda juga dapat masuk menggunakan alamat email dan kata sandi tanpa Google.
+                    </div>
+                @else
+                    <x-input 
+                        name="current_password" 
+                        label="Kata Sandi Saat Ini" 
+                        type="password" 
+                        required 
+                        autocomplete="current-password"
+                        placeholder="Masukkan kata sandi saat ini" 
+                    />
+                @endif
 
                 <x-input 
                     name="password" 
-                    label="Kata Sandi Baru" 
+                    :label="$user->has_password ? 'Kata Sandi Baru' : 'Kata Sandi'" 
                     type="password" 
                     required 
                     autocomplete="new-password"
@@ -64,20 +69,79 @@
 
                 <x-input 
                     name="password_confirmation" 
-                    label="Konfirmasi Kata Sandi Baru" 
+                    :label="$user->has_password ? 'Konfirmasi Kata Sandi Baru' : 'Ulangi Kata Sandi'" 
                     type="password" 
                     required 
                     autocomplete="new-password"
-                    placeholder="Ulangi kata sandi baru" 
+                    :placeholder="$user->has_password ? 'Ulangi kata sandi baru' : 'Ulangi kata sandi'" 
                 />
 
                 <div class="pt-3">
                     <x-button type="submit" variant="primary">
-                        Ubah Kata Sandi
+                        {{ $user->has_password ? 'Ubah Kata Sandi' : 'Simpan Kata Sandi' }}
                     </x-button>
                 </div>
             </form>
         </x-panel>
+
+        <div class="lg:col-span-2">
+            <x-panel title="Metode Masuk & Akun Terhubung" subtitle="Kelola integrasi login sosial untuk masuk ke akun ARUS Anda dengan cepat dan praktis.">
+                <div class="p-4 rounded-xl border border-line bg-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-cream dark:bg-line/40 flex items-center justify-center shrink-0 border border-line">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-charcoal">Google</span>
+                                @if ($user->google_id)
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                        Terhubung
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cream dark:bg-line/40 text-muted">
+                                        Belum Terhubung
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-muted mt-0.5">
+                                @if ($user->google_id)
+                                    Akun Google aktif terhubung. Anda dapat menggunakannya untuk masuk langsung dengan satu klik.
+                                @else
+                                    Hubungkan akun Google Anda untuk kemudahan masuk cepat tanpa mengetik kata sandi.
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                        @if ($user->google_id)
+                            @if ($user->has_password)
+                                <form method="POST" action="{{ route('profile.google.unlink') }}" onsubmit="return confirm('Apakah Anda yakin ingin memutuskan tautan akun Google ini?');">
+                                    @csrf
+                                    <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-charcoal transition cursor-pointer">
+                                        Putuskan Tautan
+                                    </button>
+                                </form>
+                            @else
+                                <span class="text-[11px] text-muted italic" title="Buat kata sandi akun terlebih dahulu">
+                                    Buat kata sandi akun untuk memutuskan
+                                </span>
+                            @endif
+                        @else
+                            <a href="{{ route('auth.google.redirect', ['action' => 'bind']) }}" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                                <span>Hubungkan Akun Google</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </x-panel>
+        </div>
 
         <!-- Preferensi Tema Tampilan -->
         <div class="lg:col-span-2">

@@ -36,11 +36,18 @@ class ProfileController extends Controller
     public function updatePassword(UpdatePasswordRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $isFirstTime = ! $user->has_password;
+
         $user->update([
             'password' => Hash::make($request->validated('password')),
+            'has_password' => true,
         ]);
 
-        return redirect()->route('profile.edit')->with('success', 'Kata sandi Anda berhasil diubah.');
+        $message = $isFirstTime
+            ? 'Kata sandi akun berhasil dibuat. Sekarang Anda dapat masuk menggunakan email dan kata sandi.'
+            : 'Kata sandi Anda berhasil diubah.';
+
+        return redirect()->route('profile.edit')->with('success', $message);
     }
 
     public function cleanData(CleanDataRequest $request, DataCleanService $cleanService): RedirectResponse
