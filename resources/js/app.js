@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import { initIndonesianDatePickers } from './date-picker-id.js';
 window.$ = window.jQuery = $;
 
 function applyTheme(theme) {
@@ -92,4 +93,5 @@ document.addEventListener('DOMContentLoaded', function() {
     applyTheme(saved);
     updateThemeUI(saved);
     initSidebarLiveClock();
+    initIndonesianDatePickers();
 });
