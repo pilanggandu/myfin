@@ -478,7 +478,8 @@
                                     @foreach ($week as $day)
                                         <div 
                                             @if ($day->is_current_month) onclick="openCalendarDayModal('{{ $day->date }}')" @endif
-                                            class="min-h-[105px] sm:min-h-[118px] p-2 flex flex-col justify-between transition-colors relative select-none {{ $day->is_current_month ? 'bg-panel cursor-pointer hover:bg-cream/50 dark:hover:bg-line/30' : 'bg-cream/20 dark:bg-line/10 opacity-40 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-forest dark:ring-emerald-400 bg-forest/5 dark:bg-emerald-400/5 z-1' : '' }}"
+                                            class="calendar-day-cell h-[120px] p-2 flex flex-col justify-between transition-colors relative select-none overflow-hidden {{ $day->is_current_month ? 'bg-panel cursor-pointer hover:bg-cream/50 dark:hover:bg-line/30' : 'bg-cream/20 dark:bg-line/10 opacity-40 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-forest dark:ring-emerald-400 bg-forest/5 dark:bg-emerald-400/5 z-1' : '' }}"
+                                            style="height: 120px !important; min-height: 120px !important; max-height: 120px !important; box-sizing: border-box !important;"
                                         >
                                             <div class="flex items-center justify-between gap-1">
                                                 <span class="inline-flex items-center justify-center text-xs font-bold {{ $day->is_today ? 'w-5 h-5 rounded-full bg-forest text-cream dark:bg-emerald-400 dark:text-forest text-[11px]' : ($day->is_weekend ? 'text-red/90 dark:text-rose-400' : 'text-charcoal') }}">
