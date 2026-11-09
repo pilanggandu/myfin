@@ -374,4 +374,70 @@ class ReportTest extends TestCase
         $this->assertStringContainsString('Freelance Desain', $content);
         $this->assertStringContainsString('3500000', $content);
     }
+
+    public function test_daily_cashflow_calendar_view_renders_successfully(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=5');
+
+        $response->assertStatus(200);
+        $response->assertViewIs('reports.index');
+        $response->assertViewHas('viewMode', 'calendar');
+        $response->assertViewHas('calendarWeeks');
+        $response->assertSee('Kalender');
+        $response->assertSee('calendarDayModal');
+        $response->assertSee('Mei 2026');
+    }
+
+    public function test_daily_cashflow_calendar_view_contains_daily_totals_and_items(): void
+    {
+        $service = app(TransactionService::class);
+
+        $service->recordIncome($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->incomeCat->id,
+            'amount' => 5000000,
+            'transaction_date' => '2026-05-15',
+            'description' => 'Gaji Bulanan Mei',
+        ]);
+
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->foodCat->id,
+            'amount' => 250000,
+            'transaction_date' => '2026-05-15',
+            'description' => 'Makan Siang Resto',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=5');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $foundDay = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-05-15') {
+                        $foundDay = $day;
+                        break 2;
+                    }
+                }
+            }
+
+            $this->assertNotNull($foundDay);
+            $this->assertEquals(5000000, $foundDay->inflow);
+            $this->assertEquals(250000, $foundDay->outflow);
+            $this->assertEquals(4750000, $foundDay->net);
+            $this->assertEquals(2, $foundDay->count);
+            $this->assertCount(2, $foundDay->modal_items);
+
+            return true;
+        });
+
+        $response->assertSee('Gaji Bulanan Mei');
+        $response->assertSee('Makan Siang Resto');
+        $response->assertSee('calDayData-2026-05-15');
+    }
 }

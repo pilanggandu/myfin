@@ -21,6 +21,7 @@ class ReportController extends Controller
 
         $validated = $request->validate([
             'tab' => ['nullable', 'string', 'in:daily,analytics'],
+            'view' => ['nullable', 'string', 'in:list,calendar'],
             'period_type' => ['nullable', 'string', 'in:month,custom'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
             'month' => ['nullable', 'integer', 'between:1,12'],
@@ -31,6 +32,7 @@ class ReportController extends Controller
         ]);
 
         $activeTab = $validated['tab'] ?? 'daily';
+        $viewMode = $validated['view'] ?? 'list';
         $periodType = $validated['period_type'] ?? 'month';
         $year = (int) ($validated['year'] ?? $now->year);
         $month = (int) ($validated['month'] ?? $now->month);
@@ -219,15 +221,24 @@ class ReportController extends Controller
             ];
         }
 
-        // Kalkulasi Raw Data Arus Kas Harian
         $dailyData = $this->buildDailyCashflowData($space, $startDate, $endDate, $selectedAccountId, $sortOrder);
+
+        $prevCarbon = Carbon::createFromDate($year, $month, 1, $space?->timezone ?: 'Asia/Jakarta')->subMonthNoOverflow();
+        $nextCarbon = Carbon::createFromDate($year, $month, 1, $space?->timezone ?: 'Asia/Jakarta')->addMonthNoOverflow();
+
+        $calendarWeeks = $this->buildCalendarGrid($year, $month, $dailyData['dailyCashflows'], $space);
 
         return view('reports.index', array_merge([
             'space' => $space,
             'activeTab' => $activeTab,
+            'viewMode' => $viewMode,
             'periodType' => $periodType,
             'year' => $year,
             'month' => $month,
+            'prevMonth' => $prevCarbon->month,
+            'prevYear' => $prevCarbon->year,
+            'nextMonth' => $nextCarbon->month,
+            'nextYear' => $nextCarbon->year,
             'startDate' => $startDate,
             'endDate' => $endDate,
             'periodLabel' => $periodLabel,
@@ -240,6 +251,7 @@ class ReportController extends Controller
             'monthlyTrend' => $monthlyTrend,
             'selectedAccountId' => $selectedAccountId,
             'sortOrder' => $sortOrder,
+            'calendarWeeks' => $calendarWeeks,
         ], $dailyData));
     }
 
@@ -511,5 +523,79 @@ class ReportController extends Controller
             'totalPeriodNet' => $totalPeriodNet,
             'activeDaysCount' => count($dailyLedger),
         ];
+    }
+
+    private function buildCalendarGrid(int $year, int $month, array $dailyCashflows, ?Space $space): array
+    {
+        $timezone = $space?->timezone ?: 'Asia/Jakarta';
+        $startOfMonth = Carbon::createFromDate($year, $month, 1, $timezone)->startOfMonth();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth();
+        $todayStr = ($space ? $space->now() : Carbon::now($timezone))->toDateString();
+
+        $cashflowMap = [];
+        foreach ($dailyCashflows as $day) {
+            $cashflowMap[$day->date] = $day;
+        }
+
+        $startDayOfWeek = $startOfMonth->dayOfWeekIso;
+        $calendarStart = $startOfMonth->copy()->subDays($startDayOfWeek - 1);
+
+        $endDayOfWeek = $endOfMonth->dayOfWeekIso;
+        $calendarEnd = $endOfMonth->copy()->addDays(7 - $endDayOfWeek);
+
+        $calendarWeeks = [];
+        $currentDay = $calendarStart->copy();
+
+        while ($currentDay->lte($calendarEnd)) {
+            $week = [];
+            for ($i = 0; $i < 7; $i++) {
+                $dateStr = $currentDay->toDateString();
+                $isCurrentMonth = $currentDay->month === $month;
+                $isToday = $dateStr === $todayStr;
+                $cashflow = $cashflowMap[$dateStr] ?? null;
+
+                $modalItems = [];
+                if ($cashflow && ! empty($cashflow->items)) {
+                    foreach ($cashflow->items as $item) {
+                        $tx = $item->transaction;
+                        $modalItems[] = [
+                            'id' => $tx->id,
+                            'description' => $tx->description,
+                            'time' => $tx->formattedTime() ?: '-',
+                            'type' => $tx->type,
+                            'category_name' => $tx->category?->name ?? ($tx->isTransfer() ? 'Transfer' : '-'),
+                            'source_account' => $tx->sourceAccount()?->name,
+                            'dest_account' => $tx->destinationAccount()?->name,
+                            'member_name' => $tx->member?->name,
+                            'inflow' => $item->inflow,
+                            'outflow' => $item->outflow,
+                            'net' => $item->net,
+                            'url' => route('transactions.show', $tx),
+                        ];
+                    }
+                }
+
+                $week[] = (object) [
+                    'date' => $dateStr,
+                    'day_number' => $currentDay->day,
+                    'carbon' => $currentDay->copy(),
+                    'is_current_month' => $isCurrentMonth,
+                    'is_today' => $isToday,
+                    'is_weekend' => in_array($currentDay->dayOfWeekIso, [6, 7]),
+                    'has_transactions' => $cashflow !== null && $cashflow->count > 0,
+                    'inflow' => $cashflow ? $cashflow->inflow : 0,
+                    'outflow' => $cashflow ? $cashflow->outflow : 0,
+                    'net' => $cashflow ? $cashflow->net : 0,
+                    'count' => $cashflow ? $cashflow->count : 0,
+                    'modal_items' => $modalItems,
+                    'closing_balance' => $cashflow ? $cashflow->closing_balance : null,
+                ];
+
+                $currentDay->addDay();
+            }
+            $calendarWeeks[] = $week;
+        }
+
+        return $calendarWeeks;
     }
 }
