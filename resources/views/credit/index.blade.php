@@ -301,6 +301,13 @@
                                         <span>Cetak: Tgl {{ $account->billing_cycle_day ?? '-' }}</span>
                                         <span>Jatuh Tempo: Tgl {{ $account->due_day ?? '-' }}</span>
                                     </div>
+                                @else
+                                    <div class="flex justify-between items-center text-[11px] border-t border-dashed border-line/50 pt-2 mt-2">
+                                        <span class="text-amber-600 dark:text-amber-400 font-medium">⚠️ Belum set tgl cetak & tempo</span>
+                                        <button type="button" onclick="editCreditAccount({{ json_encode($account) }})" class="text-[10px] text-forest dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                                            Atur
+                                        </button>
+                                    </div>
                                 @endif
                             </div>
 
@@ -605,30 +612,45 @@
                     <span class="text-[10px] text-muted">Limit kredit yang diberikan oleh bank atau penyedia layanan.</span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="p-3.5 rounded-xl border border-line bg-cream/30 space-y-2.5">
                     <div>
-                        <label for="credit_account_billing_cycle" class="block text-xs font-semibold text-charcoal mb-1">Tgl Cetak Tagihan</label>
-                        <input 
-                            type="number" 
-                            name="billing_cycle_day" 
-                            id="credit_account_billing_cycle" 
-                            min="1" 
-                            max="31"
-                            placeholder="Tgl 1-31"
-                            class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-                        >
+                        <div class="text-xs font-bold text-charcoal">Siklus Penagihan & Jatuh Tempo</div>
+                        <p class="text-[11px] text-muted">
+                            Jadwal tanggal cetak tagihan bulanan dan tanggal batas akhir pembayaran.
+                        </p>
                     </div>
-                    <div>
-                        <label for="credit_account_due_day" class="block text-xs font-semibold text-charcoal mb-1">Tgl Jatuh Tempo</label>
-                        <input 
-                            type="number" 
-                            name="due_day" 
-                            id="credit_account_due_day" 
-                            min="1" 
-                            max="31"
-                            placeholder="Tgl 1-31"
-                            class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-                        >
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="credit_account_billing_cycle" class="block text-xs font-semibold text-charcoal mb-1">
+                                Tgl Cetak Tagihan (Terbit)
+                            </label>
+                            <input 
+                                type="number" 
+                                name="billing_cycle_day" 
+                                id="credit_account_billing_cycle" 
+                                min="1" 
+                                max="31"
+                                placeholder="Contoh: 20"
+                                class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
+                            >
+                            <span class="text-[10px] text-muted block mt-0.5">Tgl 1-31 cut-off tagihan bulanan</span>
+                        </div>
+                        <div>
+                            <label for="credit_account_due_day" class="block text-xs font-semibold text-charcoal mb-1">
+                                Tgl Jatuh Tempo
+                            </label>
+                            <input 
+                                type="number" 
+                                name="due_day" 
+                                id="credit_account_due_day" 
+                                min="1" 
+                                max="31"
+                                placeholder="Contoh: 10"
+                                class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
+                            >
+                            <span class="text-[10px] text-muted block mt-0.5">Tgl 1-31 batas akhir bayar</span>
+                        </div>
                     </div>
                 </div>
 

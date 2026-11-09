@@ -929,4 +929,60 @@ class CreditInstallmentTest extends TestCase
         $this->assertEquals(2826000, $this->creditCard->availableLimit());
         $this->assertEquals('Rp 2.826.000', $this->creditCard->formatted_available_limit);
     }
+
+    public function test_credit_purchase_due_date_calculates_from_billing_cycle_and_due_day(): void
+    {
+        $this->creditCard->update([
+            'billing_cycle_day' => 20,
+            'due_day' => 10,
+        ]);
+
+        $planBeforeCutoff = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Belanja Sebelum Cutoff',
+            'total_amount' => 600000,
+            'tenor' => 3,
+            'start_date' => '2026-11-09',
+        ]);
+
+        $installments = $planBeforeCutoff->installments()->orderBy('installment_number')->get();
+        $this->assertEquals('2026-12-10', $installments[0]->due_date->toDateString());
+        $this->assertEquals('2027-01-10', $installments[1]->due_date->toDateString());
+        $this->assertEquals('2027-02-10', $installments[2]->due_date->toDateString());
+
+        $planAfterCutoff = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Belanja Setelah Cutoff',
+            'total_amount' => 200000,
+            'tenor' => 1,
+            'start_date' => '2026-11-25',
+        ]);
+
+        $instAfter = $planAfterCutoff->installments()->first();
+        $this->assertEquals('2027-01-10', $instAfter->due_date->toDateString());
+    }
+
+    public function test_credit_purchase_honors_explicit_first_due_date(): void
+    {
+        $this->creditCard->update([
+            'billing_cycle_day' => 20,
+            'due_day' => 10,
+        ]);
+
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Belanja Custom Due Date',
+            'total_amount' => 500000,
+            'tenor' => 2,
+            'start_date' => '2026-11-09',
+            'first_due_date' => '2026-12-25',
+        ]);
+
+        $installments = $plan->installments()->orderBy('installment_number')->get();
+        $this->assertEquals('2026-12-25', $installments[0]->due_date->toDateString());
+        $this->assertEquals('2027-01-10', $installments[1]->due_date->toDateString());
+    }
 }

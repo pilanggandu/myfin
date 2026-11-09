@@ -68,7 +68,8 @@
                                         value="{{ $acc->id }}" 
                                         data-available="{{ $acc->availableLimit() }}"
                                         data-limit="{{ $acc->credit_limit }}"
-                                        data-due-day="{{ $acc->due_day }}"
+                                        data-billing-day="{{ $acc->billing_cycle_day ?? '' }}"
+                                        data-due-day="{{ $acc->due_day ?? '' }}"
                                         {{ old('credit_account_id') == $acc->id ? 'selected' : '' }}
                                     >
                                         {{ $acc->name }} (Sisa Limit: {{ $acc->formatted_available_limit }})
@@ -245,24 +246,31 @@
                                 id="start_date" 
                                 required 
                                 value="{{ old('start_date', (app('currentSpace') ? app('currentSpace')->now() : now())->toDateString()) }}"
-                                onchange="updateSimulation()"
+                                onchange="onStartDateChange()"
                                 class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
                             >
                         </div>
 
                         <div>
-                            <label for="first_due_date" class="block text-xs font-semibold text-charcoal mb-1">
-                                Tanggal Jatuh Tempo Cicilan Pertama (Opsional)
-                            </label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="first_due_date" class="block text-xs font-semibold text-charcoal">
+                                    Tanggal Jatuh Tempo Pertama
+                                </label>
+                                <button type="button" onclick="autoSetDueDate(true)" class="text-[10px] text-forest dark:text-emerald-400 font-semibold hover:underline cursor-pointer">
+                                    Hitung Ulang dari Siklus Kartu
+                                </button>
+                            </div>
                             <input 
                                 type="date" 
                                 name="first_due_date" 
                                 id="first_due_date" 
                                 value="{{ old('first_due_date') }}"
-                                onchange="updateSimulation()"
+                                onchange="onManualDueDateChange()"
                                 class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
                             >
-                            <span class="text-[10px] text-muted">Bila dikosongkan, dihitung otomatis 1 bulan berikutnya.</span>
+                            <span id="firstDueHelperText" class="text-[10px] text-muted block mt-1">
+                                Dihitung otomatis sesuai siklus cetak tagihan & jatuh tempo kartu.
+                            </span>
                         </div>
                     </div>
 
@@ -375,6 +383,107 @@
     </div>
 
     <script>
+        let isDueDateManuallyEdited = {{ old('first_due_date') ? 'true' : 'false' }};
+
+        function onStartDateChange() {
+            autoSetDueDate(false);
+            updateSimulation();
+        }
+
+        function onManualDueDateChange() {
+            isDueDateManuallyEdited = true;
+            updateSimulation();
+        }
+
+        function calculateDueDate(startDateStr, billingDay, dueDay) {
+            if (!startDateStr) return '';
+            const parts = startDateStr.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+
+            const bDay = billingDay ? parseInt(billingDay, 10) : null;
+            const dDay = dueDay ? parseInt(dueDay, 10) : null;
+
+            let targetYear = year;
+            let targetMonth = month;
+            let targetDay = dDay || day;
+
+            if (bDay) {
+                if (day <= bDay) {
+                    if (dDay && dDay > bDay) {
+                        targetMonth = month;
+                        targetDay = dDay;
+                    } else {
+                        targetMonth = month + 1;
+                        targetDay = dDay || bDay;
+                    }
+                } else {
+                    if (dDay && dDay > bDay) {
+                        targetMonth = month + 1;
+                        targetDay = dDay;
+                    } else {
+                        targetMonth = month + 2;
+                        targetDay = dDay || bDay;
+                    }
+                }
+            } else if (dDay) {
+                targetMonth = month + 1;
+                targetDay = dDay;
+            } else {
+                targetMonth = month + 1;
+                targetDay = day;
+            }
+
+            const calculatedDate = new Date(targetYear, targetMonth, 1);
+            const daysInTargetMonth = new Date(calculatedDate.getFullYear(), calculatedDate.getMonth() + 1, 0).getDate();
+            const finalDay = Math.min(targetDay, daysInTargetMonth);
+            const finalDate = new Date(calculatedDate.getFullYear(), calculatedDate.getMonth(), finalDay);
+
+            const y = finalDate.getFullYear();
+            const m = String(finalDate.getMonth() + 1).padStart(2, '0');
+            const d = String(finalDate.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function autoSetDueDate(force = false) {
+            if (force) {
+                isDueDateManuallyEdited = false;
+            }
+            const select = document.getElementById('credit_account_id');
+            const selected = select ? select.options[select.selectedIndex] : null;
+            const startDateVal = document.getElementById('start_date')?.value;
+            const firstDueInput = document.getElementById('first_due_date');
+            const helperText = document.getElementById('firstDueHelperText');
+
+            if (!selected || !selected.value || !startDateVal || !firstDueInput) {
+                return;
+            }
+
+            const billingDay = selected.getAttribute('data-billing-day');
+            const dueDay = selected.getAttribute('data-due-day');
+
+            if (billingDay || dueDay) {
+                let cycleInfo = [];
+                if (billingDay) cycleInfo.push('Cetak tgl ' + billingDay);
+                if (dueDay) cycleInfo.push('Jatuh tempo tgl ' + dueDay);
+                if (helperText) {
+                    helperText.textContent = 'Siklus kartu: ' + cycleInfo.join(' • ') + ' (Dihitung otomatis).';
+                }
+            } else {
+                if (helperText) {
+                    helperText.textContent = 'Kartu belum diset tanggal cetak & jatuh tempo default. Tanggal dihitung 1 bulan berikutnya.';
+                }
+            }
+
+            if (!isDueDateManuallyEdited || force || !firstDueInput.value) {
+                const calculated = calculateDueDate(startDateVal, billingDay, dueDay);
+                if (calculated) {
+                    firstDueInput.value = calculated;
+                }
+            }
+        }
+
         function onCreditAccountChange() {
             const select = document.getElementById('credit_account_id');
             const selected = select.options[select.selectedIndex];
@@ -387,8 +496,18 @@
             }
 
             const available = parseInt(selected.getAttribute('data-available') || '0', 10);
-            hint.textContent = 'Sisa limit kartu tersedia: Rp ' + available.toLocaleString('id-ID');
+            const billingDay = selected.getAttribute('data-billing-day');
+            const dueDay = selected.getAttribute('data-due-day');
+
+            let hintText = 'Sisa limit kartu tersedia: Rp ' + available.toLocaleString('id-ID');
+            if (billingDay || dueDay) {
+                hintText += ' • Siklus: Cetak tgl ' + (billingDay || '-') + ', Jatuh tempo tgl ' + (dueDay || '-');
+            }
+            hint.textContent = hintText;
+
             checkLimit();
+            autoSetDueDate(false);
+            updateSimulation();
         }
 
         function checkLimit() {
@@ -474,11 +593,21 @@
             let baseDate = startDateVal ? new Date(startDateVal) : new Date();
             let firstDue = firstDueVal ? new Date(firstDueVal) : new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, baseDate.getDate());
 
+            const select = document.getElementById('credit_account_id');
+            const selected = select ? select.options[select.selectedIndex] : null;
+            const cardDueDay = selected ? parseInt(selected.getAttribute('data-due-day') || '0', 10) : 0;
+            const targetDay = cardDueDay > 0 ? cardDueDay : firstDue.getDate();
+
             for (let i = 1; i <= tenor; i++) {
                 const principal = basePrincipal + (i === 1 ? remainderPrincipal : 0);
                 const fee = baseFee + (i === 1 ? remainderFee : 0);
                 const totalInst = principal + monthlyInterest + fee;
-                let dueDate = new Date(firstDue.getFullYear(), firstDue.getMonth() + (i - 1), firstDue.getDate());
+
+                let targetMonth = firstDue.getMonth() + (i - 1);
+                let tempDate = new Date(firstDue.getFullYear(), targetMonth, 1);
+                let maxDays = new Date(tempDate.getFullYear(), tempDate.getMonth() + 1, 0).getDate();
+                let actualDay = Math.min(targetDay, maxDays);
+                let dueDate = new Date(tempDate.getFullYear(), tempDate.getMonth(), actualDay);
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-panel transition';

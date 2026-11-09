@@ -168,9 +168,9 @@ class CreditService
             $startDate = Carbon::parse($data['start_date']);
             $firstDueDate = ! empty($data['first_due_date'])
                 ? Carbon::parse($data['first_due_date'])
-                : ($lockedCreditAccount->due_day
-                    ? $startDate->copy()->addMonth()->setDay(min($lockedCreditAccount->due_day, $startDate->copy()->addMonth()->daysInMonth))
-                    : $startDate->copy()->addMonth());
+                : $lockedCreditAccount->calculateFirstDueDate($startDate);
+
+            $targetDueDay = ! empty($lockedCreditAccount->due_day) ? $lockedCreditAccount->due_day : $firstDueDate->day;
 
             $markPastPaid = ! empty($data['mark_past_paid']);
             $pastPaidPrincipal = 0;
@@ -179,7 +179,12 @@ class CreditService
             for ($i = 1; $i <= $tenor; $i++) {
                 $principal = round($basePrincipal + ($i === 1 ? $remainderPrincipal : 0), 2);
                 $fee = round($baseFee + ($i === 1 ? $remainderFee : 0), 2);
-                $dueDate = $firstDueDate->copy()->addMonths($i - 1);
+                if ($i === 1) {
+                    $dueDate = $firstDueDate->copy();
+                } else {
+                    $dueDate = $firstDueDate->copy()->addMonthsNoOverflow($i - 1);
+                    $dueDate->setDay(min($targetDueDay, $dueDate->daysInMonth));
+                }
                 $totalInst = round($principal + $monthlyInterest + $fee, 2);
 
                 $isPast = $markPastPaid && $dueDate->copy()->startOfDay()->isPast() && ! $dueDate->isToday();

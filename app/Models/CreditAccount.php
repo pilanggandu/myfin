@@ -302,4 +302,41 @@ class CreditAccount extends Model
     {
         return $this->getStatementBill()['pending_count'];
     }
+
+    public function calculateFirstDueDate(Carbon|string $transactionDate): Carbon
+    {
+        $txDate = $transactionDate instanceof Carbon ? $transactionDate->copy() : Carbon::parse($transactionDate);
+
+        if (! empty($this->billing_cycle_day)) {
+            $maxDayThisMonth = $txDate->daysInMonth;
+            $cycleDayThisMonth = min($this->billing_cycle_day, $maxDayThisMonth);
+
+            if ($txDate->day <= $cycleDayThisMonth) {
+                $statementDate = $txDate->copy()->setDay($cycleDayThisMonth);
+            } else {
+                $nextMonth = $txDate->copy()->addMonthNoOverflow();
+                $statementDate = $nextMonth->setDay(min($this->billing_cycle_day, $nextMonth->daysInMonth));
+            }
+
+            if (! empty($this->due_day)) {
+                if ($this->due_day > $this->billing_cycle_day) {
+                    return $statementDate->copy()->setDay(min($this->due_day, $statementDate->daysInMonth));
+                }
+
+                $dueMonth = $statementDate->copy()->addMonthNoOverflow();
+
+                return $dueMonth->setDay(min($this->due_day, $dueMonth->daysInMonth));
+            }
+
+            return $statementDate->copy()->addMonthNoOverflow();
+        }
+
+        if (! empty($this->due_day)) {
+            $nextMonth = $txDate->copy()->addMonthNoOverflow();
+
+            return $nextMonth->setDay(min($this->due_day, $nextMonth->daysInMonth));
+        }
+
+        return $txDate->copy()->addMonthNoOverflow();
+    }
 }
