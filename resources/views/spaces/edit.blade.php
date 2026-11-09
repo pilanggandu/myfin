@@ -10,7 +10,7 @@
         <p class="text-xs text-muted">Ubah nama atau zona waktu ruang <strong class="text-charcoal">{{ $space->name }}</strong>.</p>
     </div>
 
-    <div class="max-w-xl">
+    <div class="w-full">
         <x-panel>
             <form method="POST" action="{{ route('spaces.update', $space) }}" novalidate>
                 @csrf

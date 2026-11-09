@@ -1,5 +1,5 @@
 <x-layouts.app title="Catat Belanja Cicilan">
-    <div class="max-w-3xl mx-auto">
+    <div class="w-full">
         <!-- Back Link & Heading -->
         <div class="mb-6">
             <a href="{{ route('credit.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-charcoal transition mb-3">

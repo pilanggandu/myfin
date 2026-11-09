@@ -1,5 +1,5 @@
 <x-layouts.app title="Edit Target Tabungan">
-    <div class="max-w-4xl mx-auto">
+    <div class="w-full">
         <!-- Breadcrumb & Header -->
         <div class="mb-6">
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET & BERSAMA / EDIT</div>

@@ -19,7 +19,7 @@
         @csrf
         @method('PUT')
 
-        <div class="max-w-3xl space-y-6">
+        <div class="w-full space-y-6">
             <!-- Informasi Utama -->
             <div class="panel-card p-5 sm:p-6 rounded-2xl border border-line bg-panel space-y-4 shadow-xs">
                 <div class="flex items-center justify-between border-b border-line pb-3">

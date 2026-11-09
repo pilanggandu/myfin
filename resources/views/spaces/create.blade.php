@@ -10,7 +10,7 @@
         <p class="text-xs text-muted">Ruang bersama digunakan untuk mengelola keuangan rumah tangga atau tim bersama anggota lain.</p>
     </div>
 
-    <div class="max-w-xl">
+    <div class="w-full">
         <x-panel>
             <form method="POST" action="{{ route('spaces.store') }}" novalidate>
                 @csrf
