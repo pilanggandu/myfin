@@ -19,6 +19,20 @@
         @csrf
         @method('PUT')
 
+        @if ($errors->any())
+            <div class="mb-6 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 p-4 text-xs text-rose-800 dark:text-rose-200 space-y-1.5" role="alert">
+                <div class="font-bold flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>Perubahan gagal disimpan. Periksa kembali isian berikut:</span>
+                </div>
+                <ul class="list-disc list-inside space-y-0.5 pl-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="w-full space-y-6">
             <!-- Informasi Utama -->
             <div class="panel-card p-5 sm:p-6 rounded-2xl border border-line bg-panel space-y-4 shadow-xs">
@@ -57,10 +71,13 @@
                             <option value="">Tanpa Member (Umum)</option>
                             @foreach ($members as $m)
                                 <option value="{{ $m->id }}" {{ (string)old('member_id', $recurring->member_id) === (string)$m->id ? 'selected' : '' }}>
-                                    {{ $m->name }}
+                                    {{ $m->name }}{{ $m->archived_at ? ' (Diarsipkan)' : '' }}
                                 </option>
                             @endforeach
                         </select>
+                        @error('member_id')
+                            <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div>
@@ -71,7 +88,13 @@
                             <option value="monthly" {{ old('frequency', $recurring->frequency) === 'monthly' ? 'selected' : '' }}>Bulanan (Setiap Bulan)</option>
                             <option value="weekly" {{ old('frequency', $recurring->frequency) === 'weekly' ? 'selected' : '' }}>Mingguan (Setiap Minggu)</option>
                             <option value="yearly" {{ old('frequency', $recurring->frequency) === 'yearly' ? 'selected' : '' }}>Tahunan (Setiap Tahun)</option>
+                            @if ($recurring->frequency === 'daily')
+                                <option value="daily" {{ old('frequency', $recurring->frequency) === 'daily' ? 'selected' : '' }}>Harian (Setiap Hari)</option>
+                            @endif
                         </select>
+                        @error('frequency')
+                            <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div>
@@ -83,7 +106,13 @@
                             <option value="paused" {{ old('status', $recurring->status) === 'paused' ? 'selected' : '' }}>Dijeda (Sementara)</option>
                             <option value="cancelled" {{ old('status', $recurring->status) === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                             <option value="archived" {{ old('status', $recurring->status) === 'archived' ? 'selected' : '' }}>Diarsipkan</option>
+                            @if ($recurring->status === 'completed')
+                                <option value="completed" {{ old('status', $recurring->status) === 'completed' ? 'selected' : '' }}>Selesai</option>
+                            @endif
                         </select>
+                        @error('status')
+                            <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
             </div>
@@ -103,10 +132,13 @@
                             <select name="category_id" id="editCategory" class="field-select w-full text-xs" required>
                                 @foreach ($categories as $cat)
                                     <option value="{{ $cat->id }}" {{ (string)old('category_id', $recurring->category_id) === (string)$cat->id ? 'selected' : '' }}>
-                                        {{ $cat->name }}
+                                        {{ $cat->name }}{{ $cat->archived_at ? ' (Diarsipkan)' : '' }}
                                     </option>
                                 @endforeach
                             </select>
+                            @error('category_id')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div>
@@ -117,10 +149,13 @@
                                 <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
                                 @foreach ($accounts as $acc)
                                     <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
-                                        {{ $acc->name }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                        {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                     </option>
                                 @endforeach
                             </select>
+                            @error('source_account_id')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
                             <div class="text-[11px] text-muted mt-1">Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba.</div>
                         </div>
                     </div>
@@ -134,10 +169,13 @@
                                 <select name="source_account_id" id="editSourceTransfer" class="field-select w-full text-xs" onchange="syncEditTransferAccounts()" required>
                                     @foreach ($accounts as $acc)
                                         <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
-                                            {{ $acc->name }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                            {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('source_account_id')
+                                    <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div>
@@ -147,10 +185,13 @@
                                 <select name="destination_account_id" id="editDestTransfer" class="field-select w-full text-xs" onchange="syncEditTransferAccounts()" required>
                                     @foreach ($accounts as $acc)
                                         <option value="{{ $acc->id }}" {{ (string)old('destination_account_id', $recurring->destination_account_id) === (string)$acc->id ? 'selected' : '' }}>
-                                            {{ $acc->name }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                            {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('destination_account_id')
+                                    <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 
@@ -201,9 +242,12 @@
                             onclick="this.select()"
                             {{ $recurring->is_variable_amount ? 'disabled' : '' }}
                         />
+                        @error('amount')
+                            <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                        @enderror
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label for="editStartDate" class="block text-xs font-bold text-charcoal mb-1">
                                 Tanggal Mulai <span class="text-rose-500">*</span>
@@ -214,8 +258,30 @@
                                 id="editStartDate" 
                                 value="{{ old('start_date', $recurring->start_date->toDateString()) }}" 
                                 class="field-input w-full text-xs" 
+                                onchange="onEditStartDateChange()"
                                 required 
                             />
+                            @error('start_date')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="editNextDueDate" class="block text-xs font-bold text-charcoal mb-1">
+                                Jatuh Tempo Berikutnya
+                            </label>
+                            <input 
+                                type="date" 
+                                name="next_due_date" 
+                                id="editNextDueDate" 
+                                data-original="{{ $recurring->next_due_date?->toDateString() }}"
+                                value="{{ old('next_due_date', $recurring->next_due_date?->toDateString()) }}" 
+                                class="field-input w-full text-xs" 
+                            />
+                            <div class="text-[11px] text-muted mt-1">Otomatis disesuaikan bila Tanggal Mulai diubah.</div>
+                            @error('next_due_date')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div>
@@ -229,6 +295,9 @@
                                 value="{{ old('end_date', $recurring->end_date?->toDateString()) }}" 
                                 class="field-input w-full text-xs" 
                             />
+                            @error('end_date')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
@@ -242,6 +311,9 @@
                             rows="2" 
                             class="field-input w-full text-xs"
                         >{{ old('description', $recurring->description) }}</textarea>
+                        @error('description')
+                            <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
             </div>
@@ -258,6 +330,17 @@
     </form>
 
     <script>
+        function onEditStartDateChange() {
+            const startInput = document.getElementById('editStartDate');
+            const nextDueInput = document.getElementById('editNextDueDate');
+            if (!startInput || !nextDueInput) return;
+
+            const originalNextDue = nextDueInput.dataset.original || '';
+            if (nextDueInput.value === originalNextDue) {
+                nextDueInput.value = '';
+            }
+        }
+
         function onToggleEditVariable(isVariable) {
             const amountInput = document.getElementById('editAmount');
             if (isVariable) {

@@ -323,9 +323,9 @@
             </header>
 
             <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full space-y-5">
-                @if (session('success'))
+                @if (session('success') || session('status'))
                     <div class="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between" role="alert">
-                        <div>{{ session('success') }}</div>
+                        <div>{{ session('success') ?? session('status') }}</div>
                         <button type="button" onclick="this.parentElement.remove()" class="text-emerald-700 dark:text-emerald-400 font-bold ml-4 text-sm">&times;</button>
                     </div>
                 @endif

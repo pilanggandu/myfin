@@ -162,18 +162,36 @@ class RecurringScheduleController extends Controller
         $space = app('currentSpace');
 
         $accounts = Account::where('space_id', $space->id)
-            ->active()
+            ->where(function ($q) use ($recurring) {
+                $q->whereNull('archived_at');
+                if ($recurring->source_account_id) {
+                    $q->orWhere('id', $recurring->source_account_id);
+                }
+                if ($recurring->destination_account_id) {
+                    $q->orWhere('id', $recurring->destination_account_id);
+                }
+            })
             ->orderBy('name')
             ->get();
 
         $categories = Category::where('space_id', $space->id)
             ->expense()
-            ->active()
+            ->where(function ($q) use ($recurring) {
+                $q->whereNull('archived_at');
+                if ($recurring->category_id) {
+                    $q->orWhere('id', $recurring->category_id);
+                }
+            })
             ->orderBy('name')
             ->get();
 
         $members = Member::where('space_id', $space->id)
-            ->active()
+            ->where(function ($q) use ($recurring) {
+                $q->whereNull('archived_at');
+                if ($recurring->member_id) {
+                    $q->orWhere('id', $recurring->member_id);
+                }
+            })
             ->orderBy('name')
             ->get();
 

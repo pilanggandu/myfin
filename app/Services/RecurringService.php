@@ -146,7 +146,8 @@ class RecurringService
                 ->where('id', $data['source_account_id'])
                 ->first();
 
-            if (! $sourceAccount || $sourceAccount->isArchived()) {
+            $isSameExistingSource = (int) $schedule->source_account_id === (int) ($sourceAccount?->id);
+            if (! $sourceAccount || ($sourceAccount->isArchived() && ! $isSameExistingSource)) {
                 throw ValidationException::withMessages([
                     'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
                 ]);
@@ -172,7 +173,8 @@ class RecurringService
                 ->where('id', $destAccountId)
                 ->first();
 
-            if (! $destAccount || $destAccount->isArchived()) {
+            $isSameExistingDest = (int) $schedule->destination_account_id === (int) ($destAccount?->id);
+            if (! $destAccount || ($destAccount->isArchived() && ! $isSameExistingDest)) {
                 throw ValidationException::withMessages([
                     'destination_account_id' => 'Rekening tujuan transfer tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
                 ]);
@@ -182,7 +184,12 @@ class RecurringService
             $category = Category::where('space_id', $space->id)
                 ->where('id', $categoryId)
                 ->expense()
-                ->active()
+                ->where(function ($q) use ($schedule) {
+                    $q->whereNull('archived_at');
+                    if ($schedule->category_id) {
+                        $q->orWhere('id', $schedule->category_id);
+                    }
+                })
                 ->first();
 
             if (! $category) {
@@ -196,7 +203,12 @@ class RecurringService
         if ($memberId) {
             $member = Member::where('space_id', $space->id)
                 ->where('id', $memberId)
-                ->active()
+                ->where(function ($q) use ($schedule) {
+                    $q->whereNull('archived_at');
+                    if ($schedule->member_id) {
+                        $q->orWhere('id', $schedule->member_id);
+                    }
+                })
                 ->first();
 
             if (! $member) {
@@ -215,32 +227,106 @@ class RecurringService
             ]);
         }
 
+        $oldStartDate = $schedule->start_date ? Carbon::parse($schedule->start_date)->toDateString() : null;
+        $oldFrequency = $schedule->frequency;
+        $oldNextDue = $schedule->next_due_date ? Carbon::parse($schedule->next_due_date)->toDateString() : null;
+
         $startDate = Carbon::parse($data['start_date']);
         $anchorDay = (int) $startDate->day;
+        $newFrequency = $data['frequency'];
+        $endDateStr = ! empty($data['end_date']) ? Carbon::parse($data['end_date'])->toDateString() : null;
+
+        $newNextDueDate = $oldNextDue ?: $startDate->toDateString();
+
+        $explicitNextDue = ! empty($data['next_due_date']) ? Carbon::parse($data['next_due_date'])->toDateString() : null;
+        if ($explicitNextDue && $explicitNextDue !== $oldNextDue) {
+            if (Carbon::parse($explicitNextDue)->lt($startDate)) {
+                throw ValidationException::withMessages([
+                    'next_due_date' => 'Tanggal jatuh tempo berikutnya tidak boleh sebelum tanggal mulai.',
+                ]);
+            }
+            $newNextDueDate = $explicitNextDue;
+        } elseif ($oldStartDate !== $startDate->toDateString() || $oldFrequency !== $newFrequency) {
+            $hasHistory = $schedule->occurrences()
+                ->whereIn('status', ['confirmed', 'skipped'])
+                ->exists();
+
+            if (! $hasHistory || ! $oldNextDue || Carbon::parse($oldNextDue)->lt($startDate)) {
+                $newNextDueDate = $startDate->toDateString();
+            } elseif ($newFrequency === 'monthly') {
+                $targetMonth = Carbon::parse($oldNextDue)->startOfMonth();
+                $day = min($anchorDay, (int) $targetMonth->daysInMonth);
+                $candidate = $targetMonth->day($day);
+                if ($candidate->lt($startDate)) {
+                    $candidate = $startDate->copy();
+                }
+                $newNextDueDate = $candidate->toDateString();
+            } elseif ($newFrequency === 'yearly') {
+                $targetYear = Carbon::parse($oldNextDue)->year;
+                $candidate = Carbon::createFromDate($targetYear, $startDate->month, 1);
+                $candidate->day(min($anchorDay, (int) $candidate->daysInMonth));
+                if ($candidate->lt($startDate)) {
+                    $candidate = $startDate->copy();
+                }
+                $newNextDueDate = $candidate->toDateString();
+            } else {
+                $newNextDueDate = $startDate->toDateString();
+            }
+        }
 
         $newStatus = $data['status'] ?? $schedule->status;
         $archivedAt = in_array($newStatus, ['archived', 'cancelled'], true)
             ? ($schedule->archived_at ?? now())
             : null;
 
-        $schedule->update([
-            'name' => $data['name'],
-            'member_id' => $memberId,
-            'category_id' => $category?->id,
-            'source_account_id' => $sourceAccount?->id,
-            'destination_account_id' => $destAccount?->id,
-            'frequency' => $data['frequency'],
-            'anchor_day' => $anchorDay,
-            'start_date' => $startDate->toDateString(),
-            'end_date' => ! empty($data['end_date']) ? Carbon::parse($data['end_date'])->toDateString() : null,
-            'amount' => $amount,
-            'is_variable_amount' => $isVariable,
-            'description' => $data['description'] ?? null,
-            'status' => $newStatus,
-            'archived_at' => $archivedAt,
-        ]);
+        return DB::transaction(function () use ($schedule, $data, $memberId, $category, $sourceAccount, $destAccount, $newFrequency, $anchorDay, $startDate, $endDateStr, $newNextDueDate, $amount, $isVariable, $newStatus, $archivedAt, $oldNextDue, $oldStartDate, $oldFrequency) {
+            $schedule->update([
+                'name' => $data['name'],
+                'member_id' => $memberId,
+                'category_id' => $category?->id,
+                'source_account_id' => $sourceAccount?->id,
+                'destination_account_id' => $destAccount?->id,
+                'frequency' => $newFrequency,
+                'anchor_day' => $anchorDay,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDateStr,
+                'next_due_date' => $newNextDueDate,
+                'amount' => $amount,
+                'is_variable_amount' => $isVariable,
+                'description' => $data['description'] ?? null,
+                'status' => $newStatus,
+                'archived_at' => $archivedAt,
+            ]);
 
-        return $schedule;
+            $datesChanged = $oldNextDue !== $newNextDueDate
+                || $oldStartDate !== $startDate->toDateString()
+                || $oldFrequency !== $newFrequency;
+
+            if ($datesChanged) {
+                $schedule->occurrences()
+                    ->where('status', 'pending')
+                    ->whereNull('transaction_id')
+                    ->delete();
+            } else {
+                $schedule->occurrences()
+                    ->where('status', 'pending')
+                    ->whereNull('transaction_id')
+                    ->update(['amount' => $amount]);
+            }
+
+            if ($newStatus === 'active' && (! $endDateStr || $newNextDueDate <= $endDateStr)) {
+                RecurringOccurrence::firstOrCreate([
+                    'recurring_schedule_id' => $schedule->id,
+                    'due_date' => $newNextDueDate,
+                ], [
+                    'space_id' => $schedule->space_id,
+                    'status' => 'pending',
+                    'amount' => $amount,
+                ]);
+            }
+
+            return $schedule;
+        });
     }
 
     public function confirmOccurrence(RecurringSchedule $schedule, string $dueDate, User $actor, array $overrideData = []): FinancialTransaction

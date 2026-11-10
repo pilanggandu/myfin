@@ -26,17 +26,28 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 'integer',
                 Rule::exists('members', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->where(function ($q) use ($schedule) {
+                        $q->whereNull('archived_at');
+                        if ($schedule?->member_id) {
+                            $q->orWhere('id', $schedule->member_id);
+                        }
+                    }),
             ],
             'source_account_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->where(function ($q) use ($schedule) {
+                        $q->whereNull('archived_at');
+                        if ($schedule?->source_account_id) {
+                            $q->orWhere('id', $schedule->source_account_id);
+                        }
+                    }),
             ],
-            'frequency' => ['required', 'string', Rule::in(['weekly', 'monthly', 'yearly'])],
+            'frequency' => ['required', 'string', Rule::in(['daily', 'weekly', 'monthly', 'yearly'])],
             'start_date' => ['required', 'date'],
+            'next_due_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'is_variable_amount' => ['nullable', 'boolean'],
             'amount' => [
@@ -46,7 +57,7 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 'min:1',
             ],
             'description' => ['nullable', 'string', 'max:500'],
-            'status' => ['nullable', 'string', Rule::in(['active', 'paused', 'cancelled', 'archived'])],
+            'status' => ['nullable', 'string', Rule::in(['active', 'paused', 'cancelled', 'archived', 'completed'])],
         ];
 
         if ($type === 'expense') {
@@ -56,7 +67,12 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 Rule::exists('categories', 'id')
                     ->where('space_id', $spaceId)
                     ->where('type', 'expense')
-                    ->whereNull('archived_at'),
+                    ->where(function ($q) use ($schedule) {
+                        $q->whereNull('archived_at');
+                        if ($schedule?->category_id) {
+                            $q->orWhere('id', $schedule->category_id);
+                        }
+                    }),
             ];
         } elseif ($type === 'transfer') {
             $rules['source_account_id'] = [
@@ -64,7 +80,12 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 'integer',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->where(function ($q) use ($schedule) {
+                        $q->whereNull('archived_at');
+                        if ($schedule?->source_account_id) {
+                            $q->orWhere('id', $schedule->source_account_id);
+                        }
+                    }),
             ];
             $rules['destination_account_id'] = [
                 'required',
@@ -72,7 +93,12 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 'different:source_account_id',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->where(function ($q) use ($schedule) {
+                        $q->whereNull('archived_at');
+                        if ($schedule?->destination_account_id) {
+                            $q->orWhere('id', $schedule->destination_account_id);
+                        }
+                    }),
             ];
         }
 
@@ -93,6 +119,7 @@ class UpdateRecurringScheduleRequest extends FormRequest
             'member_id.exists' => 'Member yang dipilih tidak valid atau telah diarsipkan.',
             'frequency.required' => 'Frekuensi perulangan wajib dipilih.',
             'start_date.required' => 'Tanggal mulai jadwal wajib diisi.',
+            'next_due_date.after_or_equal' => 'Tanggal jatuh tempo berikutnya tidak boleh sebelum tanggal mulai.',
             'end_date.after_or_equal' => 'Tanggal berakhir tidak boleh sebelum tanggal mulai.',
             'amount.required' => 'Nominal transaksi wajib diisi kecuali dipilih nominal fleksibel.',
             'amount.min' => 'Nominal transaksi minimal Rp 1.',

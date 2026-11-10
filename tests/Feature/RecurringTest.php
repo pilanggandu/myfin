@@ -644,4 +644,198 @@ class RecurringTest extends TestCase
         $schedule->refresh();
         $this->assertEquals('2026-12-07', $schedule->next_due_date->toDateString());
     }
+
+    public function test_updating_start_date_recalculates_next_due_date_anchor_day_and_calendar_projection(): void
+    {
+        $service = app(RecurringService::class);
+
+        $schedule = $service->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'expense',
+            'name' => 'Langganan Chatgpt',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-07',
+            'amount' => 349000,
+        ]);
+
+        // Awalnya Nov 7 & Dec 7
+        $this->assertEquals(7, $schedule->anchor_day);
+        $this->assertEquals('2026-11-07', $schedule->next_due_date->toDateString());
+
+        // User mengubah Tanggal Mulai ke 2026-11-19 via endpoint edit (sekaligus mengirim next_due_date lama seperti behavior form)
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/recurring/{$schedule->id}", [
+                'name' => 'Langganan Chatgpt',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'status' => 'active',
+                'amount' => 349000,
+                'start_date' => '2026-11-19',
+                'next_due_date' => '2026-11-07',
+            ]);
+
+        $response->assertRedirect(route('recurring.show', $schedule));
+
+        $schedule->refresh();
+        $this->assertEquals(19, $schedule->anchor_day);
+        $this->assertEquals('2026-11-19', $schedule->start_date->toDateString());
+        $this->assertEquals('2026-11-19', $schedule->next_due_date->toDateString());
+
+        // Stale pending occurrence tgl 7 terhapus, diganti tgl 19
+        $this->assertDatabaseMissing('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-11-07',
+        ]);
+        $this->assertDatabaseHas('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-11-19',
+            'status' => 'pending',
+        ]);
+
+        // Cek laporan kalender Desember 2026: harus pindah dari tgl 7 ke tgl 19!
+        $reportResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=12');
+
+        $reportResponse->assertOk();
+        $reportResponse->assertViewHas('calendarWeeks', function ($weeks) {
+            $day7 = null;
+            $day19 = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-12-07') {
+                        $day7 = $day;
+                    }
+                    if ($day->date === '2026-12-19') {
+                        $day19 = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($day7);
+            $this->assertEquals(0, $day7->bills_count);
+
+            $this->assertNotNull($day19);
+            $this->assertEquals(1, $day19->bills_count);
+            $this->assertEquals('Langganan Chatgpt', $day19->bills[0]['title']);
+
+            return true;
+        });
+    }
+
+    public function test_updating_start_date_after_prior_occurrence_confirmed_advances_next_due_date_day(): void
+    {
+        $service = app(RecurringService::class);
+
+        $schedule = $service->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'expense',
+            'name' => 'Langganan Chatgpt Cycle',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-07',
+            'amount' => 349000,
+        ]);
+
+        // Konfirmasi Nov 7 -> next_due_date geser ke 2026-12-07
+        $service->confirmOccurrence($schedule, '2026-11-07', $this->userA);
+        $schedule->refresh();
+        $this->assertEquals('2026-12-07', $schedule->next_due_date->toDateString());
+
+        // Edit start_date menjadi 2026-11-19 -> next_due_date otomatis berubah menjadi 2026-12-19
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/recurring/{$schedule->id}", [
+                'name' => 'Langganan Chatgpt Cycle',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'status' => 'active',
+                'amount' => 349000,
+                'start_date' => '2026-11-19',
+                'next_due_date' => '2026-12-07',
+            ]);
+
+        $response->assertRedirect(route('recurring.show', $schedule));
+
+        $schedule->refresh();
+        $this->assertEquals(19, $schedule->anchor_day);
+        $this->assertEquals('2026-12-19', $schedule->next_due_date->toDateString());
+        $this->assertDatabaseMissing('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-12-07',
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseHas('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-12-19',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_updating_schedule_with_archived_category_succeeds_and_invalid_end_date_shows_error(): void
+    {
+        $archivedCat = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Kategori Arsip',
+            'type' => 'expense',
+            'archived_at' => now(),
+        ]);
+
+        $schedule = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Langganan Arsip Cat',
+            'category_id' => $archivedCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 7,
+            'start_date' => '2026-11-07',
+            'next_due_date' => '2026-11-07',
+            'amount' => 100000,
+            'status' => 'active',
+            'created_by' => $this->userA->id,
+        ]);
+
+        // Validasi invalid end_date < start_date harus menampilkan pesan error di form edit
+        $invalidResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->from("/recurring/{$schedule->id}/edit")
+            ->followingRedirects()
+            ->put("/recurring/{$schedule->id}", [
+                'name' => 'Langganan Arsip Cat',
+                'category_id' => $archivedCat->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'status' => 'active',
+                'amount' => 100000,
+                'start_date' => '2026-11-19',
+                'end_date' => '2026-11-10',
+            ]);
+
+        $invalidResp->assertOk();
+        $invalidResp->assertSee('Perubahan gagal disimpan', false);
+        $invalidResp->assertSee('Tanggal berakhir tidak boleh sebelum tanggal mulai.', false);
+
+        // Update dengan kategori lama yang terarsip dan tanggal valid harus berhasil
+        $validResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/recurring/{$schedule->id}", [
+                'name' => 'Langganan Arsip Cat',
+                'category_id' => $archivedCat->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'status' => 'active',
+                'amount' => 100000,
+                'start_date' => '2026-11-19',
+            ]);
+
+        $validResp->assertRedirect(route('recurring.show', $schedule));
+        $schedule->refresh();
+        $this->assertEquals(19, $schedule->anchor_day);
+        $this->assertEquals('2026-11-19', $schedule->next_due_date->toDateString());
+    }
 }
