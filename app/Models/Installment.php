@@ -183,6 +183,11 @@ class Installment extends Model
             : "https://api.whatsapp.com/send?text={$text}";
     }
 
+    public function getAmountAttribute(): float
+    {
+        return (float) $this->total_amount;
+    }
+
     public function getFormattedTotalAmountAttribute(): string
     {
         $decimals = fmod((float) $this->total_amount, 1) == 0.0 ? 0 : 2;

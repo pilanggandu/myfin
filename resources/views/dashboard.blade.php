@@ -568,14 +568,32 @@
 
             <div class="divide-y divide-line">
                 @forelse ($upcomingInstallments as $inst)
-                    <div class="px-4 sm:px-5 py-2.5 flex items-center justify-between text-xs">
-                        <div class="min-w-0">
-                            <span class="font-bold text-charcoal block truncate">{{ $inst->installmentPlan?->name ?? 'Cicilan' }}</span>
-                            <span class="text-[10.5px] text-muted block">{{ $inst->installmentPlan?->creditAccount?->name }} • Jatuh Tempo: {{ $inst->due_date?->format('d M Y') }}</span>
+                    @php
+                        $dueStatus = $inst->dueStatus();
+                    @endphp
+                    <div class="px-4 sm:px-5 py-2.5 flex items-center justify-between text-xs hover:bg-cream/40 transition gap-3">
+                        <div class="min-w-0 flex-1">
+                            @if ($inst->installmentPlan)
+                                <a href="{{ route('credit.plans.show', $inst->installmentPlan) }}" class="font-bold text-charcoal hover:text-forest block truncate">
+                                    {{ $inst->installmentPlan->name }}
+                                </a>
+                            @else
+                                <span class="font-bold text-charcoal block truncate">Cicilan</span>
+                            @endif
+                            <div class="text-[10.5px] text-muted flex items-center gap-1.5 mt-0.5 truncate">
+                                <span>{{ $inst->installmentPlan?->creditAccount?->name }}</span>
+                                <span>&bull;</span>
+                                <span>Jatuh Tempo: {{ $inst->due_date?->format('d M Y') }}</span>
+                            </div>
                         </div>
-                        <span class="font-mono font-bold privacy-balance flex-shrink-0" data-raw-value="{{ 'Rp ' . number_format($inst->amount, 0, ',', '.') }}">
-                            Rp {{ number_format($inst->amount, 0, ',', '.') }}
-                        </span>
+                        <div class="text-right flex-shrink-0">
+                            <span class="font-mono font-bold block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($inst->total_amount, 0, ',', '.') }}">
+                                Rp {{ number_format($inst->total_amount, 0, ',', '.') }}
+                            </span>
+                            <span class="text-[9.5px] px-1.5 py-0.2 rounded font-semibold uppercase {{ $dueStatus === 'overdue' ? 'bg-rose-100 text-rose-800' : ($dueStatus === 'due_today' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800') }}">
+                                {{ $inst->dueStatusLabel() }}
+                            </span>
+                        </div>
                     </div>
                 @empty
                     <div class="p-6 text-center text-xs text-muted">

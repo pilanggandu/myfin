@@ -129,6 +129,18 @@ class FinancialTransaction extends Model
         return $query->where('type', 'credit_payment');
     }
 
+    public function scopePastOrToday(Builder $query, ?string $date = null): Builder
+    {
+        return $query->whereDate('transaction_date', '<=', $date ?? now()->toDateString());
+    }
+
+    public function scopeRecent(Builder $query, ?string $date = null): Builder
+    {
+        return $query->posted()
+            ->pastOrToday($date)
+            ->latestFirst();
+    }
+
     public function scopeLatestFirst(Builder $query): Builder
     {
         return $query->orderBy('transaction_date', 'desc')

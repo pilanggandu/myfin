@@ -26,12 +26,15 @@
     <!-- Filter & Search Panel -->
     <div class="panel-card p-4 sm:p-5 mb-6">
         @php
-            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'status', 'start_date', 'end_date'];
+            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date'];
             $activeCount = 0;
             foreach ($advancedKeys as $k) {
                 if (request()->filled($k)) {
                     $activeCount++;
                 }
+            }
+            if (request()->has('status') && request('status') !== 'posted') {
+                $activeCount++;
             }
             if (request('sort') === 'date_asc') {
                 $activeCount++;
@@ -84,7 +87,7 @@
                         Terapkan
                     </button>
 
-                    @if (request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'status', 'start_date', 'end_date']))
+                    @if (request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date']) || (request()->has('status') && request('status') !== 'posted') || (request()->has('sort') && request('sort') !== 'date_desc'))
                         <a href="{{ route('transactions.index') }}" class="btn-arus-secondary h-10 min-h-[40px] px-3 text-xs font-bold inline-flex items-center justify-center text-muted hover:text-red transition cursor-pointer" title="Reset Semua Filter">
                             Reset
                         </a>
@@ -153,8 +156,8 @@
                     <div>
                         <label class="block text-xs font-bold text-charcoal mb-1">Status Transaksi</label>
                         <select name="status" class="field-select h-9 py-1 text-xs w-full">
-                            <option value="">Semua Status</option>
-                            <option value="posted" {{ request('status') === 'posted' ? 'selected' : '' }}>Posted (Aktif)</option>
+                            <option value="posted" {{ request('status', 'posted') === 'posted' ? 'selected' : '' }}>Posted (Aktif - Default)</option>
+                            <option value="all" {{ request('status') === 'all' ? 'selected' : '' }}>Semua Status (Termasuk Void)</option>
                             <option value="void" {{ request('status') === 'void' ? 'selected' : '' }}>Void (Dibatalkan)</option>
                         </select>
                     </div>
@@ -549,7 +552,15 @@
         function clearAdvancedFilters() {
             const form = document.getElementById('transactionFilterForm');
             if (!form) return;
-            form.querySelectorAll('#advancedFilterPanel select').forEach(s => s.value = '');
+            form.querySelectorAll('#advancedFilterPanel select').forEach(s => {
+                if (s.name === 'status') {
+                    s.value = 'posted';
+                } else if (s.name === 'sort') {
+                    s.value = 'date_desc';
+                } else {
+                    s.value = '';
+                }
+            });
             form.querySelectorAll('#advancedFilterPanel input[type="date"]').forEach(i => i.value = '');
             form.submit();
         }

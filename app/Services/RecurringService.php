@@ -484,15 +484,26 @@ class RecurringService
 
         foreach ($activeSchedules as $sch) {
             $dueDate = Carbon::parse($sch->next_due_date, $tz)->startOfDay();
+            $itemData = [
+                'id' => $sch->id,
+                'name' => $sch->name,
+                'due_date' => $sch->next_due_date instanceof Carbon ? $sch->next_due_date->toDateString() : (string) $sch->next_due_date,
+                'amount' => (int) ($sch->amount ?? 0),
+                'schedule' => $sch,
+            ];
+
             if ($dueDate->lt($today)) {
                 $overdueCount++;
-                $needingAttention[] = $sch;
+                $itemData['status'] = 'overdue';
+                $needingAttention[] = $itemData;
             } elseif ($dueDate->eq($today)) {
                 $dueTodayCount++;
-                $needingAttention[] = $sch;
+                $itemData['status'] = 'due_today';
+                $needingAttention[] = $itemData;
             } elseif ($dueDate->lte($in7Days)) {
                 $upcomingCount++;
-                $needingAttention[] = $sch;
+                $itemData['status'] = 'upcoming';
+                $needingAttention[] = $itemData;
             }
         }
 

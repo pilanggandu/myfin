@@ -22,7 +22,7 @@ class DashboardController extends Controller
 
         $recentTransactions = $currentSpace ? $currentSpace->financialTransactions()
             ->with(['category', 'entries.account', 'member', 'installmentPlan'])
-            ->latestFirst()
+            ->recent($now->toDateString())
             ->take(7)
             ->get() : collect();
 

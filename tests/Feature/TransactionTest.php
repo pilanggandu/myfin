@@ -1038,4 +1038,61 @@ class TransactionTest extends TestCase
         $this->assertEquals($trxNewMorning->id, $transactions->items()[1]->id);
         $this->assertEquals($trxNewAfternoon->id, $transactions->items()[2]->id);
     }
+
+    public function test_transactions_index_defaults_to_posted_status_excluding_void(): void
+    {
+        $postedTrx = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-05',
+            'transaction_time' => '10:00:00',
+            'description' => 'Transaksi Aktif',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+
+        $voidTrx = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-11-05',
+            'transaction_time' => '11:00:00',
+            'description' => 'Transaksi Batal',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'void',
+            'version' => 1,
+        ]);
+
+        // Default: hanya posted
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index'));
+
+        $response->assertOk();
+        $transactions = $response->viewData('transactions');
+        $this->assertTrue($transactions->contains('id', $postedTrx->id));
+        $this->assertFalse($transactions->contains('id', $voidTrx->id));
+
+        // Filter status=void: hanya void
+        $responseVoid = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index', ['status' => 'void']));
+
+        $responseVoid->assertOk();
+        $txVoidData = $responseVoid->viewData('transactions');
+        $this->assertFalse($txVoidData->contains('id', $postedTrx->id));
+        $this->assertTrue($txVoidData->contains('id', $voidTrx->id));
+
+        // Filter status=all: keduanya muncul
+        $responseAll = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index', ['status' => 'all']));
+
+        $responseAll->assertOk();
+        $txAllData = $responseAll->viewData('transactions');
+        $this->assertTrue($txAllData->contains('id', $postedTrx->id));
+        $this->assertTrue($txAllData->contains('id', $voidTrx->id));
+    }
 }

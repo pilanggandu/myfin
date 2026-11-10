@@ -38,8 +38,13 @@ class FinancialTransactionController extends Controller
             $query->where('type', $request->type);
         }
 
-        if ($request->filled('status') && in_array($request->status, ['posted', 'void'])) {
-            $query->where('status', $request->status);
+        $status = $request->input('status', 'posted');
+        if ($status !== 'all') {
+            if (in_array($status, ['posted', 'void'])) {
+                $query->where('status', $status);
+            } else {
+                $query->where('status', 'posted');
+            }
         }
 
         if ($request->filled('category_id')) {
