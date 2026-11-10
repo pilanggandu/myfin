@@ -86,7 +86,8 @@ class InstallmentPlan extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('status', 'active');
+        return $query->where('status', 'active')
+            ->whereDoesntHave('purchaseTransaction', fn ($t) => $t->where('status', 'void'));
     }
 
     public function scopeCompleted(Builder $query): Builder
@@ -96,7 +97,14 @@ class InstallmentPlan extends Model
 
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->status === 'active'
+            && ! ($this->purchaseTransaction && $this->purchaseTransaction->isVoid());
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled'
+            || ($this->purchaseTransaction && $this->purchaseTransaction->isVoid());
     }
 
     public function isCompleted(): bool

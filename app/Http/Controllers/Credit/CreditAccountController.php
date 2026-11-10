@@ -37,7 +37,7 @@ class CreditAccountController extends Controller
 
         $activePlansQuery = $space->installmentPlans()
             ->with(['creditAccount', 'category', 'installments'])
-            ->where('status', 'active');
+            ->active();
 
         if ($selectedAccountFilter) {
             $activePlansQuery->where('credit_account_id', $selectedAccountFilter);
@@ -77,7 +77,8 @@ class CreditAccountController extends Controller
 
         $overdueInstallments = Installment::query()
             ->where('space_id', $space->id)
-            ->where('status', 'pending')
+            ->active()
+            ->pending()
             ->where('due_date', '<', $today)
             ->with(['installmentPlan.creditAccount'])
             ->orderBy('due_date', 'asc')
@@ -85,7 +86,8 @@ class CreditAccountController extends Controller
 
         $dueSoonInstallments = Installment::query()
             ->where('space_id', $space->id)
-            ->where('status', 'pending')
+            ->active()
+            ->pending()
             ->whereBetween('due_date', [$today, $threeDaysLater])
             ->with(['installmentPlan.creditAccount'])
             ->orderBy('due_date', 'asc')
@@ -102,7 +104,8 @@ class CreditAccountController extends Controller
 
             $monthSum = (int) Installment::query()
                 ->where('space_id', $space->id)
-                ->where('status', 'pending')
+                ->active()
+                ->pending()
                 ->whereBetween('due_date', [$monthStart, $monthEnd])
                 ->sum('total_amount');
 

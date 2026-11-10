@@ -549,6 +549,7 @@ class ReportController extends Controller
         $calendarEnd = $endOfMonth->copy()->addDays(7 - $endDayOfWeek);
 
         $installments = $space ? Installment::where('space_id', $space->id)
+            ->active()
             ->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
             ->with(['installmentPlan.creditAccount'])
             ->get() : collect();
@@ -638,7 +639,7 @@ class ReportController extends Controller
                             return $o->due_date->toDateString() === $dateStr;
                         });
 
-                        if ($occ && $occ->status === 'skipped') {
+                        if ($occ && in_array($occ->status, ['skipped', 'cancelled'])) {
                             continue;
                         }
 

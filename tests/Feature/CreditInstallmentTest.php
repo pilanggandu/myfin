@@ -11,6 +11,7 @@ use App\Models\InstallmentPlan;
 use App\Models\Space;
 use App\Models\User;
 use App\Services\CreditService;
+use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -287,6 +288,30 @@ class CreditInstallmentTest extends TestCase
 
         $this->assertEquals(0, $this->creditCard->currentLiability());
         $this->assertEquals(10000000, $this->creditCard->availableLimit());
+    }
+
+    public function test_voiding_financial_transaction_cancels_associated_installment_plan_and_installments(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Langganan Chatgpt',
+            'total_amount' => 349000,
+            'tenor' => 1,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->assertEquals('active', $plan->status);
+        $this->assertEquals('pending', $plan->installments()->first()->status);
+
+        // Void the financial transaction directly (e.g. from /transactions)
+        $tx = $plan->purchaseTransaction;
+        app(TransactionService::class)->voidTransaction($tx, $this->user, 'Dibatalkan oleh pengguna');
+
+        $plan->refresh();
+        $this->assertEquals('cancelled', $plan->status);
+        $this->assertEquals('cancelled', $plan->installments()->first()->status);
+        $this->assertEquals(0, Installment::active()->where('installment_plan_id', $plan->id)->count());
     }
 
     public function test_cannot_void_plan_with_existing_payment(): void

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinancialTransaction;
+use App\Models\Installment;
+use App\Models\InstallmentPlan;
 use App\Models\RecurringOccurrence;
 use App\Models\Space;
 use App\Models\TransactionRevision;
@@ -642,6 +644,26 @@ class TransactionService
                     'confirmed_at' => null,
                     'confirmed_by' => null,
                 ]);
+            }
+
+            // Sync dengan InstallmentPlan jika transaksi yang di-void adalah transaksi pembelian kredit
+            $installmentPlan = InstallmentPlan::where('financial_transaction_id', $lockedTransaction->id)->first();
+            if ($installmentPlan) {
+                $installmentPlan->update(['status' => 'cancelled']);
+                $installmentPlan->installments()->where('status', 'pending')->update(['status' => 'cancelled']);
+            }
+
+            // Sync dengan Installment jika transaksi yang di-void adalah transaksi pembayaran cicilan
+            $paidInstallments = Installment::where('payment_transaction_id', $lockedTransaction->id)->get();
+            foreach ($paidInstallments as $paidInst) {
+                $paidInst->update([
+                    'status' => 'pending',
+                    'paid_at' => null,
+                    'payment_transaction_id' => null,
+                ]);
+                if ($paidInst->installmentPlan && $paidInst->installmentPlan->status === 'completed') {
+                    $paidInst->installmentPlan->update(['status' => 'active']);
+                }
             }
 
             TransactionRevision::create([

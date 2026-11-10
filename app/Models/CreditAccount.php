@@ -94,9 +94,9 @@ class CreditAccount extends Model
     public function currentLiability(): float
     {
         $pendingPrincipal = (float) Installment::query()
+            ->active()
             ->whereHas('installmentPlan', function ($q) {
-                $q->where('credit_account_id', $this->id)
-                    ->where('status', 'active');
+                $q->where('credit_account_id', $this->id);
             })
             ->where('status', 'pending')
             ->sum('principal_amount');
@@ -119,9 +119,9 @@ class CreditAccount extends Model
     public function installmentPrincipalLiability(): float
     {
         return round((float) Installment::query()
+            ->active()
             ->whereHas('installmentPlan', function ($q) {
-                $q->where('credit_account_id', $this->id)
-                    ->where('status', 'active');
+                $q->where('credit_account_id', $this->id);
             })
             ->where('status', 'pending')
             ->sum('principal_amount'), 2);
@@ -130,9 +130,9 @@ class CreditAccount extends Model
     public function installmentTotalLiability(): float
     {
         return round((float) Installment::query()
+            ->active()
             ->whereHas('installmentPlan', function ($q) {
-                $q->where('credit_account_id', $this->id)
-                    ->where('status', 'active');
+                $q->where('credit_account_id', $this->id);
             })
             ->where('status', 'pending')
             ->sum('total_amount'), 2);
@@ -141,9 +141,9 @@ class CreditAccount extends Model
     public function installmentInterestAndFeeLiability(): float
     {
         $interestAndFee = (float) Installment::query()
+            ->active()
             ->whereHas('installmentPlan', function ($q) {
-                $q->where('credit_account_id', $this->id)
-                    ->where('status', 'active');
+                $q->where('credit_account_id', $this->id);
             })
             ->where('status', 'pending')
             ->sum(DB::raw('interest_amount + fee_amount'));

@@ -64,6 +64,15 @@ class Installment extends Model
         return $this->hasMany(CreditDebitNote::class)->orderBy('note_date', 'desc')->orderBy('id', 'desc');
     }
 
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereIn('installments.status', ['pending', 'paid'])
+            ->whereHas('installmentPlan', function ($q) {
+                $q->whereIn('status', ['active', 'completed'])
+                    ->whereDoesntHave('purchaseTransaction', fn ($t) => $t->where('status', 'void'));
+            });
+    }
+
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');
@@ -72,6 +81,13 @@ class Installment extends Model
     public function scopePaid(Builder $query): Builder
     {
         return $query->where('status', 'paid');
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled'
+            || $this->installmentPlan?->status === 'cancelled'
+            || $this->installmentPlan?->purchaseTransaction?->status === 'void';
     }
 
     public function isPending(): bool

@@ -98,7 +98,8 @@ class DashboardController extends Controller
         $upcomingInstallments = $currentSpace
             ? Installment::query()
                 ->where('space_id', $currentSpace->id)
-                ->where('status', 'pending')
+                ->active()
+                ->pending()
                 ->with(['installmentPlan.creditAccount'])
                 ->orderBy('due_date', 'asc')
                 ->take(5)

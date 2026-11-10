@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\CreditAccount;
+use App\Models\FinancialTransaction;
 use App\Models\Installment;
 use App\Models\InstallmentPlan;
 use App\Models\RecurringSchedule;
@@ -529,6 +531,128 @@ class ReportTest extends TestCase
             $this->assertEquals(1, $installmentDay->bills_count);
             $this->assertEquals(1000000, $installmentDay->bills_total_amount);
             $this->assertEquals(0, $installmentDay->outflow);
+
+            return true;
+        });
+    }
+
+    public function test_calendar_view_excludes_cancelled_installments_and_voided_credit_purchases(): void
+    {
+        $creditAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'BCA Blibli Tiket (Kewajiban)',
+            'type' => 'credit_card',
+            'opening_balance' => 0,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $creditAcc = CreditAccount::create([
+            'space_id' => $this->spaceA->id,
+            'account_id' => $creditAccount->id,
+            'name' => 'BCA BLIBLI TIKET',
+            'type' => 'credit_card',
+            'credit_limit' => 20000000,
+        ]);
+
+        // 1. Cicilan Aktif
+        $activePlan = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAcc->id,
+            'category_id' => $this->foodCat->id,
+            'name' => 'Chatgpt Plus Aktif',
+            'total_amount' => 349000,
+            'tenor' => 1,
+            'start_date' => '2026-05-01',
+            'status' => 'active',
+        ]);
+        Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $activePlan->id,
+            'installment_number' => 1,
+            'due_date' => '2026-05-19',
+            'principal_amount' => 349000,
+            'total_amount' => 349000,
+            'status' => 'pending',
+        ]);
+
+        // 2. Cicilan Dibatalkan (plan status = cancelled, installment status = cancelled)
+        $cancelledPlan = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAcc->id,
+            'category_id' => $this->foodCat->id,
+            'name' => 'Langganan Chatgpt Dibatalkan',
+            'total_amount' => 349000,
+            'tenor' => 1,
+            'start_date' => '2026-05-01',
+            'status' => 'cancelled',
+        ]);
+        Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $cancelledPlan->id,
+            'installment_number' => 1,
+            'due_date' => '2026-05-19',
+            'principal_amount' => 349000,
+            'total_amount' => 349000,
+            'status' => 'cancelled',
+        ]);
+
+        // 3. Cicilan dengan Transaksi Pembelian Void
+        $voidTx = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-05-01',
+            'transaction_time' => '10:00:00',
+            'description' => 'Pembelian Void',
+            'category_id' => $this->foodCat->id,
+            'status' => 'void',
+            'created_by' => $this->userA->id,
+            'version' => 1,
+        ]);
+        $voidPlan = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAcc->id,
+            'financial_transaction_id' => $voidTx->id,
+            'category_id' => $this->foodCat->id,
+            'name' => 'Pembelian Dengan Transaksi Void',
+            'total_amount' => 100000,
+            'tenor' => 1,
+            'start_date' => '2026-05-01',
+            'status' => 'active',
+        ]);
+        Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $voidPlan->id,
+            'installment_number' => 1,
+            'due_date' => '2026-05-19',
+            'principal_amount' => 100000,
+            'total_amount' => 100000,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=5');
+
+        $response->assertStatus(200);
+        $response->assertSee('Chatgpt Plus Aktif');
+        $response->assertDontSee('Langganan Chatgpt Dibatalkan');
+        $response->assertDontSee('Pembelian Dengan Transaksi Void');
+
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $targetDay = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-05-19') {
+                        $targetDay = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($targetDay);
+            // Hanya 1 cicilan aktif yang masuk
+            $this->assertEquals(1, $targetDay->bills_count);
+            $this->assertEquals(349000, $targetDay->bills_total_amount);
+            $this->assertEquals('Chatgpt Plus Aktif', $targetDay->bills[0]['title']);
 
             return true;
         });
