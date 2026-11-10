@@ -61,18 +61,54 @@ class FinancialTransactionController extends Controller
             });
         }
 
+        $today = $space ? $space->now()->toDateString() : now()->toDateString();
+        $showUpcoming = $request->boolean('include_future', false);
+
         if ($request->filled('start_date')) {
-            $query->where('transaction_date', '>=', $request->start_date);
+            $query->whereDate('transaction_date', '>=', $request->start_date);
         }
 
         if ($request->filled('end_date')) {
-            $query->where('transaction_date', '<=', $request->end_date);
+            $query->whereDate('transaction_date', '<=', $request->end_date);
+        } elseif (! $showUpcoming && (! $request->filled('start_date') || $request->start_date <= $today)) {
+            $query->whereDate('transaction_date', '<=', $today);
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('description', 'like', "%{$search}%");
         }
+
+        $upcomingQuery = $space->financialTransactions()
+            ->whereDate('transaction_date', '>', $today);
+
+        if ($status !== 'all') {
+            $upcomingQuery->where('status', 'posted');
+        }
+
+        if ($request->filled('type') && in_array($request->type, ['income', 'expense', 'transfer'])) {
+            $upcomingQuery->where('type', $request->type);
+        }
+
+        if ($request->filled('category_id')) {
+            $upcomingQuery->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('member_id')) {
+            $upcomingQuery->where('member_id', $request->member_id);
+        }
+
+        if ($request->filled('account_id')) {
+            $upcomingQuery->whereHas('entries', function ($q) use ($request) {
+                $q->where('account_id', $request->account_id);
+            });
+        }
+
+        if ($request->filled('search')) {
+            $upcomingQuery->where('description', 'like', "%{$request->search}%");
+        }
+
+        $upcomingCount = $upcomingQuery->count();
 
         $transactions = $query->paginate(15)->withQueryString();
 
@@ -86,7 +122,10 @@ class FinancialTransactionController extends Controller
             'accounts',
             'incomeCategories',
             'expenseCategories',
-            'members'
+            'members',
+            'upcomingCount',
+            'showUpcoming',
+            'today'
         ));
     }
 

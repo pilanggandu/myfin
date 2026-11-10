@@ -17,7 +17,7 @@ class DashboardController extends Controller
         $startOfMonth = $now->copy()->startOfMonth()->toDateString();
         $endOfMonth = $now->copy()->endOfMonth()->toDateString();
 
-        $accounts = $currentSpace ? $currentSpace->activeAccounts()->get() : collect();
+        $accounts = $currentSpace ? $currentSpace->activeAccounts()->with('creditAccount')->get() : collect();
         $totalBalance = $currentSpace ? $currentSpace->totalBalance() : 0;
 
         $recentTransactions = $currentSpace ? $currentSpace->financialTransactions()

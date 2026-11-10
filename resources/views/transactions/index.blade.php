@@ -26,7 +26,7 @@
     <!-- Filter & Search Panel -->
     <div class="panel-card p-4 sm:p-5 mb-6">
         @php
-            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date'];
+            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future'];
             $activeCount = 0;
             foreach ($advancedKeys as $k) {
                 if (request()->filled($k)) {
@@ -43,6 +43,9 @@
         @endphp
 
         <form method="GET" action="{{ route('transactions.index') }}" class="space-y-3" id="transactionFilterForm">
+            @if ($showUpcoming)
+                <input type="hidden" name="include_future" value="1" />
+            @endif
             <!-- Baris Utama: Pencarian Cepat + Tombol Dropdown Filter Lanjutan + Aksi -->
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 <div class="relative flex-1">
@@ -87,7 +90,7 @@
                         Terapkan
                     </button>
 
-                    @if (request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date']) || (request()->has('status') && request('status') !== 'posted') || (request()->has('sort') && request('sort') !== 'date_desc'))
+                    @if (request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future']) || (request()->has('status') && request('status') !== 'posted') || (request()->has('sort') && request('sort') !== 'date_desc'))
                         <a href="{{ route('transactions.index') }}" class="btn-arus-secondary h-10 min-h-[40px] px-3 text-xs font-bold inline-flex items-center justify-center text-muted hover:text-red transition cursor-pointer" title="Reset Semua Filter">
                             Reset
                         </a>
@@ -217,6 +220,10 @@
                         30 Hari Terakhir
                     </button>
                     <span class="text-line">&bull;</span>
+                    <button type="button" onclick="setDateFilterPreset('upcoming')" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                        Mendatang
+                    </button>
+                    <span class="text-line">&bull;</span>
                     <button type="button" onclick="setDateFilterPreset('clear')" class="text-[11px] text-muted hover:text-red underline transition cursor-pointer">
                         Hapus Tanggal
                     </button>
@@ -224,6 +231,48 @@
             </div>
         </form>
     </div>
+
+    {{-- Banner Notifikasi Transaksi Mendatang --}}
+    @if (! $showUpcoming && $upcomingCount > 0)
+        <div class="mb-4 p-4 rounded-xl border border-sky-500/25 bg-sky-500/10 text-sky-950 dark:text-sky-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center justify-center text-sm flex-shrink-0">
+                    📅
+                </span>
+                <div>
+                    <div class="text-xs font-bold">
+                        Terdapat {{ $upcomingCount }} transaksi mendatang disembunyikan
+                    </div>
+                    <div class="text-[11px] text-muted">
+                        Secara default, transaksi bertanggal di masa depan (seperti tagihan kredit berikutnya) disembunyikan dari riwayat utama.
+                    </div>
+                </div>
+            </div>
+            <a href="{{ request()->fullUrlWithQuery(['include_future' => 1]) }}" class="btn-arus-secondary text-xs py-1.5 px-3 font-bold border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-500/15 transition flex-shrink-0 inline-flex items-center gap-1.5">
+                <span>Tampilkan Transaksi Mendatang</span>
+                <span>&rarr;</span>
+            </a>
+        </div>
+    @elseif ($showUpcoming)
+        <div class="mb-4 p-4 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center text-sm flex-shrink-0">
+                    ⏳
+                </span>
+                <div>
+                    <div class="text-xs font-bold">
+                        Menampilkan transaksi termasuk transaksi mendatang
+                    </div>
+                    <div class="text-[11px] text-muted">
+                        Mode transaksi mendatang aktif. Transaksi bertanggal masa depan ikut ditampilkan di tabel.
+                    </div>
+                </div>
+            </div>
+            <a href="{{ request()->fullUrlWithQuery(['include_future' => null]) }}" class="btn-arus-secondary text-xs py-1.5 px-3 font-bold border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 transition flex-shrink-0 inline-flex items-center gap-1.5">
+                <span>Sembunyikan Transaksi Mendatang</span>
+            </a>
+        </div>
+    @endif
 
     <!-- Table & List Panel -->
     <div class="panel-card p-0 overflow-hidden" data-privacy-scope="transactions-table">
@@ -562,6 +611,8 @@
                 }
             });
             form.querySelectorAll('#advancedFilterPanel input[type="date"]').forEach(i => i.value = '');
+            const futureInput = form.querySelector('input[name="include_future"]');
+            if (futureInput) futureInput.remove();
             form.submit();
         }
 
@@ -592,6 +643,11 @@
                 past.setDate(past.getDate() - 30);
                 startInput.value = toIso(past);
                 endInput.value = toIso(now);
+            } else if (preset === 'upcoming') {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                startInput.value = toIso(tomorrow);
+                endInput.value = '';
             } else if (preset === 'clear') {
                 startInput.value = '';
                 endInput.value = '';

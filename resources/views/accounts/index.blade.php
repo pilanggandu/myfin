@@ -95,6 +95,7 @@
                             'e-wallet' => '📱',
                             'cash' => '💵',
                             'investment' => '📈',
+                            'loan' => '🤝',
                             default => '💳',
                         };
                         $typeLabel = match($account->type) {
@@ -102,8 +103,11 @@
                             'e-wallet' => 'E-Wallet',
                             'cash' => 'Kas Tunai',
                             'investment' => 'Investasi / RDN',
+                            'credit_card' => 'Kartu Kredit',
+                            'loan' => 'Pinjaman',
                             default => $account->type,
                         };
+                        $availableLimit = $account->availableLimit();
                     @endphp
                     <div class="p-5 space-y-4 hover:bg-cream/20 transition-colors {{ $account->isArchived() ? 'opacity-70 bg-sidebar/30' : '' }}">
                         <div class="flex items-start justify-between gap-3">
@@ -115,6 +119,15 @@
                                     <div class="flex items-center gap-2">
                                         <span class="font-bold text-base text-charcoal">{{ $account->name }}</span>
                                         <x-badge variant="default">{{ $typeLabel }}</x-badge>
+                                        @if ($account->isCreditCard() && $availableLimit !== null)
+                                            <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                Sisa Limit
+                                            </span>
+                                        @elseif ($account->isLoan())
+                                            <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                Kewajiban
+                                            </span>
+                                        @endif
                                         @if ($account->isDefault())
                                             <span class="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                                                 Default
@@ -139,12 +152,34 @@
                         </div>
 
                         <div class="p-3 rounded-lg bg-sidebar/50 border border-line flex items-center justify-between">
-                            <span class="text-xs text-muted">Saldo Saat Ini:</span>
-                            <span class="font-bold text-base font-mono {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
-                                <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
-                                    Rp {{ number_format($balance, 0, ',', '.') }}
+                            @if ($account->isCreditCard() && $availableLimit !== null)
+                                <div>
+                                    <span class="text-xs text-muted block">Sisa Limit Tersedia:</span>
+                                    <span class="text-[11px] text-muted">Terpakai: <span class="privacy-balance font-mono" data-raw-value="Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}">Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}</span></span>
+                                </div>
+                                <span class="font-bold text-base font-mono text-emerald-600 dark:text-emerald-400">
+                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($availableLimit, 0, ',', '.') }}">
+                                        Rp {{ number_format($availableLimit, 0, ',', '.') }}
+                                    </span>
                                 </span>
-                            </span>
+                            @elseif ($account->isLoan())
+                                <div>
+                                    <span class="text-xs text-muted block">Sisa Kewajiban:</span>
+                                    <span class="text-[11px] text-muted">Total Hutang Berjalan</span>
+                                </div>
+                                <span class="font-bold text-base font-mono text-charcoal">
+                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format(abs($balance), 0, ',', '.') }}">
+                                        Rp {{ number_format(abs($balance), 0, ',', '.') }}
+                                    </span>
+                                </span>
+                            @else
+                                <span class="text-xs text-muted">Saldo Saat Ini:</span>
+                                <span class="font-bold text-base font-mono {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
+                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
+                                        Rp {{ number_format($balance, 0, ',', '.') }}
+                                    </span>
+                                </span>
+                            @endif
                         </div>
 
                         <div class="flex items-center gap-2 pt-1 flex-wrap">
@@ -214,6 +249,7 @@
                                     'e-wallet' => '📱',
                                     'cash' => '💵',
                                     'investment' => '📈',
+                                    'loan' => '🤝',
                                     default => '💳',
                                 };
                                 $typeLabel = match($account->type) {
@@ -221,8 +257,11 @@
                                     'e-wallet' => 'E-Wallet',
                                     'cash' => 'Kas Tunai',
                                     'investment' => 'Investasi / RDN',
+                                    'credit_card' => 'Kartu Kredit',
+                                    'loan' => 'Pinjaman',
                                     default => $account->type,
                                 };
+                                $availableLimit = $account->availableLimit();
                             @endphp
                             <tr class="hover:bg-cream/30 transition-colors {{ $account->isArchived() ? 'opacity-65' : '' }}">
                                 <td class="py-4 px-6">
@@ -233,6 +272,15 @@
                                         <div>
                                             <div class="flex items-center gap-2">
                                                 <span class="font-bold text-sm text-charcoal">{{ $account->name }}</span>
+                                                @if ($account->isCreditCard() && $availableLimit !== null)
+                                                    <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                        Sisa Limit
+                                                    </span>
+                                                @elseif ($account->isLoan())
+                                                    <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                        Kewajiban
+                                                    </span>
+                                                @endif
                                                 @if ($account->isDefault())
                                                     <span class="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                                                         Default
@@ -261,10 +309,32 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="py-4 px-4 whitespace-nowrap text-right font-bold text-sm font-mono {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
-                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
-                                        Rp {{ number_format($balance, 0, ',', '.') }}
-                                    </span>
+                                <td class="py-4 px-4 whitespace-nowrap text-right font-mono">
+                                    @if ($account->isCreditCard() && $availableLimit !== null)
+                                        <div class="font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                                            <span class="privacy-balance" data-raw-value="Rp {{ number_format($availableLimit, 0, ',', '.') }}">
+                                                Rp {{ number_format($availableLimit, 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                        <div class="text-[11px] text-muted font-sans">
+                                            Terpakai: <span class="privacy-balance font-mono" data-raw-value="Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}">Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}</span>
+                                        </div>
+                                    @elseif ($account->isLoan())
+                                        <div class="font-bold text-sm text-charcoal">
+                                            <span class="privacy-balance" data-raw-value="Rp {{ number_format(abs($balance), 0, ',', '.') }}">
+                                                Rp {{ number_format(abs($balance), 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                        <div class="text-[11px] text-muted font-sans">
+                                            Sisa Kewajiban
+                                        </div>
+                                    @else
+                                        <div class="font-bold text-sm {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
+                                            <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
+                                                Rp {{ number_format($balance, 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-right">
                                     <div class="inline-flex items-center justify-end gap-1.5">

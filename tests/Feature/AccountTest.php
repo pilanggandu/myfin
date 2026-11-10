@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\Space;
 use App\Models\User;
+use App\Services\CreditService;
 use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -378,5 +379,58 @@ class AccountTest extends TestCase
         $updateResponse->assertRedirect('/accounts');
         $this->assertSame('Bibit & SBN Portofolio', $account->fresh()->name);
         $this->assertEquals(6000000, $this->spaceA->fresh()->investmentBalance());
+    }
+
+    public function test_accounts_index_and_show_renders_available_limit_for_credit_card_and_kewajiban_for_loans(): void
+    {
+        $creditCard = app(CreditService::class)->createCreditAccount($this->spaceA, [
+            'name' => 'BCA Blibli Tiket',
+            'type' => 'credit_card',
+            'credit_limit' => 10000000,
+            'billing_cycle_day' => 20,
+            'due_day' => 10,
+        ]);
+
+        $loanAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Pinjaman Bank Anam',
+            'type' => 'loan',
+            'opening_balance' => -200000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $this->assertTrue($creditCard->ledgerAccount->isCreditCard());
+        $this->assertEquals(10000000, $creditCard->ledgerAccount->availableLimit());
+        $this->assertEquals(0, $creditCard->ledgerAccount->liabilityAmount());
+
+        $this->assertTrue($loanAccount->isLoan());
+        $this->assertEquals(200000, $loanAccount->liabilityAmount());
+
+        // Test accounts.index
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/accounts');
+
+        $response->assertOk();
+        $response->assertSee('Sisa Limit', false);
+        $response->assertSee('Kewajiban', false);
+        $response->assertSee('10.000.000', false);
+        $response->assertSee('200.000', false);
+
+        // Test accounts.show untuk credit card
+        $ccShowResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.show', $creditCard->ledgerAccount));
+
+        $ccShowResponse->assertOk();
+        $ccShowResponse->assertSee('SISA LIMIT TERSEDIA', false);
+
+        // Test accounts.show untuk loan
+        $loanShowResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.show', $loanAccount));
+
+        $loanShowResponse->assertOk();
+        $loanShowResponse->assertSee('KEWAJIBAN / SISA HUTANG', false);
     }
 }

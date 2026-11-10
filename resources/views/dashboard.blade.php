@@ -330,8 +330,10 @@
                                     'e-wallet' => '📱',
                                     'cash' => '💵',
                                     'investment' => '📈',
+                                    'loan' => '🤝',
                                     default => '💳',
                                 };
+                                $availableLimit = $acc->availableLimit();
                             @endphp
                             <div class="px-4 sm:px-5 py-3 flex items-center justify-between hover:bg-cream/40 transition gap-3">
                                 <div class="flex items-center gap-2.5 min-w-0">
@@ -339,22 +341,61 @@
                                         {{ $typeIcon }}
                                     </span>
                                     <div class="min-w-0">
-                                        <a href="{{ route('accounts.show', $acc) }}" class="text-xs font-bold text-charcoal hover:text-forest truncate block">
-                                            {{ $acc->name }}
-                                        </a>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <a href="{{ route('accounts.show', $acc) }}" class="text-xs font-bold text-charcoal hover:text-forest truncate">
+                                                {{ $acc->name }}
+                                            </a>
+                                            @if ($acc->isCreditCard() && $availableLimit !== null)
+                                                <span class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded uppercase">
+                                                    Sisa Limit
+                                                </span>
+                                            @elseif ($acc->isLoan())
+                                                <span class="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded uppercase">
+                                                    Kewajiban
+                                                </span>
+                                            @endif
+                                        </div>
                                         <span class="text-[10.5px] text-muted block uppercase">
-                                            {{ $acc->type }} {{ $acc->account_number ? '• ' . $acc->account_number : '' }}
+                                            @if ($acc->isCreditCard())
+                                                KARTU KREDIT {{ $acc->account_number ? '• ' . $acc->account_number : '' }}
+                                            @elseif ($acc->isLoan())
+                                                PINJAMAN {{ $acc->account_number ? '• ' . $acc->account_number : '' }}
+                                            @else
+                                                {{ $acc->type }} {{ $acc->account_number ? '• ' . $acc->account_number : '' }}
+                                            @endif
                                         </span>
                                     </div>
                                 </div>
 
                                 <div class="text-right flex-shrink-0">
-                                    <span class="text-xs font-bold font-mono text-charcoal block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($accBal, 0, ',', '.') }}">
-                                        Rp {{ number_format($accBal, 0, ',', '.') }}
-                                    </span>
-                                    <a href="{{ route('accounts.show', $acc) }}" class="text-[10.5px] text-forest hover:underline">
-                                        Mutasi &rarr;
-                                    </a>
+                                    @if ($acc->isCreditCard() && $availableLimit !== null)
+                                        <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($availableLimit, 0, ',', '.') }}">
+                                            Rp {{ number_format($availableLimit, 0, ',', '.') }}
+                                        </span>
+                                        <div class="text-[10.5px] text-muted block">
+                                            Terpakai: <span class="privacy-balance font-mono" data-raw-value="{{ 'Rp ' . number_format($acc->liabilityAmount(), 0, ',', '.') }}">Rp {{ number_format($acc->liabilityAmount(), 0, ',', '.') }}</span> &bull; 
+                                            <a href="{{ route('accounts.show', $acc) }}" class="text-forest hover:underline">
+                                                Mutasi &rarr;
+                                            </a>
+                                        </div>
+                                    @elseif ($acc->isLoan())
+                                        <span class="text-xs font-bold font-mono text-charcoal block privacy-balance" data-raw-value="{{ 'Rp ' . number_format(abs($accBal), 0, ',', '.') }}">
+                                            Rp {{ number_format(abs($accBal), 0, ',', '.') }}
+                                        </span>
+                                        <div class="text-[10.5px] text-muted block">
+                                            Sisa Hutang &bull; 
+                                            <a href="{{ route('accounts.show', $acc) }}" class="text-forest hover:underline">
+                                                Mutasi &rarr;
+                                            </a>
+                                        </div>
+                                    @else
+                                        <span class="text-xs font-bold font-mono text-charcoal block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($accBal, 0, ',', '.') }}">
+                                            Rp {{ number_format($accBal, 0, ',', '.') }}
+                                        </span>
+                                        <a href="{{ route('accounts.show', $acc) }}" class="text-[10.5px] text-forest hover:underline">
+                                            Mutasi &rarr;
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         @empty

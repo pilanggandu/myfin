@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 class Account extends Model
@@ -42,6 +43,11 @@ class Account extends Model
     public function entries(): HasMany
     {
         return $this->hasMany(TransactionEntry::class);
+    }
+
+    public function creditAccount(): HasOne
+    {
+        return $this->hasOne(CreditAccount::class, 'account_id');
     }
 
     public function openingBalanceLogs(): HasMany
@@ -123,5 +129,58 @@ class Account extends Model
         $decimals = fmod((float) $bal, 1) == 0.0 ? 0 : 2;
 
         return 'Rp '.number_format($bal, $decimals, ',', '.');
+    }
+
+    public function isCreditCard(): bool
+    {
+        return $this->type === 'credit_card';
+    }
+
+    public function isLoan(): bool
+    {
+        return $this->type === 'loan';
+    }
+
+    public function isLiability(): bool
+    {
+        return in_array($this->type, ['credit_card', 'loan'], true);
+    }
+
+    public function availableLimit(): ?float
+    {
+        if ($this->isCreditCard() && $this->creditAccount) {
+            return $this->creditAccount->availableLimit();
+        }
+
+        return null;
+    }
+
+    public function formattedAvailableLimit(): ?string
+    {
+        $limit = $this->availableLimit();
+        if ($limit === null) {
+            return null;
+        }
+
+        $decimals = fmod($limit, 1.0) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($limit, $decimals, ',', '.');
+    }
+
+    public function liabilityAmount(): float
+    {
+        if ($this->isCreditCard() && $this->creditAccount) {
+            return $this->creditAccount->currentLiability();
+        }
+
+        return abs((float) $this->currentBalance());
+    }
+
+    public function formattedLiabilityAmount(): string
+    {
+        $amt = $this->liabilityAmount();
+        $decimals = fmod($amt, 1.0) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($amt, $decimals, ',', '.');
     }
 }

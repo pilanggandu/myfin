@@ -48,17 +48,36 @@
             'e-wallet' => 'Dompet Digital',
             'cash' => 'Kas Tunai',
             'investment' => 'Investasi / RDN',
+            'credit_card' => 'Kartu Kredit',
+            'loan' => 'Pinjaman / Kewajiban',
             default => strtoupper($account->type),
         };
+        $availableLimit = $account->availableLimit();
     @endphp
 
     <div data-privacy-scope="account-detail-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <x-metric-card 
-            label="SALDO SAAT INI" 
-            :value="'Rp ' . number_format($account->currentBalance(), 0, ',', '.')" 
-            :dark="true" 
-            :sub="'Tipe: ' . $typeLabel" 
-        />
+        @if ($account->isCreditCard() && $availableLimit !== null)
+            <x-metric-card 
+                label="SISA LIMIT TERSEDIA" 
+                :value="'Rp ' . number_format($availableLimit, 0, ',', '.')" 
+                :dark="true" 
+                :sub="'Terpakai: Rp ' . number_format($account->liabilityAmount(), 0, ',', '.') . ($account->creditAccount?->credit_limit ? ' • Limit: Rp ' . number_format($account->creditAccount->credit_limit, 0, ',', '.') : '')" 
+            />
+        @elseif ($account->isLoan())
+            <x-metric-card 
+                label="KEWAJIBAN / SISA HUTANG" 
+                :value="'Rp ' . number_format(abs($account->currentBalance()), 0, ',', '.')" 
+                :dark="true" 
+                :sub="'Tipe: ' . $typeLabel" 
+            />
+        @else
+            <x-metric-card 
+                label="SALDO SAAT INI" 
+                :value="'Rp ' . number_format($account->currentBalance(), 0, ',', '.')" 
+                :dark="true" 
+                :sub="'Tipe: ' . $typeLabel" 
+            />
+        @endif
         <x-metric-card 
             label="SALDO AWAL" 
             :value="'Rp ' . number_format($account->opening_balance, 0, ',', '.')" 

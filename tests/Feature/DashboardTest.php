@@ -218,4 +218,34 @@ class DashboardTest extends TestCase
         $this->assertEquals($inst->total_amount, $inst->amount);
         $this->assertGreaterThan(0, $inst->amount);
     }
+
+    public function test_dashboard_accounts_widget_displays_available_limit_for_credit_card_and_kewajiban_for_loans(): void
+    {
+        $creditCard = app(CreditService::class)->createCreditAccount($this->space, [
+            'name' => 'BCA Blibli Tiket',
+            'type' => 'credit_card',
+            'credit_limit' => 5000000,
+            'billing_cycle_day' => 20,
+            'due_day' => 10,
+        ]);
+
+        $loanAccount = Account::create([
+            'space_id' => $this->space->id,
+            'name' => 'Erwin (Kewajiban)',
+            'type' => 'loan',
+            'opening_balance' => -1000000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Sisa Limit', false);
+        $response->assertSee('5.000.000', false);
+        $response->assertSee('Kewajiban', false);
+        $response->assertSee('1.000.000', false);
+        $response->assertSee('Sisa Hutang', false);
+    }
 }

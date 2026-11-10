@@ -24,12 +24,13 @@ class AccountController extends Controller
     {
         $space = app('currentSpace');
         $accounts = $space->accounts()
+            ->with('creditAccount')
             ->orderBy('archived_at')
             ->orderBy('name')
             ->get();
 
         $activeAccounts = $accounts->whereNull('archived_at');
-        $totalBalance = $accounts->sum(fn ($acc) => $acc->currentBalance());
+        $totalBalance = $space->totalBalance();
 
         return view('accounts.index', compact('accounts', 'activeAccounts', 'totalBalance'));
     }
@@ -62,6 +63,8 @@ class AccountController extends Controller
     public function show(Account $account): View
     {
         Gate::authorize('view', $account);
+
+        $account->load('creditAccount');
 
         $entries = $account->entries()
             ->with(['transaction.category', 'transaction.creator'])

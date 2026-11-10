@@ -1095,4 +1095,61 @@ class TransactionTest extends TestCase
         $this->assertTrue($txAllData->contains('id', $postedTrx->id));
         $this->assertTrue($txAllData->contains('id', $voidTrx->id));
     }
+
+    public function test_transactions_index_defaults_to_past_and_today_hiding_future_transactions(): void
+    {
+        $today = $this->spaceA->now()->toDateString();
+        $futureDate = $this->spaceA->now()->addMonth()->toDateString();
+
+        $todayTrx = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => $today,
+            'transaction_time' => '10:00:00',
+            'description' => 'Makan Siang Hari Ini',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+        $todayTrx->entries()->create(['account_id' => $this->bca->id, 'amount_signed' => -50000]);
+
+        $futureTrx = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => $futureDate,
+            'transaction_time' => '12:00:00',
+            'description' => 'Tagihan Kredit Bulan Depan',
+            'category_id' => $this->expenseCat->id,
+            'created_by' => $this->userA->id,
+            'status' => 'posted',
+            'version' => 1,
+        ]);
+        $futureTrx->entries()->create(['account_id' => $this->bca->id, 'amount_signed' => -200000]);
+
+        // Default: transaksi mendatang disembunyikan
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index'));
+
+        $response->assertOk();
+        $txList = $response->viewData('transactions');
+        $this->assertTrue($txList->contains('id', $todayTrx->id));
+        $this->assertFalse($txList->contains('id', $futureTrx->id));
+        $this->assertEquals(1, $response->viewData('upcomingCount'));
+        $response->assertSee('Terdapat 1 transaksi mendatang disembunyikan', false);
+        $response->assertSee('Tampilkan Transaksi Mendatang', false);
+
+        // Dengan parameter include_future=1: transaksi mendatang ikut muncul
+        $responseFuture = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index', ['include_future' => 1]));
+
+        $responseFuture->assertOk();
+        $txFutureList = $responseFuture->viewData('transactions');
+        $this->assertTrue($txFutureList->contains('id', $todayTrx->id));
+        $this->assertTrue($txFutureList->contains('id', $futureTrx->id));
+        $responseFuture->assertSee('Menampilkan transaksi termasuk transaksi mendatang', false);
+        $responseFuture->assertSee('Sembunyikan Transaksi Mendatang', false);
+    }
 }
