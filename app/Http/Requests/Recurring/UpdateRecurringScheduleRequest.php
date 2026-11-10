@@ -46,7 +46,7 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 'min:1',
             ],
             'description' => ['nullable', 'string', 'max:500'],
-            'status' => ['nullable', 'string', Rule::in(['active', 'paused', 'archived'])],
+            'status' => ['nullable', 'string', Rule::in(['active', 'paused', 'cancelled', 'archived'])],
         ];
 
         if ($type === 'expense') {

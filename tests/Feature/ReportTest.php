@@ -8,6 +8,7 @@ use App\Models\CreditAccount;
 use App\Models\FinancialTransaction;
 use App\Models\Installment;
 use App\Models\InstallmentPlan;
+use App\Models\RecurringOccurrence;
 use App\Models\RecurringSchedule;
 use App\Models\Space;
 use App\Models\User;
@@ -653,6 +654,107 @@ class ReportTest extends TestCase
             $this->assertEquals(1, $targetDay->bills_count);
             $this->assertEquals(349000, $targetDay->bills_total_amount);
             $this->assertEquals('Chatgpt Plus Aktif', $targetDay->bills[0]['title']);
+
+            return true;
+        });
+    }
+
+    public function test_calendar_view_excludes_paused_cancelled_archived_completed_recurring_schedules_and_voided_occurrences(): void
+    {
+        $base = [
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'category_id' => $this->foodCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 7,
+            'start_date' => '2026-01-07',
+            'next_due_date' => '2026-05-07',
+            'amount' => 349000,
+            'created_by' => $this->userA->id,
+        ];
+
+        // 1. Active - harus muncul
+        RecurringSchedule::create(array_merge($base, [
+            'name' => 'Langganan Aktif',
+            'status' => 'active',
+        ]));
+
+        // 2. Paused - TIDAK boleh muncul
+        RecurringSchedule::create(array_merge($base, [
+            'name' => 'Langganan Chatgpt Dijeda',
+            'status' => 'paused',
+        ]));
+
+        // 3. Cancelled - TIDAK boleh muncul
+        RecurringSchedule::create(array_merge($base, [
+            'name' => 'Langganan Chatgpt Batal',
+            'status' => 'cancelled',
+        ]));
+
+        // 4. Completed - TIDAK boleh muncul
+        RecurringSchedule::create(array_merge($base, [
+            'name' => 'Langganan Selesai',
+            'status' => 'completed',
+        ]));
+
+        // 5. Archived - TIDAK boleh muncul
+        RecurringSchedule::create(array_merge($base, [
+            'name' => 'Langganan Diarsipkan',
+            'status' => 'archived',
+            'archived_at' => now(),
+        ]));
+
+        // 6. Active schedule dengan occurrence transaksi void - TIDAK boleh muncul
+        $schVoidOcc = RecurringSchedule::create(array_merge($base, [
+            'name' => 'Langganan Void Occurrence',
+            'status' => 'active',
+        ]));
+        $voidTx = FinancialTransaction::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'transaction_date' => '2026-05-07',
+            'transaction_time' => '10:00:00',
+            'description' => 'Langganan Void Occurrence',
+            'category_id' => $this->foodCat->id,
+            'status' => 'void',
+            'created_by' => $this->userA->id,
+            'version' => 1,
+        ]);
+        RecurringOccurrence::create([
+            'recurring_schedule_id' => $schVoidOcc->id,
+            'space_id' => $this->spaceA->id,
+            'due_date' => '2026-05-07',
+            'transaction_id' => $voidTx->id,
+            'status' => 'confirmed',
+            'amount' => 349000,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=5');
+
+        $response->assertStatus(200);
+        $response->assertSee('Langganan Aktif');
+        $response->assertDontSee('Langganan Chatgpt Dijeda');
+        $response->assertDontSee('Langganan Chatgpt Batal');
+        $response->assertDontSee('Langganan Selesai');
+        $response->assertDontSee('Langganan Diarsipkan');
+        $response->assertDontSee('Langganan Void Occurrence');
+
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $targetDay = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-05-07') {
+                        $targetDay = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($targetDay);
+            $this->assertEquals(1, $targetDay->bills_count);
+            $this->assertEquals('Langganan Aktif', $targetDay->bills[0]['title']);
 
             return true;
         });

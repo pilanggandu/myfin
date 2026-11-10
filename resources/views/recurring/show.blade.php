@@ -21,10 +21,27 @@
                     <h1 class="font-serif text-2xl sm:text-3xl text-forest font-normal tracking-tight">
                         {{ $recurring->name }}
                     </h1>
-                    <div class="flex items-center gap-2 mt-0.5 text-xs text-muted">
+                    <div class="flex items-center gap-2 mt-0.5 text-xs text-muted flex-wrap">
                         <span class="font-bold text-charcoal uppercase text-[10px] px-2 py-0.5 rounded bg-sidebar border border-line">
                             {{ $recurring->type === 'expense' ? 'Tagihan Pengeluaran' : 'Transfer Berulang' }}
                         </span>
+                        @if ($recurring->isPaused())
+                            <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                Dijeda
+                            </span>
+                        @elseif ($recurring->isCancelled())
+                            <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                Dibatalkan
+                            </span>
+                        @elseif ($recurring->isCompleted())
+                            <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-forest/15 text-forest border border-forest/30">
+                                Selesai
+                            </span>
+                        @elseif ($recurring->isArchived())
+                            <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-muted/15 text-muted border border-line">
+                                Diarsipkan
+                            </span>
+                        @endif
                         @if ($recurring->member)
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-2xs" style="background-color: {{ $recurring->member->color ?: '#0f4c3a' }};">
                                 {{ $recurring->member->name }}
@@ -36,7 +53,7 @@
 
             <!-- Header Action Buttons -->
             <div class="flex items-center gap-2 flex-wrap">
-                @if (!$recurring->isArchived())
+                @if ($recurring->isActive())
                     <button 
                         type="button" 
                         onclick="openConfirmModal('{{ $recurring->next_due_date->toDateString() }}', {{ $recurring->amount ?: 0 }})"
@@ -212,6 +229,7 @@
                             <th class="py-3 px-4">Transaksi Terkait</th>
                             <th class="py-3 px-4">Dikonfirmasi</th>
                             <th class="py-3 px-4">Catatan</th>
+                            <th class="py-3 px-4 text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-line">
@@ -275,6 +293,19 @@
 
                                 <td class="py-3.5 px-4 text-muted max-w-xs truncate">
                                     {{ $occ->notes ?: '-' }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                    @if ($occ->isPending() && $recurring->isActive())
+                                        <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline" onsubmit="return confirm('Lewati periode {{ $occ->due_date->format('d/m/Y') }} tanpa mencatat transaksi?')">
+                                            @csrf
+                                            <input type="hidden" name="due_date" value="{{ $occ->due_date->toDateString() }}">
+                                            <button type="submit" class="px-2 py-1 rounded border border-line text-[11px] font-semibold text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer">
+                                                Lewati
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-muted text-[11px]">-</span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

@@ -53,17 +53,20 @@
     <div class="panel-card rounded-2xl border border-line bg-panel shadow-xs overflow-hidden">
         <div class="p-4 border-b border-line flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs font-bold">
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status !== 'archived' && $type === 'all' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'all' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Semua Aktif ({{ $activeCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'expense'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status !== 'archived' && $type === 'expense' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'expense'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'expense' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Tagihan ({{ $expenseCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'transfer'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status !== 'archived' && $type === 'transfer' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'transfer'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'transfer' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Transfer ({{ $transferCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'archived'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'archived' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
-                    Arsip ({{ $archivedCount }})
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'paused', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'paused' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                    Dijeda ({{ $pausedCount }})
+                </a>
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'archived', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'archived' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                    Arsip & Batal ({{ $archivedCount }})
                 </a>
             </div>
 
@@ -132,9 +135,28 @@
                                             {{ $item->isExpense() ? '🏷️' : '⇄' }}
                                         </span>
                                         <div>
-                                            <a href="{{ route('recurring.show', $item) }}" class="font-bold text-charcoal hover:text-forest transition">
-                                                {{ $item->name }}
-                                            </a>
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <a href="{{ route('recurring.show', $item) }}" class="font-bold text-charcoal hover:text-forest transition">
+                                                    {{ $item->name }}
+                                                </a>
+                                                @if ($item->isPaused())
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 uppercase">
+                                                        Dijeda
+                                                    </span>
+                                                @elseif ($item->isCancelled())
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 uppercase">
+                                                        Dibatalkan
+                                                    </span>
+                                                @elseif ($item->isCompleted())
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-forest/15 text-forest border border-forest/30 uppercase">
+                                                        Selesai
+                                                    </span>
+                                                @elseif ($item->isArchived())
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-muted/15 text-muted border border-line uppercase">
+                                                        Diarsipkan
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <div class="text-[10px] text-muted">
                                                 Mulai {{ $item->start_date->format('d/m/Y') }}
                                                 @if ($item->end_date)
@@ -221,7 +243,7 @@
 
                                 <td class="py-3.5 px-4 text-right">
                                     <div class="flex items-center justify-end gap-1.5">
-                                        @if (!$item->isArchived())
+                                        @if ($item->isActive())
                                             <button 
                                                 type="button" 
                                                 onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}', {{ $item->source_account_id ?: 'null' }})"

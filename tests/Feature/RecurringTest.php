@@ -544,4 +544,104 @@ class RecurringTest extends TestCase
 
         $response->assertSessionHasErrors('source_account_id');
     }
+
+    public function test_paused_and_cancelled_schedules_are_excluded_from_active_scope_and_dashboard_summary(): void
+    {
+        $service = app(RecurringService::class);
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
+
+        $active = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Aktif Tagihan',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 5,
+            'start_date' => $today,
+            'next_due_date' => $today,
+            'amount' => 100000,
+            'status' => 'active',
+            'created_by' => $this->userA->id,
+        ]);
+
+        $paused = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Dijeda Tagihan',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 5,
+            'start_date' => $today,
+            'next_due_date' => $today,
+            'amount' => 200000,
+            'status' => 'paused',
+            'created_by' => $this->userA->id,
+        ]);
+
+        $cancelled = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Batal Tagihan',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 5,
+            'start_date' => $today,
+            'next_due_date' => $today,
+            'amount' => 300000,
+            'status' => 'cancelled',
+            'created_by' => $this->userA->id,
+        ]);
+
+        $activeIds = RecurringSchedule::where('space_id', $this->spaceA->id)->active()->pluck('id');
+        $this->assertTrue($activeIds->contains($active->id));
+        $this->assertFalse($activeIds->contains($paused->id));
+        $this->assertFalse($activeIds->contains($cancelled->id));
+
+        $summary = $service->getDashboardSummary($this->spaceA);
+        $this->assertEquals(1, $summary['due_today_count']);
+        $this->assertCount(1, $summary['items']);
+        $this->assertEquals('Aktif Tagihan', $summary['items'][0]['name']);
+
+        // Paused tab shows paused schedule
+        $pausedResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/recurring?status=paused');
+        $pausedResponse->assertOk();
+        $pausedResponse->assertSee('Dijeda Tagihan');
+        $pausedResponse->assertDontSee('Aktif Tagihan');
+    }
+
+    public function test_skipping_past_pending_occurrence_does_not_rewind_next_due_date(): void
+    {
+        $service = app(RecurringService::class);
+
+        $schedule = $service->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'expense',
+            'name' => 'Langganan Test Skip Past',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-07',
+            'amount' => 349000,
+        ]);
+
+        // Confirm Nov 7 -> next_due_date becomes 2026-12-07
+        $tx = $service->confirmOccurrence($schedule, '2026-11-07', $this->userA);
+        $schedule->refresh();
+        $this->assertEquals('2026-12-07', $schedule->next_due_date->toDateString());
+
+        // Void Nov 7 TX -> Nov 7 occurrence reverts to pending, next_due_date stays 2026-12-07
+        app(TransactionService::class)->voidTransaction($tx, $this->userA);
+        $schedule->refresh();
+        $this->assertEquals('2026-12-07', $schedule->next_due_date->toDateString());
+
+        // Skip the reverted Nov 7 occurrence -> next_due_date MUST remain 2026-12-07
+        $occ = $service->skipOccurrence($schedule, '2026-11-07', $this->userA, 'Batal bulan Nov');
+        $this->assertTrue($occ->isSkipped());
+        $schedule->refresh();
+        $this->assertEquals('2026-12-07', $schedule->next_due_date->toDateString());
+    }
 }

@@ -557,7 +557,8 @@ class ReportController extends Controller
         $recurringSchedules = $space ? RecurringSchedule::where('space_id', $space->id)
             ->active()
             ->with(['category', 'sourceAccount', 'occurrences' => function ($q) use ($calendarStart, $calendarEnd) {
-                $q->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()]);
+                $q->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
+                    ->with('transaction');
             }])
             ->get() : collect();
 
@@ -639,7 +640,11 @@ class ReportController extends Controller
                             return $o->due_date->toDateString() === $dateStr;
                         });
 
-                        if ($occ && in_array($occ->status, ['skipped', 'cancelled'])) {
+                        if ($occ && in_array($occ->status, ['skipped', 'cancelled', 'void'])) {
+                            continue;
+                        }
+
+                        if ($occ && $occ->transaction && $occ->transaction->isVoid()) {
                             continue;
                         }
 

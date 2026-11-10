@@ -84,13 +84,19 @@ class RecurringSchedule extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->whereNull('archived_at')->where('status', '!=', 'archived');
+        return $query->whereNull('archived_at')->where('status', 'active');
+    }
+
+    public function scopePaused(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at')->where('status', 'paused');
     }
 
     public function scopeArchived(Builder $query): Builder
     {
         return $query->where(function (Builder $q) {
-            $q->whereNotNull('archived_at')->orWhere('status', 'archived');
+            $q->whereNotNull('archived_at')
+                ->orWhereIn('status', ['archived', 'cancelled', 'completed']);
         });
     }
 
@@ -114,9 +120,29 @@ class RecurringSchedule extends Model
         return $this->type === 'transfer';
     }
 
+    public function isActive(): bool
+    {
+        return $this->archived_at === null && $this->status === 'active';
+    }
+
+    public function isPaused(): bool
+    {
+        return $this->archived_at === null && $this->status === 'paused';
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+
     public function isArchived(): bool
     {
-        return $this->archived_at !== null || $this->status === 'archived';
+        return $this->archived_at !== null || in_array($this->status, ['archived', 'cancelled', 'completed'], true);
     }
 
     public function archive(): void

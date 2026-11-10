@@ -218,6 +218,11 @@ class RecurringService
         $startDate = Carbon::parse($data['start_date']);
         $anchorDay = (int) $startDate->day;
 
+        $newStatus = $data['status'] ?? $schedule->status;
+        $archivedAt = in_array($newStatus, ['archived', 'cancelled'], true)
+            ? ($schedule->archived_at ?? now())
+            : null;
+
         $schedule->update([
             'name' => $data['name'],
             'member_id' => $memberId,
@@ -231,7 +236,8 @@ class RecurringService
             'amount' => $amount,
             'is_variable_amount' => $isVariable,
             'description' => $data['description'] ?? null,
-            'status' => $data['status'] ?? $schedule->status,
+            'status' => $newStatus,
+            'archived_at' => $archivedAt,
         ]);
 
         return $schedule;
@@ -244,9 +250,9 @@ class RecurringService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedSchedule->isArchived()) {
+            if (! $lockedSchedule->isActive()) {
                 throw ValidationException::withMessages([
-                    'schedule' => 'Jadwal berulang telah diarsipkan dan tidak dapat dicatat.',
+                    'schedule' => 'Jadwal berulang tidak dalam status aktif dan tidak dapat dicatat.',
                 ]);
             }
 
@@ -359,26 +365,32 @@ class RecurringService
                 ]);
             }
 
-            $currentDueDate = Carbon::parse($dueDate);
-            $nextDueDate = $lockedSchedule->calculateNextDueDate($currentDueDate);
+            $currentDueDate = Carbon::parse($dueDate)->startOfDay();
+            $scheduleNextDue = $lockedSchedule->next_due_date
+                ? Carbon::parse($lockedSchedule->next_due_date)->startOfDay()
+                : $currentDueDate;
 
-            if ($lockedSchedule->end_date && $nextDueDate->gt(Carbon::parse($lockedSchedule->end_date))) {
-                $lockedSchedule->update([
-                    'status' => 'completed',
-                ]);
-            } else {
-                $lockedSchedule->update([
-                    'next_due_date' => $nextDueDate->toDateString(),
-                ]);
+            if ($currentDueDate->gte($scheduleNextDue)) {
+                $nextDueDate = $lockedSchedule->calculateNextDueDate($currentDueDate);
 
-                RecurringOccurrence::firstOrCreate([
-                    'recurring_schedule_id' => $lockedSchedule->id,
-                    'due_date' => $nextDueDate->toDateString(),
-                ], [
-                    'space_id' => $space->id,
-                    'status' => 'pending',
-                    'amount' => $lockedSchedule->amount,
-                ]);
+                if ($lockedSchedule->end_date && $nextDueDate->gt(Carbon::parse($lockedSchedule->end_date))) {
+                    $lockedSchedule->update([
+                        'status' => 'completed',
+                    ]);
+                } else {
+                    $lockedSchedule->update([
+                        'next_due_date' => $nextDueDate->toDateString(),
+                    ]);
+
+                    RecurringOccurrence::firstOrCreate([
+                        'recurring_schedule_id' => $lockedSchedule->id,
+                        'due_date' => $nextDueDate->toDateString(),
+                    ], [
+                        'space_id' => $space->id,
+                        'status' => 'pending',
+                        'amount' => $lockedSchedule->amount,
+                    ]);
+                }
             }
 
             return $transaction;
@@ -429,26 +441,32 @@ class RecurringService
                 ]);
             }
 
-            $currentDueDate = Carbon::parse($dueDate);
-            $nextDueDate = $lockedSchedule->calculateNextDueDate($currentDueDate);
+            $currentDueDate = Carbon::parse($dueDate)->startOfDay();
+            $scheduleNextDue = $lockedSchedule->next_due_date
+                ? Carbon::parse($lockedSchedule->next_due_date)->startOfDay()
+                : $currentDueDate;
 
-            if ($lockedSchedule->end_date && $nextDueDate->gt(Carbon::parse($lockedSchedule->end_date))) {
-                $lockedSchedule->update([
-                    'status' => 'completed',
-                ]);
-            } else {
-                $lockedSchedule->update([
-                    'next_due_date' => $nextDueDate->toDateString(),
-                ]);
+            if ($currentDueDate->gte($scheduleNextDue)) {
+                $nextDueDate = $lockedSchedule->calculateNextDueDate($currentDueDate);
 
-                RecurringOccurrence::firstOrCreate([
-                    'recurring_schedule_id' => $lockedSchedule->id,
-                    'due_date' => $nextDueDate->toDateString(),
-                ], [
-                    'space_id' => $space->id,
-                    'status' => 'pending',
-                    'amount' => $lockedSchedule->amount,
-                ]);
+                if ($lockedSchedule->end_date && $nextDueDate->gt(Carbon::parse($lockedSchedule->end_date))) {
+                    $lockedSchedule->update([
+                        'status' => 'completed',
+                    ]);
+                } else {
+                    $lockedSchedule->update([
+                        'next_due_date' => $nextDueDate->toDateString(),
+                    ]);
+
+                    RecurringOccurrence::firstOrCreate([
+                        'recurring_schedule_id' => $lockedSchedule->id,
+                        'due_date' => $nextDueDate->toDateString(),
+                    ], [
+                        'space_id' => $space->id,
+                        'status' => 'pending',
+                        'amount' => $lockedSchedule->amount,
+                    ]);
+                }
             }
 
             return $occurrence;

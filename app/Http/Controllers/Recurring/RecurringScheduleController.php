@@ -37,6 +37,8 @@ class RecurringScheduleController extends Controller
 
         if ($status === 'archived') {
             $query->archived();
+        } elseif ($status === 'paused') {
+            $query->paused();
         } else {
             $query->active();
         }
@@ -52,6 +54,7 @@ class RecurringScheduleController extends Controller
         $schedules = $query->orderBy('next_due_date', 'asc')->get();
 
         $activeCount = RecurringSchedule::where('space_id', $space->id)->active()->count();
+        $pausedCount = RecurringSchedule::where('space_id', $space->id)->paused()->count();
         $archivedCount = RecurringSchedule::where('space_id', $space->id)->archived()->count();
         $expenseCount = RecurringSchedule::where('space_id', $space->id)->active()->where('type', 'expense')->count();
         $transferCount = RecurringSchedule::where('space_id', $space->id)->active()->where('type', 'transfer')->count();
@@ -65,7 +68,7 @@ class RecurringScheduleController extends Controller
         $dueTodayCount = 0;
 
         foreach ($schedules as $sch) {
-            if ($sch->isArchived()) {
+            if (! $sch->isActive()) {
                 continue;
             }
             $dueDate = Carbon::parse($sch->next_due_date, $tz)->startOfDay();
@@ -82,6 +85,7 @@ class RecurringScheduleController extends Controller
             'type',
             'memberId',
             'activeCount',
+            'pausedCount',
             'archivedCount',
             'expenseCount',
             'transferCount',

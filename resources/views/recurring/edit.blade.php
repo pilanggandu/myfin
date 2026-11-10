@@ -81,6 +81,7 @@
                         <select name="status" id="editStatus" class="field-select w-full text-xs">
                             <option value="active" {{ old('status', $recurring->status) === 'active' ? 'selected' : '' }}>Aktif (Berjalan Normal)</option>
                             <option value="paused" {{ old('status', $recurring->status) === 'paused' ? 'selected' : '' }}>Dijeda (Sementara)</option>
+                            <option value="cancelled" {{ old('status', $recurring->status) === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                             <option value="archived" {{ old('status', $recurring->status) === 'archived' ? 'selected' : '' }}>Diarsipkan</option>
                         </select>
                     </div>
