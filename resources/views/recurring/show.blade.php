@@ -89,6 +89,20 @@
         </div>
     </div>
 
+    @if ($recurring->sourceAccount?->isLiability())
+        <div class="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <div class="font-bold">Rekening Sumber Terhubung ke Akun Kredit</div>
+                <p class="text-[11px] opacity-85 mt-0.5">
+                    Jadwal berulang ini masih memakai akun <strong>{{ $recurring->sourceAccount->name }}</strong>. Agar terintegrasi dengan siklus limit &amp; tagihan kartu kredit, sebaiknya pindahkan pencatatan ke menu Kredit &amp; Cicilan dan arsipkan jadwal ini (atau ubah rekening sumber ke Kas/Bank).
+                </p>
+            </div>
+            <a href="{{ route('credit.index') }}" class="btn-arus-secondary text-xs py-1.5 px-3 font-bold shrink-0">
+                Buka Kredit &amp; Cicilan &rarr;
+            </a>
+        </div>
+    @endif
+
     <!-- Parameter Card & Status Card Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-6">
         <!-- Kolom Kiri: Rincian Parameter -->

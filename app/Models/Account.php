@@ -65,6 +65,11 @@ class Account extends Model
         return $query->whereNotNull('archived_at');
     }
 
+    public function scopeLiquidAssets(Builder $query): Builder
+    {
+        return $query->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+    }
+
     public function isArchived(): bool
     {
         return $this->archived_at !== null;

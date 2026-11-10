@@ -33,7 +33,8 @@ class StoreRecurringScheduleRequest extends FormRequest
                 'integer',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->whereNull('archived_at')
+                    ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']),
             ],
             'frequency' => ['required', 'string', Rule::in(['weekly', 'monthly', 'yearly'])],
             'start_date' => ['required', 'date'],
@@ -63,7 +64,8 @@ class StoreRecurringScheduleRequest extends FormRequest
                 'integer',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->whereNull('archived_at')
+                    ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']),
             ];
             $rules['destination_account_id'] = [
                 'required',
@@ -71,7 +73,8 @@ class StoreRecurringScheduleRequest extends FormRequest
                 'different:source_account_id',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
-                    ->whereNull('archived_at'),
+                    ->whereNull('archived_at')
+                    ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']),
             ];
         }
 
@@ -84,10 +87,10 @@ class StoreRecurringScheduleRequest extends FormRequest
             'type.required' => 'Jenis jadwal berulang wajib dipilih.',
             'name.required' => 'Nama jadwal tagihan atau transfer wajib diisi.',
             'source_account_id.required' => 'Rekening sumber wajib dipilih.',
-            'source_account_id.exists' => 'Rekening sumber tidak valid atau telah diarsipkan.',
+            'source_account_id.exists' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
             'destination_account_id.required' => 'Rekening tujuan transfer wajib dipilih.',
             'destination_account_id.different' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
-            'destination_account_id.exists' => 'Rekening tujuan transfer tidak valid atau telah diarsipkan.',
+            'destination_account_id.exists' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
             'category_id.required' => 'Kategori pengeluaran wajib dipilih.',
             'category_id.exists' => 'Kategori pengeluaran tidak valid atau telah diarsipkan.',
             'member_id.exists' => 'Member yang dipilih tidak valid atau telah diarsipkan.',

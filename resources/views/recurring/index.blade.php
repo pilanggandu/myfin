@@ -5,7 +5,9 @@
             <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Jadwal Berulang & Tagihan
             </h1>
-            <p class="text-xs text-muted">Kelola pengeluaran langganan rutin, cicilan, dan transfer berkala antar-rekening dengan konfirmasi terkontrol.</p>
+            <p class="text-xs text-muted">
+                Kelola tagihan rutin dan transfer berkala dari <strong>Kas, Bank, atau E-Wallet</strong>. Untuk transaksi atau tagihan Kartu Kredit &amp; Paylater, gunakan menu <a href="{{ route('credit.index') }}" class="text-forest font-semibold hover:underline">Kredit &amp; Cicilan</a>.
+            </p>
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('recurring.create') }}" class="btn-arus-primary text-xs font-bold px-4 py-2 inline-flex items-center gap-1.5 shadow-xs">

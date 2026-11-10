@@ -39,7 +39,10 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
                     ->where(function ($q) use ($schedule) {
-                        $q->whereNull('archived_at');
+                        $q->where(function ($sub) {
+                            $sub->whereNull('archived_at')
+                                ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+                        });
                         if ($schedule?->source_account_id) {
                             $q->orWhere('id', $schedule->source_account_id);
                         }
@@ -81,7 +84,10 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
                     ->where(function ($q) use ($schedule) {
-                        $q->whereNull('archived_at');
+                        $q->where(function ($sub) {
+                            $sub->whereNull('archived_at')
+                                ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+                        });
                         if ($schedule?->source_account_id) {
                             $q->orWhere('id', $schedule->source_account_id);
                         }
@@ -94,7 +100,10 @@ class UpdateRecurringScheduleRequest extends FormRequest
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
                     ->where(function ($q) use ($schedule) {
-                        $q->whereNull('archived_at');
+                        $q->where(function ($sub) {
+                            $sub->whereNull('archived_at')
+                                ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+                        });
                         if ($schedule?->destination_account_id) {
                             $q->orWhere('id', $schedule->destination_account_id);
                         }
@@ -110,10 +119,10 @@ class UpdateRecurringScheduleRequest extends FormRequest
         return [
             'name.required' => 'Nama jadwal tagihan atau transfer wajib diisi.',
             'source_account_id.required' => 'Rekening sumber wajib dipilih.',
-            'source_account_id.exists' => 'Rekening sumber tidak valid atau telah diarsipkan.',
+            'source_account_id.exists' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
             'destination_account_id.required' => 'Rekening tujuan transfer wajib dipilih.',
             'destination_account_id.different' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
-            'destination_account_id.exists' => 'Rekening tujuan transfer tidak valid atau telah diarsipkan.',
+            'destination_account_id.exists' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
             'category_id.required' => 'Kategori pengeluaran wajib dipilih.',
             'category_id.exists' => 'Kategori pengeluaran tidak valid atau telah diarsipkan.',
             'member_id.exists' => 'Member yang dipilih tidak valid atau telah diarsipkan.',

@@ -32,9 +32,9 @@ class RecurringService
                 ->where('id', $data['source_account_id'])
                 ->first();
 
-            if (! $sourceAccount || $sourceAccount->isArchived()) {
+            if (! $sourceAccount || $sourceAccount->isArchived() || $sourceAccount->isLiability()) {
                 throw ValidationException::withMessages([
-                    'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                    'source_account_id' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
                 ]);
             }
         } elseif ($type === 'transfer') {
@@ -58,9 +58,9 @@ class RecurringService
                 ->where('id', $destAccountId)
                 ->first();
 
-            if (! $destAccount || $destAccount->isArchived()) {
+            if (! $destAccount || $destAccount->isArchived() || $destAccount->isLiability()) {
                 throw ValidationException::withMessages([
-                    'destination_account_id' => 'Rekening tujuan transfer tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                    'destination_account_id' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
                 ]);
             }
         } else {
@@ -147,9 +147,9 @@ class RecurringService
                 ->first();
 
             $isSameExistingSource = (int) $schedule->source_account_id === (int) ($sourceAccount?->id);
-            if (! $sourceAccount || ($sourceAccount->isArchived() && ! $isSameExistingSource)) {
+            if (! $sourceAccount || (($sourceAccount->isArchived() || $sourceAccount->isLiability()) && ! $isSameExistingSource)) {
                 throw ValidationException::withMessages([
-                    'source_account_id' => 'Rekening sumber tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                    'source_account_id' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
                 ]);
             }
         } elseif ($type === 'transfer') {
@@ -174,9 +174,9 @@ class RecurringService
                 ->first();
 
             $isSameExistingDest = (int) $schedule->destination_account_id === (int) ($destAccount?->id);
-            if (! $destAccount || ($destAccount->isArchived() && ! $isSameExistingDest)) {
+            if (! $destAccount || (($destAccount->isArchived() || $destAccount->isLiability()) && ! $isSameExistingDest)) {
                 throw ValidationException::withMessages([
-                    'destination_account_id' => 'Rekening tujuan transfer tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+                    'destination_account_id' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
                 ]);
             }
         } else {

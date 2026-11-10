@@ -757,13 +757,20 @@
                                 ? 'bg-forest/10 dark:bg-forest/20 text-forest'
                                 : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
                             const icon = bill.kind === 'installment' ? '💳' : '🔔';
+                            const kindLabel = bill.kind_label || (bill.kind === 'installment' ? 'Kredit & Cicilan' : 'Jadwal Rutin');
+                            const kindBadge = bill.kind === 'installment'
+                                ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 shrink-0">${kindLabel}</span>`
+                                : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 shrink-0">${kindLabel}</span>`;
 
                             itemEl.innerHTML = `
                                 <div class="flex items-center gap-2.5 min-w-0">
                                     <span class="text-base shrink-0">${icon}</span>
                                     <div class="min-w-0">
-                                        <div class="font-bold text-charcoal truncate">${bill.title}</div>
-                                        <div class="text-[11px] text-muted truncate">${bill.subtitle}</div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="font-bold text-charcoal truncate">${bill.title}</span>
+                                            ${kindBadge}
+                                        </div>
+                                        <div class="text-[11px] text-muted truncate mt-0.5">${bill.subtitle}</div>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-3 shrink-0">

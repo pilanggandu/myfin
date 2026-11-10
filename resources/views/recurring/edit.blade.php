@@ -149,14 +149,16 @@
                                 <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
                                 @foreach ($accounts as $acc)
                                     <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
-                                        {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                        {{ $acc->name }}{{ $acc->isLiability() ? ' (Akun Kredit)' : '' }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                     </option>
                                 @endforeach
                             </select>
                             @error('source_account_id')
                                 <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
                             @enderror
-                            <div class="text-[11px] text-muted mt-1">Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba.</div>
+                            <div class="text-[11px] text-muted mt-1">
+                                Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba. Tagihan via Kartu Kredit? <a href="{{ route('credit.purchases.create') }}" class="text-forest font-semibold hover:underline">Catat di Kredit &amp; Cicilan &rarr;</a>
+                            </div>
                         </div>
                     </div>
                 @else

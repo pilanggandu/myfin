@@ -11,7 +11,7 @@
             Buat Jadwal Berulang Baru
         </h1>
         <p class="text-xs text-muted max-w-2xl">
-            Atur tagihan rutin atau transfer terjadwal. Saldo tidak akan berubah otomatis sebelum Anda memberikan konfirmasi pencatatan.
+            Atur tagihan rutin atau transfer berkala menggunakan <strong>Kas, Bank, atau E-Wallet</strong>. Saldo tidak akan berubah otomatis sebelum Anda memberikan konfirmasi pencatatan.
         </p>
     </div>
 
@@ -179,7 +179,9 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <div class="text-[11px] text-muted mt-1">Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba.</div>
+                            <div class="text-[11px] text-muted mt-1">
+                                Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba. Tagihan via Kartu Kredit? <a href="{{ route('credit.purchases.create') }}" class="text-forest font-semibold hover:underline">Catat di Kredit &amp; Cicilan &rarr;</a>
+                            </div>
                             @error('source_account_id')
                                 <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
                             @enderror

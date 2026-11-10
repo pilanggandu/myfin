@@ -838,4 +838,130 @@ class RecurringTest extends TestCase
         $this->assertEquals(19, $schedule->anchor_day);
         $this->assertEquals('2026-11-19', $schedule->next_due_date->toDateString());
     }
+
+    public function test_credit_card_and_loan_accounts_are_rejected_for_new_recurring_schedules(): void
+    {
+        $ccAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'BCA Blibli Card',
+            'type' => 'credit_card',
+            'opening_balance' => 0,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $loanAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Pinjaman Bank X',
+            'type' => 'loan',
+            'opening_balance' => -1000000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        // Halaman create tidak boleh menampilkan credit_card / loan di dropdown akun recurring
+        $createResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/recurring/create');
+        $createResp->assertOk();
+        $formAccountIds = $createResp->viewData('accounts')->pluck('id');
+        $this->assertTrue($formAccountIds->contains($this->bca->id));
+        $this->assertFalse($formAccountIds->contains($ccAccount->id));
+        $this->assertFalse($formAccountIds->contains($loanAccount->id));
+
+        // POST expense pakai credit card harus ditolak
+        $expenseResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/recurring', [
+                'type' => 'expense',
+                'name' => 'Langganan CC',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $ccAccount->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'amount' => 100000,
+            ]);
+        $expenseResp->assertSessionHasErrors('source_account_id');
+
+        // POST transfer ke loan harus ditolak
+        $transferResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post('/recurring', [
+                'type' => 'transfer',
+                'name' => 'Transfer ke Loan',
+                'source_account_id' => $this->bca->id,
+                'destination_account_id' => $loanAccount->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'amount' => 100000,
+            ]);
+        $transferResp->assertSessionHasErrors('destination_account_id');
+    }
+
+    public function test_legacy_recurring_schedule_with_credit_card_shows_warning_and_can_be_paused_or_archived(): void
+    {
+        $ccAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'BCA Legacy Card',
+            'type' => 'credit_card',
+            'opening_balance' => 0,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $otherCcAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Mandiri Other Card',
+            'type' => 'credit_card',
+            'opening_balance' => 0,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $legacySchedule = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'type' => 'expense',
+            'name' => 'Legacy CC Subscription',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $ccAccount->id,
+            'frequency' => 'monthly',
+            'anchor_day' => 10,
+            'start_date' => '2026-11-10',
+            'next_due_date' => '2026-11-10',
+            'amount' => 349000,
+            'status' => 'active',
+            'created_by' => $this->userA->id,
+        ]);
+
+        $showResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get("/recurring/{$legacySchedule->id}");
+        $showResp->assertOk();
+        $showResp->assertSee('Rekening Sumber Terhubung ke Akun Kredit');
+
+        // Mengarsipkan / menjeda jadwal legacy dengan tetap memakai ID kartu kredit lamanya harus berhasil
+        $pauseResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/recurring/{$legacySchedule->id}", [
+                'name' => 'Legacy CC Subscription',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $ccAccount->id,
+                'frequency' => 'monthly',
+                'status' => 'paused',
+                'amount' => 349000,
+                'start_date' => '2026-11-10',
+            ]);
+        $pauseResp->assertRedirect(route('recurring.show', $legacySchedule));
+        $this->assertEquals('paused', $legacySchedule->fresh()->status);
+
+        // Mengganti ke kartu kredit lain harus ditolak
+        $switchCcResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put("/recurring/{$legacySchedule->id}", [
+                'name' => 'Legacy CC Subscription',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $otherCcAccount->id,
+                'frequency' => 'monthly',
+                'status' => 'active',
+                'amount' => 349000,
+                'start_date' => '2026-11-10',
+            ]);
+        $switchCcResp->assertSessionHasErrors('source_account_id');
+    }
 }

@@ -7,7 +7,7 @@
                 Kredit & Cicilan
             </h1>
             <p class="text-xs text-muted">
-                Kelola kartu kredit, paylater, limit, dan jadwal pelunasan cicilan secara terisolasi dari saldo kas.
+                Kelola seluruh belanja, langganan, maupun cicilan yang memotong limit <strong>Kartu Kredit / Paylater</strong> secara terisolasi dari saldo kas. (Tagihan rutin non-kredit dikelola di <a href="{{ route('recurring.index') }}" class="text-forest font-semibold hover:underline">Jadwal Berulang</a>.)
             </p>
         </div>
         <div class="flex items-center gap-2">

@@ -60,7 +60,7 @@ class RecurringScheduleController extends Controller
         $transferCount = RecurringSchedule::where('space_id', $space->id)->active()->where('type', 'transfer')->count();
 
         $members = Member::where('space_id', $space->id)->active()->orderBy('name')->get();
-        $accounts = Account::where('space_id', $space->id)->active()->orderBy('name')->get();
+        $accounts = Account::where('space_id', $space->id)->active()->liquidAssets()->orderBy('name')->get();
         $categories = Category::where('space_id', $space->id)->expense()->active()->orderBy('name')->get();
 
         $today = Carbon::now($tz)->startOfDay();
@@ -104,6 +104,7 @@ class RecurringScheduleController extends Controller
 
         $accounts = Account::where('space_id', $space->id)
             ->active()
+            ->liquidAssets()
             ->orderBy('name')
             ->get();
 
@@ -149,7 +150,7 @@ class RecurringScheduleController extends Controller
             'creator',
         ]);
 
-        $accounts = Account::where('space_id', $space->id)->active()->orderBy('name')->get();
+        $accounts = Account::where('space_id', $space->id)->active()->liquidAssets()->orderBy('name')->get();
         $categories = Category::where('space_id', $space->id)->expense()->active()->orderBy('name')->get();
 
         return view('recurring.show', compact('recurring', 'tz', 'accounts', 'categories'));
@@ -163,7 +164,10 @@ class RecurringScheduleController extends Controller
 
         $accounts = Account::where('space_id', $space->id)
             ->where(function ($q) use ($recurring) {
-                $q->whereNull('archived_at');
+                $q->where(function ($sub) {
+                    $sub->whereNull('archived_at')
+                        ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+                });
                 if ($recurring->source_account_id) {
                     $q->orWhere('id', $recurring->source_account_id);
                 }

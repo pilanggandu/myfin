@@ -8,10 +8,10 @@
             </a>
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TRANSAKSI KREDIT</div>
             <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
-                Catat Belanja Cicilan
+                Catat Belanja &amp; Tagihan Kredit
             </h1>
             <p class="text-xs text-muted">
-                Pengeluaran dicatat langsung pada tanggal transaksi belanja sesuai kategori; jadwal cicilan pokok dibuat tanpa menduplikasi beban di masa depan.
+                Gunakan form ini untuk belanja, langganan, atau cicilan via <strong>Kartu Kredit / Paylater</strong> (tenor 1x maupun multi-bulan). Pengeluaran dicatat langsung sesuai tanggal transaksi tanpa menduplikasi beban di masa depan.
             </p>
         </div>
 

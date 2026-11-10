@@ -556,7 +556,7 @@ class ReportController extends Controller
 
         $recurringSchedules = $space ? RecurringSchedule::where('space_id', $space->id)
             ->active()
-            ->with(['category', 'sourceAccount', 'occurrences' => function ($q) use ($calendarStart, $calendarEnd) {
+            ->with(['category', 'sourceAccount', 'destinationAccount', 'occurrences' => function ($q) use ($calendarStart, $calendarEnd) {
                 $q->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
                     ->with('transaction');
             }])
@@ -601,6 +601,7 @@ class ReportController extends Controller
                         $dayBills[] = [
                             'id' => $inst->id,
                             'kind' => 'installment',
+                            'kind_label' => 'Kredit & Cicilan',
                             'title' => $inst->installmentPlan?->name ?? 'Cicilan Kartu Kredit',
                             'subtitle' => ($inst->installmentPlan?->creditAccount?->name ?? 'Kartu Kredit').' (Ke-'.$inst->installment_number.'/'.($inst->installmentPlan?->tenor ?? '-').')',
                             'amount' => (float) $inst->total_amount,
@@ -651,11 +652,16 @@ class ReportController extends Controller
                         $status = ($occ && $occ->status === 'confirmed') ? 'paid' : 'pending';
                         $amount = (float) (($occ && ! is_null($occ->amount)) ? $occ->amount : ($sch->amount ?? 0));
 
+                        $subtitle = $sch->isTransfer()
+                            ? (($sch->sourceAccount?->name ?? 'Kas').' → '.($sch->destinationAccount?->name ?? 'Tujuan'))
+                            : (($sch->category?->name ?? 'Tagihan Rutin').' • '.($sch->sourceAccount?->name ?? 'Rekening Fleksibel'));
+
                         $dayBills[] = [
                             'id' => $sch->id,
                             'kind' => 'recurring',
+                            'kind_label' => 'Jadwal Rutin',
                             'title' => $sch->name,
-                            'subtitle' => $sch->category?->name ?? ($sch->isTransfer() ? 'Transfer Rutin' : 'Tagihan Rutin'),
+                            'subtitle' => $subtitle,
                             'amount' => $amount,
                             'status' => $status,
                             'status_label' => $status === 'paid' ? 'Lunas' : 'Belum Lunas',

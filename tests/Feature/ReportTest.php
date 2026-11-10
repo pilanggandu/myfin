@@ -527,11 +527,14 @@ class ReportTest extends TestCase
             $this->assertEquals(1, $recurringDay->bills_count);
             $this->assertEquals(450000, $recurringDay->bills_total_amount);
             $this->assertEquals(0, $recurringDay->outflow);
+            $this->assertEquals('Jadwal Rutin', $recurringDay->bills[0]['kind_label']);
+            $this->assertStringContainsString('Bank BCA', $recurringDay->bills[0]['subtitle']);
 
             $this->assertNotNull($installmentDay);
             $this->assertEquals(1, $installmentDay->bills_count);
             $this->assertEquals(1000000, $installmentDay->bills_total_amount);
             $this->assertEquals(0, $installmentDay->outflow);
+            $this->assertEquals('Kredit & Cicilan', $installmentDay->bills[0]['kind_label']);
 
             return true;
         });
