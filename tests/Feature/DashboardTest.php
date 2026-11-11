@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinancialTransaction;
+use App\Models\Goal;
 use App\Models\RecurringSchedule;
 use App\Models\Space;
 use App\Models\User;
@@ -247,5 +248,31 @@ class DashboardTest extends TestCase
         $response->assertSee('Kewajiban', false);
         $response->assertSee('1.000.000', false);
         $response->assertSee('Sisa Hutang', false);
+    }
+
+    public function test_dashboard_renders_active_goals_with_progress_percentage(): void
+    {
+        Goal::create([
+            'space_id' => $this->space->id,
+            'account_id' => $this->account->id,
+            'name' => 'Dana Darurat',
+            'target_amount' => 10000000,
+            'current_amount' => 2500000,
+            'start_date' => '2026-11-01',
+            'target_date' => '2027-06-01',
+            'status' => 'active',
+            'created_by' => $this->user->id,
+            'updated_by' => $this->user->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Dana Darurat', false);
+        $response->assertSee('2.500.000', false);
+        $response->assertSee('10.000.000', false);
+        $response->assertSee('width: 25%', false);
     }
 }

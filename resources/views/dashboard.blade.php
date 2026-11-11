@@ -431,7 +431,7 @@
                         </svg>
                     </span>
                     <h2 class="text-xs font-bold text-charcoal">Jadwal &amp; Tagihan Berulang</h2>
-                    <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase">Kas &amp; Bank</span>
+                    <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase">Rutin &amp; Langganan</span>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -675,7 +675,7 @@
             <div class="p-4 divide-y divide-line space-y-3">
                 @forelse ($activeGoals as $goal)
                     @php
-                        $prog = $goal->progressPercentage();
+                        $prog = $goal->percentage();
                     @endphp
                     <div class="pt-2 first:pt-0">
                         <div class="flex items-center justify-between text-xs mb-1">
