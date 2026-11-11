@@ -6,7 +6,7 @@
                 Jadwal Berulang & Tagihan
             </h1>
             <p class="text-xs text-muted">
-                Kelola tagihan rutin dan transfer berkala dari <strong>Kas, Bank, atau E-Wallet</strong>. Untuk transaksi atau tagihan Kartu Kredit &amp; Paylater, gunakan menu <a href="{{ route('credit.index') }}" class="text-forest font-semibold hover:underline">Kredit &amp; Cicilan</a>.
+                Kelola tagihan rutin (Kas, Bank, E-Wallet, atau Kartu Kredit/PayLater), transfer berkala, dan jadwal pelunasan tagihan kredit. Untuk belanja cicilan ber-tenor, gunakan <a href="{{ route('credit.index') }}" class="text-forest font-semibold hover:underline">Kredit &amp; Cicilan</a>.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -15,6 +15,20 @@
             </a>
         </div>
     </div>
+
+    @if ($errors->any())
+        <div class="mb-6 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 p-4 text-xs text-rose-800 dark:text-rose-200 space-y-1.5" role="alert">
+            <div class="font-bold flex items-center gap-1.5">
+                <span>⚠️</span>
+                <span>Konfirmasi gagal dicatat:</span>
+            </div>
+            <ul class="list-disc list-inside space-y-0.5 pl-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <!-- Ringkasan Status Header Cards -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -35,19 +49,19 @@
         </div>
 
         <div class="panel-card p-4 rounded-xl border border-line bg-panel shadow-xs">
-            <div class="text-[10px] uppercase font-bold text-muted tracking-wider">Tagihan Pembayaran</div>
+            <div class="text-[10px] uppercase font-bold text-muted tracking-wider">Tagihan Pengeluaran</div>
             <div class="font-mono text-2xl font-bold text-forest mt-1">
                 {{ $expenseCount }}
             </div>
-            <div class="text-[10px] text-muted mt-0.5">Jadwal pengeluaran kas</div>
+            <div class="text-[10px] text-muted mt-0.5">Kas, Bank &amp; Kartu Kredit</div>
         </div>
 
         <div class="panel-card p-4 rounded-xl border border-line bg-panel shadow-xs">
-            <div class="text-[10px] uppercase font-bold text-muted tracking-wider">Transfer Berulang</div>
+            <div class="text-[10px] uppercase font-bold text-muted tracking-wider">Transfer &amp; Bayar Kredit</div>
             <div class="font-mono text-2xl font-bold text-charcoal mt-1">
-                {{ $transferCount }}
+                {{ $transferCount + $creditPaymentCount }}
             </div>
-            <div class="text-[10px] text-muted mt-0.5">Rotasi kas netral</div>
+            <div class="text-[10px] text-muted mt-0.5">{{ $transferCount }} transfer, {{ $creditPaymentCount }} bayar kredit</div>
         </div>
     </div>
 
@@ -63,6 +77,9 @@
                 </a>
                 <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'transfer'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'transfer' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Transfer ({{ $transferCount }})
+                </a>
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'credit_payment'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'credit_payment' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                    Bayar Kredit ({{ $creditPaymentCount }})
                 </a>
                 <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'paused', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'paused' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Dijeda ({{ $pausedCount }})
@@ -133,8 +150,8 @@
                             <tr class="hover:bg-cream/40 transition {{ $item->isArchived() ? 'opacity-60' : '' }}">
                                 <td class="py-3.5 px-4">
                                     <div class="flex items-center gap-2">
-                                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold {{ $item->isExpense() ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-slate-500/10 text-charcoal' }}">
-                                            {{ $item->isExpense() ? '🏷️' : '⇄' }}
+                                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold {{ $item->isCreditPayment() ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : ($item->isExpense() ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-slate-500/10 text-charcoal') }}">
+                                            {{ $item->isCreditPayment() ? '💳' : ($item->isExpense() ? '🏷️' : '⇄') }}
                                         </span>
                                         <div>
                                             <div class="flex items-center gap-1.5 flex-wrap">
@@ -181,9 +198,12 @@
 
                                 <td class="py-3.5 px-4">
                                     @if ($item->isExpense())
-                                        <div class="font-medium text-charcoal">
-                                            @if ($item->sourceAccount)
-                                                {{ $item->sourceAccount->name }}
+                                        <div class="font-medium text-charcoal flex items-center gap-1.5 flex-wrap">
+                                            @if ($item->creditAccount)
+                                                <span>💳 {{ $item->creditAccount->name }}</span>
+                                                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 uppercase">Kredit</span>
+                                            @elseif ($item->sourceAccount)
+                                                <span>{{ $item->sourceAccount->name }}</span>
                                             @else
                                                 <span class="text-xs text-muted font-normal italic">Rekening Fleksibel</span>
                                             @endif
@@ -192,6 +212,13 @@
                                             <span>Pos:</span>
                                             <span class="font-bold text-charcoal">{{ $item->category?->name }}</span>
                                         </div>
+                                    @elseif ($item->isCreditPayment())
+                                        <div class="font-medium text-charcoal flex items-center gap-1 flex-wrap">
+                                            <span>{{ $item->sourceAccount?->name ?: 'Rekening Fleksibel' }}</span>
+                                            <span class="text-muted">&rarr;</span>
+                                            <span>💳 {{ $item->creditAccount?->name }}</span>
+                                        </div>
+                                        <div class="text-[10px] text-muted">Pelunasan Tagihan Kredit</div>
                                     @else
                                         <div class="font-medium text-charcoal flex items-center gap-1">
                                             <span>{{ $item->sourceAccount?->name }}</span>
@@ -246,9 +273,14 @@
                                 <td class="py-3.5 px-4 text-right">
                                     <div class="flex items-center justify-end gap-1.5">
                                         @if ($item->isActive())
+                                            @php
+                                                $suggestedAmt = $item->isCreditPayment() && $item->is_variable_amount
+                                                    ? ($creditSuggestions[$item->credit_account_id]['suggested'] ?? 0)
+                                                    : 0;
+                                            @endphp
                                             <button 
                                                 type="button" 
-                                                onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}', {{ $item->source_account_id ?: 'null' }})"
+                                                onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}', {{ $item->source_account_id ?: 'null' }}, {{ $suggestedAmt }})"
                                                 class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest/90 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer"
                                                 title="Konfirmasi & Catat Transaksi"
                                             >
@@ -340,12 +372,29 @@
                     <label for="modalSourceAccountId" class="block text-xs font-bold text-charcoal mb-1">
                         Rekening Pembayaran <span class="text-rose-500">*</span>
                     </label>
+                    @php
+                        $modalLiquidAccounts = $accounts->filter(fn ($acc) => ! $acc->isLiability());
+                        $modalCreditAccounts = $accounts->filter(fn ($acc) => $acc->isCreditSpendAccount() && $acc->creditAccount);
+                    @endphp
                     <select name="source_account_id" id="modalSourceAccountId" class="field-select w-full text-xs" required>
-                        @foreach ($accounts as $acc)
-                            <option value="{{ $acc->id }}">
-                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
-                            </option>
-                        @endforeach
+                        @if ($modalLiquidAccounts->isNotEmpty())
+                            <optgroup label="Kas, Bank, E-Wallet &amp; Investasi">
+                                @foreach ($modalLiquidAccounts as $acc)
+                                    <option value="{{ $acc->id }}" data-account-type="{{ $acc->type }}" data-is-default="{{ $acc->is_default ? '1' : '0' }}">
+                                        {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                        @if ($modalCreditAccounts->isNotEmpty())
+                            <optgroup label="Kartu Kredit &amp; PayLater">
+                                @foreach ($modalCreditAccounts as $acc)
+                                    <option value="{{ $acc->id }}" data-account-type="{{ $acc->type }}" data-is-default="0">
+                                        💳 {{ $acc->creditAccount->name }} (Sisa Limit: {{ $acc->creditAccount->formatted_available_limit }})
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endif
                     </select>
                     <div class="text-[11px] text-muted mt-1" id="modalAccountHelp">
                         Pilih rekening/dompet yang digunakan untuk transaksi ini.
@@ -432,7 +481,7 @@
     </div>
 
     <script>
-        function openConfirmModal(id, name, dueDate, amount, isVariable, type, sourceAccountId = null) {
+        function openConfirmModal(id, name, dueDate, amount, isVariable, type, sourceAccountId = null, suggestedAmount = 0) {
             const modal = document.getElementById('confirmOccurrenceModal');
             const form = document.getElementById('confirmOccurrenceForm');
             form.action = '/recurring/' + id + '/confirm';
@@ -442,14 +491,64 @@
             document.getElementById('modalDueDateLabel').textContent = dueDate;
 
             const accountSelect = document.getElementById('modalSourceAccountId');
-            if (accountSelect && sourceAccountId) {
-                accountSelect.value = sourceAccountId;
+            const accountHelp = document.getElementById('modalAccountHelp');
+            if (accountSelect) {
+                const allowedTypes = type === 'credit_payment'
+                    ? ['bank', 'cash', 'e-wallet']
+                    : (type === 'transfer'
+                        ? ['bank', 'e-wallet', 'cash', 'investment']
+                        : ['bank', 'e-wallet', 'cash', 'investment', 'credit_card', 'paylater']);
+
+                let firstEnabledVal = null;
+                let defaultEnabledVal = null;
+                let sourceEnabled = false;
+
+                for (let i = 0; i < accountSelect.options.length; i++) {
+                    const opt = accountSelect.options[i];
+                    const accType = opt.dataset.accountType || '';
+                    const isAllowed = allowedTypes.includes(accType);
+                    opt.disabled = !isAllowed;
+                    opt.hidden = !isAllowed;
+
+                    if (isAllowed) {
+                        if (firstEnabledVal === null) firstEnabledVal = opt.value;
+                        if (opt.dataset.isDefault === '1' && defaultEnabledVal === null) defaultEnabledVal = opt.value;
+                        if (sourceAccountId && String(opt.value) === String(sourceAccountId)) sourceEnabled = true;
+                    }
+                }
+
+                if (sourceEnabled) {
+                    accountSelect.value = String(sourceAccountId);
+                } else if (defaultEnabledVal !== null) {
+                    accountSelect.value = defaultEnabledVal;
+                } else if (firstEnabledVal !== null) {
+                    accountSelect.value = firstEnabledVal;
+                }
+            }
+
+            if (accountHelp) {
+                if (type === 'credit_payment') {
+                    accountHelp.textContent = 'Pilih rekening kas, bank, atau e-wallet untuk membayar tagihan kartu kredit.';
+                } else if (type === 'expense') {
+                    accountHelp.textContent = 'Pilih rekening kas/bank atau Kartu Kredit/PayLater yang digunakan.';
+                } else {
+                    accountHelp.textContent = 'Pilih rekening asal transfer.';
+                }
             }
 
             const amountInput = document.getElementById('modalAmount');
-            amountInput.value = amount > 0 ? amount : '';
+            if (amount > 0) {
+                amountInput.value = amount;
+            } else if (suggestedAmount > 0) {
+                amountInput.value = suggestedAmount;
+            } else {
+                amountInput.value = '';
+            }
+
             if (isVariable) {
-                document.getElementById('modalAmountHelp').textContent = 'Jadwal ini bertipe nominal fleksibel. Masukkan nominal tagihan aktual periode ini.';
+                document.getElementById('modalAmountHelp').textContent = type === 'credit_payment' && suggestedAmount > 0
+                    ? 'Terisi otomatis dari tagihan/kewajiban kartu saat ini (dapat Anda ubah sesuai pembayaran riil).'
+                    : 'Jadwal ini bertipe nominal fleksibel. Masukkan nominal tagihan aktual periode ini.';
             } else {
                 document.getElementById('modalAmountHelp').textContent = 'Nominal tetap sesuai jadwal (dapat disesuaikan jika terdapat selisih).';
             }
@@ -460,6 +559,12 @@
         function closeConfirmModal() {
             document.getElementById('confirmOccurrenceModal').classList.add('hidden');
         }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConfirmModal();
+            }
+        });
 
         document.getElementById('confirmOccurrenceForm')?.addEventListener('submit', function() {
             const btn = document.getElementById('btnConfirmSubmit');

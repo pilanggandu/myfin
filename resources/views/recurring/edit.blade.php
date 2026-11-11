@@ -38,7 +38,7 @@
             <div class="panel-card p-5 sm:p-6 rounded-2xl border border-line bg-panel space-y-4 shadow-xs">
                 <div class="flex items-center justify-between border-b border-line pb-3">
                     <div class="text-[11px] font-bold tracking-wider text-muted uppercase">
-                        1. INFORMASI JADWAL ({{ $recurring->isExpense() ? 'TAGIHAN' : 'TRANSFER' }})
+                        1. INFORMASI JADWAL ({{ $recurring->isExpense() ? 'TAGIHAN' : ($recurring->isCreditPayment() ? 'BAYAR KREDIT' : 'TRANSFER') }})
                     </div>
                     <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-sidebar border border-line text-charcoal">
                         {{ strtoupper($recurring->type) }}
@@ -145,11 +145,77 @@
                             <label for="editSourceExpense" class="block text-xs font-bold text-charcoal mb-1">
                                 Rekening Sumber Pembayaran <span class="text-[10px] text-muted font-normal">(Opsional / Fleksibel)</span>
                             </label>
+                            @php
+                                $editLiquidAccounts = $accounts->filter(fn ($acc) => ! $acc->isLiability());
+                                $editCreditAccounts = $accounts->filter(fn ($acc) => $acc->isCreditSpendAccount() && $acc->creditAccount);
+                                $editLegacyAccounts = $accounts->filter(fn ($acc) => $acc->isLiability() && ! $acc->creditAccount);
+                            @endphp
                             <select name="source_account_id" id="editSourceExpense" class="field-select w-full text-xs">
                                 <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
-                                @foreach ($accounts as $acc)
+                                @if ($editLiquidAccounts->isNotEmpty())
+                                    <optgroup label="Kas, Bank, E-Wallet &amp; Investasi">
+                                        @foreach ($editLiquidAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
+                                                {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if ($editCreditAccounts->isNotEmpty())
+                                    <optgroup label="Kartu Kredit &amp; PayLater (Masuk Lembar Tagihan)">
+                                        @foreach ($editCreditAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
+                                                💳 {{ $acc->creditAccount->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Sisa Limit: {{ $acc->creditAccount->formatted_available_limit }})
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if ($editLegacyAccounts->isNotEmpty())
+                                    <optgroup label="Akun Lainnya (Legacy)">
+                                        @foreach ($editLegacyAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
+                                                {{ $acc->name }} (Akun Kredit){{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                            </select>
+                            @error('source_account_id')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
+                            <div class="text-[11px] text-muted mt-1">
+                                Kosongkan jika ingin memilih rekening saat konfirmasi tiba. Jika memakai Kartu Kredit atau PayLater, transaksi otomatis masuk Lembar Tagihan saat dikonfirmasi.
+                            </div>
+                        </div>
+                    </div>
+                @elseif ($recurring->isCreditPayment())
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="editCreditAccount" class="block text-xs font-bold text-charcoal mb-1">
+                                Kartu Kredit / PayLater Tujuan <span class="text-rose-500">*</span>
+                            </label>
+                            <select name="credit_account_id" id="editCreditAccount" class="field-select w-full text-xs" required>
+                                <option value="">Pilih Kartu Kredit / PayLater...</option>
+                                @foreach ($creditAccounts as $ca)
+                                    <option value="{{ $ca->id }}" {{ (string)old('credit_account_id', $recurring->credit_account_id) === (string)$ca->id ? 'selected' : '' }}>
+                                        💳 {{ $ca->name }}{{ $ca->archived_at ? ' (Diarsipkan)' : '' }} (Kewajiban: {{ $ca->formatted_liability }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('credit_account_id')
+                                <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="editSourceCreditPayment" class="block text-xs font-bold text-charcoal mb-1">
+                                Rekening Kas / Bank Pembayar <span class="text-[10px] text-muted font-normal">(Opsional / Fleksibel)</span>
+                            </label>
+                            <select name="source_account_id" id="editSourceCreditPayment" class="field-select w-full text-xs">
+                                <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
+                                @foreach ($billPaymentAccounts as $acc)
                                     <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
-                                        {{ $acc->name }}{{ $acc->isLiability() ? ' (Akun Kredit)' : '' }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                        {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                     </option>
                                 @endforeach
                             </select>
@@ -157,7 +223,7 @@
                                 <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
                             @enderror
                             <div class="text-[11px] text-muted mt-1">
-                                Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba. Tagihan via Kartu Kredit? <a href="{{ route('credit.purchases.create') }}" class="text-forest font-semibold hover:underline">Catat di Kredit &amp; Cicilan &rarr;</a>
+                                Saldo rekening pembayar akan berkurang saat tagihan dikonfirmasi dan otomatis mengurangi kewajiban kartu kredit.
                             </div>
                         </div>
                     </div>
@@ -169,7 +235,7 @@
                                     Dari Rekening (Asal) <span class="text-rose-500">*</span>
                                 </label>
                                 <select name="source_account_id" id="editSourceTransfer" class="field-select w-full text-xs" onchange="syncEditTransferAccounts()" required>
-                                    @foreach ($accounts as $acc)
+                                    @foreach ($liquidAccounts as $acc)
                                         <option value="{{ $acc->id }}" {{ (string)old('source_account_id', $recurring->source_account_id) === (string)$acc->id ? 'selected' : '' }}>
                                             {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                         </option>
@@ -185,7 +251,7 @@
                                     Ke Rekening (Tujuan) <span class="text-rose-500">*</span>
                                 </label>
                                 <select name="destination_account_id" id="editDestTransfer" class="field-select w-full text-xs" onchange="syncEditTransferAccounts()" required>
-                                    @foreach ($accounts as $acc)
+                                    @foreach ($liquidAccounts as $acc)
                                         <option value="{{ $acc->id }}" {{ (string)old('destination_account_id', $recurring->destination_account_id) === (string)$acc->id ? 'selected' : '' }}>
                                             {{ $acc->name }}{{ $acc->archived_at ? ' (Diarsipkan)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                         </option>

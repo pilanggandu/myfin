@@ -556,7 +556,7 @@ class ReportController extends Controller
 
         $recurringSchedules = $space ? RecurringSchedule::where('space_id', $space->id)
             ->active()
-            ->with(['category', 'sourceAccount', 'destinationAccount', 'occurrences' => function ($q) use ($calendarStart, $calendarEnd) {
+            ->with(['category', 'sourceAccount', 'destinationAccount', 'creditAccount', 'occurrences' => function ($q) use ($calendarStart, $calendarEnd) {
                 $q->whereBetween('due_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
                     ->with('transaction');
             }])
@@ -652,9 +652,11 @@ class ReportController extends Controller
                         $status = ($occ && $occ->status === 'confirmed') ? 'paid' : 'pending';
                         $amount = (float) (($occ && ! is_null($occ->amount)) ? $occ->amount : ($sch->amount ?? 0));
 
-                        $subtitle = $sch->isTransfer()
-                            ? (($sch->sourceAccount?->name ?? 'Kas').' → '.($sch->destinationAccount?->name ?? 'Tujuan'))
-                            : (($sch->category?->name ?? 'Tagihan Rutin').' • '.($sch->sourceAccount?->name ?? 'Rekening Fleksibel'));
+                        $subtitle = match (true) {
+                            $sch->isCreditPayment() => ($sch->sourceAccount?->name ?? 'Rekening Fleksibel').' → '.($sch->creditAccount?->name ?? 'Kartu Kredit'),
+                            $sch->isTransfer() => ($sch->sourceAccount?->name ?? 'Kas').' → '.($sch->destinationAccount?->name ?? 'Tujuan'),
+                            default => ($sch->category?->name ?? 'Tagihan Rutin').' • '.($sch->creditAccount?->name ?? $sch->sourceAccount?->name ?? 'Rekening Fleksibel'),
+                        };
 
                         $dayBills[] = [
                             'id' => $sch->id,

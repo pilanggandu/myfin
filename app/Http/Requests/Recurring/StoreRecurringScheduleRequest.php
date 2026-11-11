@@ -19,7 +19,7 @@ class StoreRecurringScheduleRequest extends FormRequest
         $isVariable = $this->boolean('is_variable_amount');
 
         $rules = [
-            'type' => ['required', 'string', Rule::in(['expense', 'transfer'])],
+            'type' => ['required', 'string', Rule::in(['expense', 'transfer', 'credit_payment'])],
             'name' => ['required', 'string', 'max:255'],
             'member_id' => [
                 'nullable',
@@ -34,7 +34,18 @@ class StoreRecurringScheduleRequest extends FormRequest
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
                     ->whereNull('archived_at')
-                    ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']),
+                    ->where(function ($q) {
+                        $q->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment'])
+                            ->orWhere(function ($creditQ) {
+                                $creditQ->whereIn('type', ['credit_card', 'paylater'])
+                                    ->whereExists(function ($existsQ) {
+                                        $existsQ->selectRaw('1')
+                                            ->from('credit_accounts')
+                                            ->whereColumn('credit_accounts.account_id', 'accounts.id')
+                                            ->whereNull('credit_accounts.archived_at');
+                                    });
+                            });
+                    }),
             ],
             'frequency' => ['required', 'string', Rule::in(['weekly', 'monthly', 'yearly'])],
             'start_date' => ['required', 'date'],
@@ -76,6 +87,22 @@ class StoreRecurringScheduleRequest extends FormRequest
                     ->whereNull('archived_at')
                     ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']),
             ];
+        } elseif ($type === 'credit_payment') {
+            $rules['credit_account_id'] = [
+                'required',
+                'integer',
+                Rule::exists('credit_accounts', 'id')
+                    ->where('space_id', $spaceId)
+                    ->whereNull('archived_at'),
+            ];
+            $rules['source_account_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('accounts', 'id')
+                    ->where('space_id', $spaceId)
+                    ->whereNull('archived_at')
+                    ->whereIn('type', ['bank', 'cash', 'e-wallet']),
+            ];
         }
 
         return $rules;
@@ -87,10 +114,12 @@ class StoreRecurringScheduleRequest extends FormRequest
             'type.required' => 'Jenis jadwal berulang wajib dipilih.',
             'name.required' => 'Nama jadwal tagihan atau transfer wajib diisi.',
             'source_account_id.required' => 'Rekening sumber wajib dipilih.',
-            'source_account_id.exists' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
+            'source_account_id.exists' => 'Rekening sumber tidak valid untuk jenis jadwal ini.',
             'destination_account_id.required' => 'Rekening tujuan transfer wajib dipilih.',
             'destination_account_id.different' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
             'destination_account_id.exists' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
+            'credit_account_id.required' => 'Kartu kredit atau akun paylater tujuan pembayaran wajib dipilih.',
+            'credit_account_id.exists' => 'Akun kredit tujuan tidak valid atau telah diarsipkan.',
             'category_id.required' => 'Kategori pengeluaran wajib dipilih.',
             'category_id.exists' => 'Kategori pengeluaran tidak valid atau telah diarsipkan.',
             'member_id.exists' => 'Member yang dipilih tidak valid atau telah diarsipkan.',

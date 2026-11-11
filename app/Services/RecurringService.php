@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\CreditAccount;
 use App\Models\FinancialTransaction;
 use App\Models\Member;
 use App\Models\RecurringOccurrence;
@@ -17,7 +18,8 @@ use Illuminate\Validation\ValidationException;
 class RecurringService
 {
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected CreditService $creditService
     ) {}
 
     public function createSchedule(Space $space, User $actor, array $data): RecurringSchedule
@@ -27,15 +29,45 @@ class RecurringService
         $anchorDay = (int) $startDate->day;
 
         $sourceAccount = null;
+        $creditAccount = null;
+
         if (! empty($data['source_account_id'])) {
             $sourceAccount = Account::where('space_id', $space->id)
                 ->where('id', $data['source_account_id'])
+                ->with('creditAccount')
                 ->first();
 
-            if (! $sourceAccount || $sourceAccount->isArchived() || $sourceAccount->isLiability()) {
-                throw ValidationException::withMessages([
-                    'source_account_id' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
-                ]);
+            if ($type === 'transfer') {
+                if (! $sourceAccount || $sourceAccount->isArchived() || $sourceAccount->isLiability()) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber transfer harus berupa akun kas, bank, e-wallet, atau investasi aktif.',
+                    ]);
+                }
+            } elseif ($type === 'credit_payment') {
+                if (! $sourceAccount || $sourceAccount->isArchived() || ! in_array($sourceAccount->type, ['bank', 'cash', 'e-wallet'], true)) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening pembayar tagihan kredit harus berupa akun kas, bank, atau e-wallet aktif.',
+                    ]);
+                }
+            } else {
+                if (! $sourceAccount || $sourceAccount->isArchived()) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber tidak valid atau telah diarsipkan.',
+                    ]);
+                }
+
+                if ($sourceAccount->isCreditSpendAccount()) {
+                    $creditAccount = $sourceAccount->creditAccount;
+                    if (! $creditAccount || $creditAccount->isArchived()) {
+                        throw ValidationException::withMessages([
+                            'source_account_id' => 'Akun Kartu Kredit atau PayLater yang dipilih tidak valid atau telah diarsipkan.',
+                        ]);
+                    }
+                } elseif ($sourceAccount->isLiability()) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber harus berupa kas, bank, e-wallet, investasi, atau kartu kredit/paylater aktif.',
+                    ]);
+                }
             }
         } elseif ($type === 'transfer') {
             throw ValidationException::withMessages([
@@ -61,6 +93,18 @@ class RecurringService
             if (! $destAccount || $destAccount->isArchived() || $destAccount->isLiability()) {
                 throw ValidationException::withMessages([
                     'destination_account_id' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
+                ]);
+            }
+        } elseif ($type === 'credit_payment') {
+            $creditAccountId = (int) ($data['credit_account_id'] ?? 0);
+            $creditAccount = CreditAccount::where('space_id', $space->id)
+                ->where('id', $creditAccountId)
+                ->active()
+                ->first();
+
+            if (! $creditAccount) {
+                throw ValidationException::withMessages([
+                    'credit_account_id' => 'Akun kartu kredit atau paylater tujuan tidak valid atau telah diarsipkan.',
                 ]);
             }
         } else {
@@ -101,7 +145,7 @@ class RecurringService
             ]);
         }
 
-        return DB::transaction(function () use ($space, $actor, $data, $type, $startDate, $anchorDay, $sourceAccount, $destAccount, $category, $memberId, $isVariable, $amount) {
+        return DB::transaction(function () use ($space, $actor, $data, $type, $startDate, $anchorDay, $sourceAccount, $destAccount, $creditAccount, $category, $memberId, $isVariable, $amount) {
             $schedule = RecurringSchedule::create([
                 'space_id' => $space->id,
                 'type' => $type,
@@ -110,6 +154,7 @@ class RecurringService
                 'category_id' => $category?->id,
                 'source_account_id' => $sourceAccount?->id,
                 'destination_account_id' => $destAccount?->id,
+                'credit_account_id' => $creditAccount?->id,
                 'frequency' => $data['frequency'],
                 'anchor_day' => $anchorDay,
                 'start_date' => $startDate->toDateString(),
@@ -141,16 +186,50 @@ class RecurringService
         $type = $schedule->type;
 
         $sourceAccount = null;
+        $creditAccount = null;
+
         if (! empty($data['source_account_id'])) {
             $sourceAccount = Account::where('space_id', $space->id)
                 ->where('id', $data['source_account_id'])
+                ->with('creditAccount')
                 ->first();
 
             $isSameExistingSource = (int) $schedule->source_account_id === (int) ($sourceAccount?->id);
-            if (! $sourceAccount || (($sourceAccount->isArchived() || $sourceAccount->isLiability()) && ! $isSameExistingSource)) {
-                throw ValidationException::withMessages([
-                    'source_account_id' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
-                ]);
+
+            if ($type === 'transfer') {
+                if (! $sourceAccount || (($sourceAccount->isArchived() || $sourceAccount->isLiability()) && ! $isSameExistingSource)) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber transfer harus berupa akun kas, bank, e-wallet, atau investasi aktif.',
+                    ]);
+                }
+            } elseif ($type === 'credit_payment') {
+                if (! $sourceAccount || (($sourceAccount->isArchived() || ! in_array($sourceAccount->type, ['bank', 'cash', 'e-wallet'], true)) && ! $isSameExistingSource)) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening pembayar tagihan kredit harus berupa akun kas, bank, atau e-wallet aktif.',
+                    ]);
+                }
+            } else {
+                if (! $sourceAccount || ($sourceAccount->isArchived() && ! $isSameExistingSource)) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber tidak valid atau telah diarsipkan.',
+                    ]);
+                }
+
+                if ($sourceAccount->isCreditSpendAccount()) {
+                    $creditAccount = $sourceAccount->creditAccount;
+                    if ((! $creditAccount || $creditAccount->isArchived()) && ! $isSameExistingSource) {
+                        throw ValidationException::withMessages([
+                            'source_account_id' => 'Akun Kartu Kredit atau PayLater yang dipilih tidak valid atau telah diarsipkan.',
+                        ]);
+                    }
+                    if ($creditAccount && $creditAccount->isArchived() && ! $isSameExistingSource) {
+                        $creditAccount = null;
+                    }
+                } elseif ($sourceAccount->isLiability() && ! $isSameExistingSource) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber harus berupa kas, bank, e-wallet, investasi, atau kartu kredit/paylater aktif.',
+                    ]);
+                }
             }
         } elseif ($type === 'transfer') {
             throw ValidationException::withMessages([
@@ -177,6 +256,25 @@ class RecurringService
             if (! $destAccount || (($destAccount->isArchived() || $destAccount->isLiability()) && ! $isSameExistingDest)) {
                 throw ValidationException::withMessages([
                     'destination_account_id' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
+                ]);
+            }
+        } elseif ($type === 'credit_payment') {
+            $creditAccountId = (int) ($data['credit_account_id'] ?? 0);
+            $isSameExistingCredit = (int) $schedule->credit_account_id === $creditAccountId;
+
+            $creditAccount = CreditAccount::where('space_id', $space->id)
+                ->where('id', $creditAccountId)
+                ->where(function ($q) use ($isSameExistingCredit) {
+                    $q->whereNull('archived_at');
+                    if ($isSameExistingCredit) {
+                        $q->orWhereNotNull('archived_at');
+                    }
+                })
+                ->first();
+
+            if (! $creditAccount) {
+                throw ValidationException::withMessages([
+                    'credit_account_id' => 'Akun kartu kredit atau paylater tujuan tidak valid atau telah diarsipkan.',
                 ]);
             }
         } else {
@@ -279,13 +377,14 @@ class RecurringService
             ? ($schedule->archived_at ?? now())
             : null;
 
-        return DB::transaction(function () use ($schedule, $data, $memberId, $category, $sourceAccount, $destAccount, $newFrequency, $anchorDay, $startDate, $endDateStr, $newNextDueDate, $amount, $isVariable, $newStatus, $archivedAt, $oldNextDue, $oldStartDate, $oldFrequency) {
+        return DB::transaction(function () use ($schedule, $data, $memberId, $category, $sourceAccount, $destAccount, $creditAccount, $newFrequency, $anchorDay, $startDate, $endDateStr, $newNextDueDate, $amount, $isVariable, $newStatus, $archivedAt, $oldNextDue, $oldStartDate, $oldFrequency) {
             $schedule->update([
                 'name' => $data['name'],
                 'member_id' => $memberId,
                 'category_id' => $category?->id,
                 'source_account_id' => $sourceAccount?->id,
                 'destination_account_id' => $destAccount?->id,
+                'credit_account_id' => $creditAccount?->id,
                 'frequency' => $newFrequency,
                 'anchor_day' => $anchorDay,
                 'start_date' => $startDate->toDateString(),
@@ -379,6 +478,7 @@ class RecurringService
 
             $sourceAccount = Account::where('space_id', $space->id)
                 ->where('id', $sourceAccountId)
+                ->with('creditAccount')
                 ->first();
 
             if (! $sourceAccount || $sourceAccount->isArchived()) {
@@ -397,16 +497,82 @@ class RecurringService
                     ? (int) $overrideData['category_id']
                     : (int) $lockedSchedule->category_id;
 
-                $transaction = $this->transactionService->recordExpense($space, $actor, [
-                    'account_id' => $sourceAccount->id,
-                    'category_id' => $categoryId,
+                if ($sourceAccount->isCreditSpendAccount()) {
+                    $creditAccount = $sourceAccount->creditAccount;
+                    if (! $creditAccount || $creditAccount->isArchived()) {
+                        throw ValidationException::withMessages([
+                            'source_account_id' => 'Akun Kartu Kredit atau PayLater yang dipilih tidak valid atau telah diarsipkan.',
+                        ]);
+                    }
+
+                    try {
+                        $plan = $this->creditService->recordCreditPurchase($space, $actor, [
+                            'credit_account_id' => $creditAccount->id,
+                            'category_id' => $categoryId,
+                            'member_id' => $lockedSchedule->member_id,
+                            'name' => $description,
+                            'total_amount' => $amount,
+                            'tenor' => 1,
+                            'start_date' => $txDate,
+                            'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
+                            'notes' => $overrideData['notes'] ?? "Dicatat dari Jadwal Berulang: {$lockedSchedule->name}",
+                        ]);
+                    } catch (ValidationException $e) {
+                        $errors = $e->errors();
+                        if (isset($errors['total_amount']) && ! isset($errors['amount'])) {
+                            $errors['amount'] = $errors['total_amount'];
+                            unset($errors['total_amount']);
+                            throw ValidationException::withMessages($errors);
+                        }
+                        throw $e;
+                    }
+
+                    $transaction = $plan->purchaseTransaction;
+                } elseif ($sourceAccount->isLoan()) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Akun pinjaman tidak dapat digunakan sebagai rekening sumber pengeluaran rutin.',
+                    ]);
+                } else {
+                    $transaction = $this->transactionService->recordExpense($space, $actor, [
+                        'account_id' => $sourceAccount->id,
+                        'category_id' => $categoryId,
+                        'amount' => $amount,
+                        'transaction_date' => $txDate,
+                        'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
+                        'description' => $description,
+                        'member_id' => $lockedSchedule->member_id,
+                    ]);
+                }
+            } elseif ($lockedSchedule->isCreditPayment()) {
+                if (! in_array($sourceAccount->type, ['bank', 'cash', 'e-wallet'], true)) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening pembayar tagihan kredit harus berupa akun kas, bank, atau e-wallet aktif.',
+                    ]);
+                }
+
+                $creditAccount = $lockedSchedule->creditAccount;
+                if (! $creditAccount || $creditAccount->space_id !== $space->id || $creditAccount->isArchived()) {
+                    throw ValidationException::withMessages([
+                        'credit_account_id' => 'Akun kartu kredit atau paylater tujuan tidak valid atau telah diarsipkan.',
+                    ]);
+                }
+
+                $payment = $this->creditService->payCreditAccountBill($space, $actor, $creditAccount, [
+                    'source_account_id' => $sourceAccount->id,
                     'amount' => $amount,
-                    'transaction_date' => $txDate,
+                    'payment_date' => $txDate,
                     'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
-                    'description' => $description,
-                    'member_id' => $lockedSchedule->member_id,
+                    'notes' => $overrideData['notes'] ?? "Pembayaran terjadwal dari Jadwal Berulang: {$lockedSchedule->name}",
                 ]);
+
+                $transaction = $payment->transaction;
             } else {
+                if ($sourceAccount->isLiability()) {
+                    throw ValidationException::withMessages([
+                        'source_account_id' => 'Rekening sumber transfer harus berupa akun kas, bank, e-wallet, atau investasi aktif.',
+                    ]);
+                }
+
                 $destAccountId = ! empty($overrideData['destination_account_id'])
                     ? (int) $overrideData['destination_account_id']
                     : (int) $lockedSchedule->destination_account_id;
@@ -417,9 +583,19 @@ class RecurringService
                     ]);
                 }
 
+                $destAccount = Account::where('space_id', $space->id)
+                    ->where('id', $destAccountId)
+                    ->first();
+
+                if (! $destAccount || $destAccount->isArchived() || $destAccount->isLiability()) {
+                    throw ValidationException::withMessages([
+                        'destination_account_id' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
+                    ]);
+                }
+
                 $transaction = $this->transactionService->recordTransfer($space, $actor, [
                     'source_account_id' => $sourceAccount->id,
-                    'destination_account_id' => $destAccountId,
+                    'destination_account_id' => $destAccount->id,
                     'amount' => $amount,
                     'transaction_date' => $txDate,
                     'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
@@ -479,7 +655,7 @@ class RecurringService
                 }
             }
 
-            return $transaction;
+            return $transaction->load('entries');
         });
     }
 
@@ -577,7 +753,7 @@ class RecurringService
 
         $activeSchedules = RecurringSchedule::where('space_id', $space->id)
             ->active()
-            ->with(['member', 'category', 'sourceAccount', 'destinationAccount'])
+            ->with(['member', 'category', 'sourceAccount', 'destinationAccount', 'creditAccount'])
             ->orderBy('next_due_date', 'asc')
             ->get();
 

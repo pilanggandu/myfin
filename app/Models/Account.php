@@ -70,6 +70,22 @@ class Account extends Model
         return $query->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
     }
 
+    public function scopeExpenseSources(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q) {
+            $q->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment'])
+                ->orWhere(function (Builder $creditQ) {
+                    $creditQ->whereIn('type', ['credit_card', 'paylater'])
+                        ->whereHas('creditAccount', fn (Builder $ca) => $ca->whereNull('archived_at'));
+                });
+        });
+    }
+
+    public function scopeBillPaymentSources(Builder $query): Builder
+    {
+        return $query->whereIn('type', ['bank', 'cash', 'e-wallet']);
+    }
+
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
@@ -155,6 +171,11 @@ class Account extends Model
         return $this->type === 'credit_card';
     }
 
+    public function isCreditSpendAccount(): bool
+    {
+        return in_array($this->type, ['credit_card', 'paylater'], true);
+    }
+
     public function isLoan(): bool
     {
         return $this->type === 'loan';
@@ -162,7 +183,7 @@ class Account extends Model
 
     public function isLiability(): bool
     {
-        return in_array($this->type, ['credit_card', 'loan'], true);
+        return in_array($this->type, ['credit_card', 'paylater', 'loan'], true);
     }
 
     public function availableLimit(): ?float

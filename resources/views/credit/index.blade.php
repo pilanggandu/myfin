@@ -7,7 +7,7 @@
                 Kredit & Cicilan
             </h1>
             <p class="text-xs text-muted">
-                Kelola seluruh belanja, langganan, maupun cicilan yang memotong limit <strong>Kartu Kredit / Paylater</strong> secara terisolasi dari saldo kas. (Tagihan rutin non-kredit dikelola di <a href="{{ route('recurring.index') }}" class="text-forest font-semibold hover:underline">Jadwal Berulang</a>.)
+                Kelola seluruh belanja, cicilan, dan lembar tagihan <strong>Kartu Kredit / PayLater</strong> secara terisolasi dari saldo kas. Untuk langganan berulang otomatis atau pengingat bayar tagihan bulanan, gunakan <a href="{{ route('recurring.index') }}" class="text-forest font-semibold hover:underline">Jadwal Berulang</a>.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -353,6 +353,15 @@
                                     >
                                         Bayar Tagihan
                                     </button>
+                                @endif
+                                @if (!$account->isArchived())
+                                    <a 
+                                        href="{{ route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $account->id]) }}" 
+                                        class="text-forest hover:underline font-bold py-1 min-h-[36px] inline-flex items-center"
+                                        title="Buat jadwal rutin bulanan untuk membayar tagihan kartu ini"
+                                    >
+                                        Jadwalkan Bayar
+                                    </a>
                                 @endif
                             </div>
                             @if ($account->isArchived())

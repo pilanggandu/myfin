@@ -8,6 +8,7 @@ use App\Http\Requests\Recurring\StoreRecurringScheduleRequest;
 use App\Http\Requests\Recurring\UpdateRecurringScheduleRequest;
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\CreditAccount;
 use App\Models\Member;
 use App\Models\RecurringSchedule;
 use App\Services\RecurringService;
@@ -33,7 +34,7 @@ class RecurringScheduleController extends Controller
         $memberId = $request->query('member_id');
 
         $query = RecurringSchedule::where('space_id', $space->id)
-            ->with(['member', 'category', 'sourceAccount', 'destinationAccount']);
+            ->with(['member', 'category', 'sourceAccount.creditAccount', 'destinationAccount', 'creditAccount']);
 
         if ($status === 'archived') {
             $query->archived();
@@ -43,7 +44,7 @@ class RecurringScheduleController extends Controller
             $query->active();
         }
 
-        if ($type === 'expense' || $type === 'transfer') {
+        if (in_array($type, ['expense', 'transfer', 'credit_payment'], true)) {
             $query->where('type', $type);
         }
 
@@ -58,10 +59,24 @@ class RecurringScheduleController extends Controller
         $archivedCount = RecurringSchedule::where('space_id', $space->id)->archived()->count();
         $expenseCount = RecurringSchedule::where('space_id', $space->id)->active()->where('type', 'expense')->count();
         $transferCount = RecurringSchedule::where('space_id', $space->id)->active()->where('type', 'transfer')->count();
+        $creditPaymentCount = RecurringSchedule::where('space_id', $space->id)->active()->where('type', 'credit_payment')->count();
 
         $members = Member::where('space_id', $space->id)->active()->orderBy('name')->get();
-        $accounts = Account::where('space_id', $space->id)->active()->liquidAssets()->orderBy('name')->get();
+        $accounts = Account::where('space_id', $space->id)->active()->expenseSources()->with('creditAccount')->orderBy('name')->get();
         $categories = Category::where('space_id', $space->id)->expense()->active()->orderBy('name')->get();
+
+        $creditSuggestions = [];
+        foreach ($schedules as $sch) {
+            if ($sch->isCreditPayment() && $sch->creditAccount && ! isset($creditSuggestions[$sch->credit_account_id])) {
+                $statementDue = (int) $sch->creditAccount->statement_due_amount;
+                $liability = (int) $sch->creditAccount->currentLiability();
+                $creditSuggestions[$sch->credit_account_id] = [
+                    'statement_due' => $statementDue,
+                    'liability' => $liability,
+                    'suggested' => $statementDue > 0 ? $statementDue : $liability,
+                ];
+            }
+        }
 
         $today = Carbon::now($tz)->startOfDay();
         $overdueCount = 0;
@@ -89,11 +104,13 @@ class RecurringScheduleController extends Controller
             'archivedCount',
             'expenseCount',
             'transferCount',
+            'creditPaymentCount',
             'overdueCount',
             'dueTodayCount',
             'members',
             'accounts',
             'categories',
+            'creditSuggestions',
             'tz'
         ));
     }
@@ -104,7 +121,17 @@ class RecurringScheduleController extends Controller
 
         $accounts = Account::where('space_id', $space->id)
             ->active()
-            ->liquidAssets()
+            ->expenseSources()
+            ->with('creditAccount')
+            ->orderBy('name')
+            ->get();
+
+        $liquidAccounts = $accounts->filter(fn (Account $acc) => ! $acc->isLiability())->values();
+        $billPaymentAccounts = $accounts->filter(fn (Account $acc) => in_array($acc->type, ['bank', 'cash', 'e-wallet'], true))->values();
+
+        $creditAccounts = CreditAccount::where('space_id', $space->id)
+            ->active()
+            ->with('ledgerAccount')
             ->orderBy('name')
             ->get();
 
@@ -119,9 +146,20 @@ class RecurringScheduleController extends Controller
             ->orderBy('name')
             ->get();
 
-        $defaultType = $request->query('type', 'expense');
+        $requestedType = $request->query('type', 'expense');
+        $defaultType = in_array($requestedType, ['expense', 'transfer', 'credit_payment'], true) ? $requestedType : 'expense';
+        $defaultCreditAccountId = $request->query('credit_account_id');
 
-        return view('recurring.create', compact('accounts', 'categories', 'members', 'defaultType'));
+        return view('recurring.create', compact(
+            'accounts',
+            'liquidAccounts',
+            'billPaymentAccounts',
+            'creditAccounts',
+            'categories',
+            'members',
+            'defaultType',
+            'defaultCreditAccountId'
+        ));
     }
 
     public function store(StoreRecurringScheduleRequest $request): RedirectResponse
@@ -143,17 +181,42 @@ class RecurringScheduleController extends Controller
         $recurring->load([
             'member',
             'category',
-            'sourceAccount',
+            'sourceAccount.creditAccount',
             'destinationAccount',
+            'creditAccount.ledgerAccount',
             'occurrences.transaction.entries.account',
             'occurrences.confirmedBy',
             'creator',
         ]);
 
-        $accounts = Account::where('space_id', $space->id)->active()->liquidAssets()->orderBy('name')->get();
+        if ($recurring->isCreditPayment()) {
+            $accounts = Account::where('space_id', $space->id)->active()->billPaymentSources()->orderBy('name')->get();
+        } elseif ($recurring->isTransfer()) {
+            $accounts = Account::where('space_id', $space->id)->active()->liquidAssets()->orderBy('name')->get();
+        } else {
+            $accounts = Account::where('space_id', $space->id)->active()->expenseSources()->with('creditAccount')->orderBy('name')->get();
+        }
+
         $categories = Category::where('space_id', $space->id)->expense()->active()->orderBy('name')->get();
 
-        return view('recurring.show', compact('recurring', 'tz', 'accounts', 'categories'));
+        $creditLiability = 0;
+        $creditStatementDue = 0;
+        $suggestedCreditAmount = 0;
+        if ($recurring->isCreditPayment() && $recurring->creditAccount) {
+            $creditLiability = (int) $recurring->creditAccount->currentLiability();
+            $creditStatementDue = (int) $recurring->creditAccount->statement_due_amount;
+            $suggestedCreditAmount = $creditStatementDue > 0 ? $creditStatementDue : $creditLiability;
+        }
+
+        return view('recurring.show', compact(
+            'recurring',
+            'tz',
+            'accounts',
+            'categories',
+            'creditLiability',
+            'creditStatementDue',
+            'suggestedCreditAmount'
+        ));
     }
 
     public function edit(RecurringSchedule $recurring): View
@@ -166,7 +229,7 @@ class RecurringScheduleController extends Controller
             ->where(function ($q) use ($recurring) {
                 $q->where(function ($sub) {
                     $sub->whereNull('archived_at')
-                        ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+                        ->expenseSources();
                 });
                 if ($recurring->source_account_id) {
                     $q->orWhere('id', $recurring->source_account_id);
@@ -175,6 +238,49 @@ class RecurringScheduleController extends Controller
                     $q->orWhere('id', $recurring->destination_account_id);
                 }
             })
+            ->with('creditAccount')
+            ->orderBy('name')
+            ->get();
+
+        $liquidAccounts = Account::where('space_id', $space->id)
+            ->where(function ($q) use ($recurring) {
+                $q->where(function ($sub) {
+                    $sub->whereNull('archived_at')
+                        ->liquidAssets();
+                });
+                if ($recurring->isTransfer()) {
+                    if ($recurring->source_account_id) {
+                        $q->orWhere('id', $recurring->source_account_id);
+                    }
+                    if ($recurring->destination_account_id) {
+                        $q->orWhere('id', $recurring->destination_account_id);
+                    }
+                }
+            })
+            ->orderBy('name')
+            ->get();
+
+        $billPaymentAccounts = Account::where('space_id', $space->id)
+            ->where(function ($q) use ($recurring) {
+                $q->where(function ($sub) {
+                    $sub->whereNull('archived_at')
+                        ->billPaymentSources();
+                });
+                if ($recurring->isCreditPayment() && $recurring->source_account_id) {
+                    $q->orWhere('id', $recurring->source_account_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+
+        $creditAccounts = CreditAccount::where('space_id', $space->id)
+            ->where(function ($q) use ($recurring) {
+                $q->whereNull('archived_at');
+                if ($recurring->credit_account_id) {
+                    $q->orWhere('id', $recurring->credit_account_id);
+                }
+            })
+            ->with('ledgerAccount')
             ->orderBy('name')
             ->get();
 
@@ -199,7 +305,15 @@ class RecurringScheduleController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('recurring.edit', compact('recurring', 'accounts', 'categories', 'members'));
+        return view('recurring.edit', compact(
+            'recurring',
+            'accounts',
+            'liquidAccounts',
+            'billPaymentAccounts',
+            'creditAccounts',
+            'categories',
+            'members'
+        ));
     }
 
     public function update(UpdateRecurringScheduleRequest $request, RecurringSchedule $recurring): RedirectResponse

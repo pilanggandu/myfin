@@ -4,12 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\CreditPayment;
 use App\Models\FinancialTransaction;
+use App\Models\Installment;
+use App\Models\InstallmentPlan;
 use App\Models\Member;
 use App\Models\RecurringOccurrence;
 use App\Models\RecurringSchedule;
 use App\Models\Space;
 use App\Models\User;
+use App\Services\CreditService;
 use App\Services\RecurringService;
 use App\Services\TransactionService;
 use Carbon\Carbon;
@@ -963,5 +967,360 @@ class RecurringTest extends TestCase
                 'start_date' => '2026-11-10',
             ]);
         $switchCcResp->assertSessionHasErrors('source_account_id');
+    }
+
+    public function test_user_can_create_and_confirm_recurring_expense_using_credit_card_and_record_installment_statement_item(): void
+    {
+        $creditCard = app(CreditService::class)->createCreditAccount($this->spaceA, [
+            'name' => 'BCA Visa',
+            'type' => 'credit_card',
+            'credit_limit' => 5000000,
+            'billing_cycle_day' => 20,
+            'due_day' => 5,
+        ]);
+
+        $createResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('recurring.create'));
+
+        $createResp->assertOk();
+        $this->assertTrue($createResp->viewData('accounts')->pluck('id')->contains($creditCard->account_id));
+
+        $storeResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.store'), [
+                'type' => 'expense',
+                'name' => 'Netflix Premium',
+                'category_id' => $this->internetCat->id,
+                'source_account_id' => $creditCard->account_id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'amount' => 186000,
+            ]);
+
+        $schedule = RecurringSchedule::where('name', 'Netflix Premium')->first();
+        $this->assertNotNull($schedule);
+        $this->assertSame('expense', $schedule->type);
+        $this->assertSame($creditCard->id, $schedule->credit_account_id);
+        $this->assertSame($creditCard->account_id, $schedule->source_account_id);
+        $storeResp->assertRedirect(route('recurring.show', $schedule));
+
+        $showResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('recurring.show', $schedule));
+
+        $showResp->assertOk();
+        $showResp->assertDontSee('Rekening Sumber Terhubung ke Akun Kredit');
+        $showResp->assertSee('BCA Visa', false);
+
+        $confirmResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.confirm', $schedule), [
+                'due_date' => '2026-11-10',
+                'transaction_date' => '2026-11-10',
+                'source_account_id' => $creditCard->account_id,
+                'amount' => 186000,
+            ]);
+
+        $confirmResp->assertRedirect();
+
+        $plan = InstallmentPlan::where('credit_account_id', $creditCard->id)->first();
+        $this->assertNotNull($plan);
+        $this->assertSame(1, $plan->tenor);
+        $this->assertEquals(186000, $plan->total_amount);
+
+        $installment = Installment::where('installment_plan_id', $plan->id)->first();
+        $this->assertNotNull($installment);
+        $this->assertSame('pending', $installment->status);
+        $this->assertSame('2026-12-05', $installment->due_date->toDateString());
+
+        $creditCard->refresh();
+        $this->assertEquals(186000, $creditCard->currentLiability());
+        $this->assertEquals(4814000, $creditCard->availableLimit());
+        $this->assertEquals(10000000, $this->bca->fresh()->currentBalance());
+
+        $schedule->refresh();
+        $this->assertSame('2026-12-10', $schedule->next_due_date->toDateString());
+        $this->assertDatabaseHas('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-11-10',
+            'status' => 'confirmed',
+            'transaction_id' => $plan->financial_transaction_id,
+        ]);
+    }
+
+    public function test_recurring_expense_on_credit_card_rejects_confirmation_when_credit_limit_exceeded(): void
+    {
+        $creditCard = app(CreditService::class)->createCreditAccount($this->spaceA, [
+            'name' => 'Kartu Limit Kecil',
+            'type' => 'paylater',
+            'credit_limit' => 100000,
+            'billing_cycle_day' => 20,
+            'due_day' => 5,
+        ]);
+
+        $schedule = app(RecurringService::class)->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'expense',
+            'name' => 'Langganan Cloud',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $creditCard->account_id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-10',
+            'amount' => 250000,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.confirm', $schedule), [
+                'due_date' => '2026-11-10',
+                'transaction_date' => '2026-11-10',
+                'source_account_id' => $creditCard->account_id,
+                'amount' => 250000,
+            ]);
+
+        $response->assertSessionHasErrors('amount');
+        $this->assertSame(0, InstallmentPlan::count());
+        $this->assertEquals(100000, $creditCard->fresh()->availableLimit());
+        $this->assertDatabaseHas('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-11-10',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_user_can_create_edit_and_confirm_recurring_credit_payment_schedule(): void
+    {
+        $creditService = app(CreditService::class);
+        $creditCard = $creditService->createCreditAccount($this->spaceA, [
+            'name' => 'Mandiri Card',
+            'type' => 'credit_card',
+            'credit_limit' => 10000000,
+            'billing_cycle_day' => 25,
+            'due_day' => 10,
+        ]);
+
+        $plan = $creditService->recordCreditPurchase($this->spaceA, $this->userA, [
+            'credit_account_id' => $creditCard->id,
+            'category_id' => $this->internetCat->id,
+            'name' => 'Belanja Router',
+            'total_amount' => 1500000,
+            'tenor' => 1,
+            'start_date' => '2026-11-01',
+            'first_due_date' => '2026-11-10',
+        ]);
+
+        $createResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $creditCard->id]));
+
+        $createResp->assertOk();
+
+        $storeResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.store'), [
+                'type' => 'credit_payment',
+                'name' => 'Bayar Tagihan Mandiri Card',
+                'credit_account_id' => $creditCard->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'is_variable_amount' => '1',
+            ]);
+
+        $schedule = RecurringSchedule::where('name', 'Bayar Tagihan Mandiri Card')->first();
+        $this->assertNotNull($schedule);
+        $this->assertSame('credit_payment', $schedule->type);
+        $this->assertSame($creditCard->id, $schedule->credit_account_id);
+        $this->assertSame($this->bca->id, $schedule->source_account_id);
+        $this->assertTrue($schedule->is_variable_amount);
+        $this->assertNull($schedule->amount);
+        $storeResp->assertRedirect(route('recurring.show', $schedule));
+
+        $updateResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->put(route('recurring.update', $schedule), [
+                'name' => 'Tagihan Bulanan Mandiri Card',
+                'credit_account_id' => $creditCard->id,
+                'source_account_id' => $this->gopay->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'is_variable_amount' => '1',
+                'status' => 'active',
+            ]);
+
+        $updateResp->assertRedirect(route('recurring.show', $schedule));
+        $schedule->refresh();
+        $this->assertSame('Tagihan Bulanan Mandiri Card', $schedule->name);
+        $this->assertSame($this->gopay->id, $schedule->source_account_id);
+
+        $indexResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('recurring.index', ['type' => 'credit_payment']));
+
+        $indexResp->assertOk();
+        $indexResp->assertSee('Tagihan Bulanan Mandiri Card', false);
+
+        $showResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('recurring.show', $schedule));
+
+        $showResp->assertOk();
+        $showResp->assertSee('1.500.000', false);
+
+        $confirmResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.confirm', $schedule), [
+                'due_date' => '2026-11-10',
+                'transaction_date' => '2026-11-10',
+                'source_account_id' => $this->bca->id,
+                'amount' => 1500000,
+            ]);
+
+        $confirmResp->assertRedirect();
+
+        $this->assertEquals(8500000, $this->bca->fresh()->currentBalance());
+        $creditCard->refresh();
+        $this->assertEquals(0, $creditCard->currentLiability());
+        $this->assertEquals(10000000, $creditCard->availableLimit());
+        $this->assertSame('completed', $plan->fresh()->status);
+
+        $payment = CreditPayment::where('credit_account_id', $creditCard->id)->first();
+        $this->assertNotNull($payment);
+        $this->assertSame(1500000, $payment->total_amount);
+        $this->assertSame('credit_payment', $payment->transaction->type);
+
+        $schedule->refresh();
+        $this->assertSame('2026-12-10', $schedule->next_due_date->toDateString());
+        $this->assertDatabaseHas('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-11-10',
+            'status' => 'confirmed',
+            'transaction_id' => $payment->transaction_id,
+        ]);
+    }
+
+    public function test_recurring_credit_payment_rejects_invalid_source_or_cross_space_credit_account_and_zero_liability(): void
+    {
+        $creditService = app(CreditService::class);
+        $creditCardA = $creditService->createCreditAccount($this->spaceA, [
+            'name' => 'Card A',
+            'type' => 'credit_card',
+            'credit_limit' => 5000000,
+        ]);
+        $creditCardB = $creditService->createCreditAccount($this->spaceB, [
+            'name' => 'Card B',
+            'type' => 'credit_card',
+            'credit_limit' => 5000000,
+        ]);
+        $investment = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Bibit Reksadana',
+            'type' => 'investment',
+            'opening_balance' => 3000000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $invalidSourceResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.store'), [
+                'type' => 'credit_payment',
+                'name' => 'Bayar Card A',
+                'credit_account_id' => $creditCardA->id,
+                'source_account_id' => $investment->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'is_variable_amount' => '1',
+            ]);
+        $invalidSourceResp->assertSessionHasErrors('source_account_id');
+
+        $crossSpaceResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.store'), [
+                'type' => 'credit_payment',
+                'name' => 'Bayar Card B',
+                'credit_account_id' => $creditCardB->id,
+                'source_account_id' => $this->bca->id,
+                'frequency' => 'monthly',
+                'start_date' => '2026-11-10',
+                'is_variable_amount' => '1',
+            ]);
+        $crossSpaceResp->assertSessionHasErrors('credit_account_id');
+
+        $schedule = app(RecurringService::class)->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'credit_payment',
+            'name' => 'Bayar Card A Kosong',
+            'credit_account_id' => $creditCardA->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-10',
+            'is_variable_amount' => true,
+        ]);
+
+        $zeroLiabilityResp = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.confirm', $schedule), [
+                'due_date' => '2026-11-10',
+                'transaction_date' => '2026-11-10',
+                'source_account_id' => $this->bca->id,
+                'amount' => 500000,
+            ]);
+        $zeroLiabilityResp->assertSessionHasErrors('amount');
+        $this->assertDatabaseHas('recurring_occurrences', [
+            'recurring_schedule_id' => $schedule->id,
+            'due_date' => '2026-11-10',
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_report_calendar_renders_recurring_credit_expense_and_credit_payment_schedules(): void
+    {
+        $creditCard = app(CreditService::class)->createCreditAccount($this->spaceA, [
+            'name' => 'BCA Platinum',
+            'type' => 'credit_card',
+            'credit_limit' => 10000000,
+        ]);
+
+        $recurringService = app(RecurringService::class);
+        $recurringService->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'expense',
+            'name' => 'Spotify Family',
+            'category_id' => $this->internetCat->id,
+            'source_account_id' => $creditCard->account_id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-12',
+            'amount' => 86000,
+        ]);
+        $recurringService->createSchedule($this->spaceA, $this->userA, [
+            'type' => 'credit_payment',
+            'name' => 'Pelunasan BCA Platinum',
+            'credit_account_id' => $creditCard->id,
+            'source_account_id' => $this->bca->id,
+            'frequency' => 'monthly',
+            'start_date' => '2026-11-15',
+            'amount' => 500000,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('reports.index', ['tab' => 'daily', 'view' => 'calendar', 'year' => 2026, 'month' => 11]));
+
+        $response->assertOk();
+        $response->assertSee('Spotify Family', false);
+        $response->assertSee('Pelunasan BCA Platinum', false);
+        $response->assertSee('BCA Platinum', false);
+
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $subtitles = [];
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    foreach ($day->bills as $bill) {
+                        $subtitles[$bill['title']] = $bill['subtitle'];
+                    }
+                }
+            }
+
+            return ($subtitles['Spotify Family'] ?? '') === 'Internet & TV • BCA Platinum'
+                && ($subtitles['Pelunasan BCA Platinum'] ?? '') === 'Bank BCA → BCA Platinum';
+        });
     }
 }

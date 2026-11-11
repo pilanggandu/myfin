@@ -21,6 +21,7 @@ class RecurringSchedule extends Model
         'category_id',
         'source_account_id',
         'destination_account_id',
+        'credit_account_id',
         'frequency',
         'anchor_day',
         'start_date',
@@ -72,6 +73,11 @@ class RecurringSchedule extends Model
         return $this->belongsTo(Account::class, 'destination_account_id');
     }
 
+    public function creditAccount(): BelongsTo
+    {
+        return $this->belongsTo(CreditAccount::class);
+    }
+
     public function occurrences(): HasMany
     {
         return $this->hasMany(RecurringOccurrence::class)->orderBy('due_date', 'desc');
@@ -110,6 +116,11 @@ class RecurringSchedule extends Model
         return $query->where('type', 'transfer');
     }
 
+    public function scopeCreditPayment(Builder $query): Builder
+    {
+        return $query->where('type', 'credit_payment');
+    }
+
     public function isExpense(): bool
     {
         return $this->type === 'expense';
@@ -118,6 +129,16 @@ class RecurringSchedule extends Model
     public function isTransfer(): bool
     {
         return $this->type === 'transfer';
+    }
+
+    public function isCreditPayment(): bool
+    {
+        return $this->type === 'credit_payment';
+    }
+
+    public function usesCreditAccount(): bool
+    {
+        return $this->isExpense() && ($this->credit_account_id !== null || ($this->sourceAccount?->creditAccount !== null));
     }
 
     public function isActive(): bool

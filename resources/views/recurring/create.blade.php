@@ -11,11 +11,11 @@
             Buat Jadwal Berulang Baru
         </h1>
         <p class="text-xs text-muted max-w-2xl">
-            Atur tagihan rutin atau transfer berkala menggunakan <strong>Kas, Bank, atau E-Wallet</strong>. Saldo tidak akan berubah otomatis sebelum Anda memberikan konfirmasi pencatatan.
+            Atur pengeluaran berulang (Kas, Bank, E-Wallet, atau Kartu Kredit/PayLater), transfer berkala, maupun jadwal pembayaran tagihan kartu kredit. Saldo tidak berubah otomatis sebelum Anda menekan konfirmasi pencatatan.
         </p>
     </div>
 
-    @if ($accounts->isEmpty())
+    @if ($accounts->isEmpty() && $creditAccounts->isEmpty())
         <div class="panel-card p-8 text-center space-y-4 max-w-xl mx-auto border border-line rounded-2xl bg-panel">
             <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto text-xl">
                 ⚠️
@@ -42,7 +42,7 @@
                     <div class="text-[11px] font-bold tracking-wider text-muted uppercase">
                         1. JENIS JADWAL BERULANG
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <label class="cursor-pointer">
                             <input 
                                 type="radio" 
@@ -52,11 +52,11 @@
                                 {{ old('type', $defaultType) === 'expense' ? 'checked' : '' }}
                                 onchange="onRecurringTypeChange('expense')"
                             />
-                            <div class="p-4 rounded-xl border border-line bg-sidebar peer-checked:bg-panel peer-checked:border-forest peer-checked:ring-2 peer-checked:ring-forest/20 transition flex items-center gap-3">
-                                <span class="text-2xl">🏷️</span>
+                            <div class="p-4 rounded-xl border border-line bg-sidebar peer-checked:bg-panel peer-checked:border-forest peer-checked:ring-2 peer-checked:ring-forest/20 transition flex items-center gap-3 h-full min-h-[44px]">
+                                <span class="text-2xl shrink-0">🏷️</span>
                                 <div>
                                     <div class="font-bold text-xs text-charcoal">Tagihan Pengeluaran</div>
-                                    <div class="text-[11px] text-muted">Langganan, sewa, listrik, internet, asuransi</div>
+                                    <div class="text-[11px] text-muted">Langganan, sewa, listrik via Kas/Bank atau Kartu Kredit</div>
                                 </div>
                             </div>
                         </label>
@@ -70,11 +70,29 @@
                                 {{ old('type', $defaultType) === 'transfer' ? 'checked' : '' }}
                                 onchange="onRecurringTypeChange('transfer')"
                             />
-                            <div class="p-4 rounded-xl border border-line bg-sidebar peer-checked:bg-panel peer-checked:border-forest peer-checked:ring-2 peer-checked:ring-forest/20 transition flex items-center gap-3">
-                                <span class="text-2xl">⇄</span>
+                            <div class="p-4 rounded-xl border border-line bg-sidebar peer-checked:bg-panel peer-checked:border-forest peer-checked:ring-2 peer-checked:ring-forest/20 transition flex items-center gap-3 h-full min-h-[44px]">
+                                <span class="text-2xl shrink-0">⇄</span>
                                 <div>
                                     <div class="font-bold text-xs text-charcoal">Transfer Berulang</div>
                                     <div class="text-[11px] text-muted">Rotasi kas rutin antar-rekening sendiri</div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input 
+                                type="radio" 
+                                name="type" 
+                                value="credit_payment" 
+                                class="sr-only peer" 
+                                {{ old('type', $defaultType) === 'credit_payment' ? 'checked' : '' }}
+                                onchange="onRecurringTypeChange('credit_payment')"
+                            />
+                            <div class="p-4 rounded-xl border border-line bg-sidebar peer-checked:bg-panel peer-checked:border-forest peer-checked:ring-2 peer-checked:ring-forest/20 transition flex items-center gap-3 h-full min-h-[44px]">
+                                <span class="text-2xl shrink-0">💳</span>
+                                <div>
+                                    <div class="font-bold text-xs text-charcoal">Bayar Tagihan Kredit</div>
+                                    <div class="text-[11px] text-muted">Jadwal pelunasan rutin Kartu Kredit atau PayLater</div>
                                 </div>
                             </div>
                         </label>
@@ -173,14 +191,30 @@
                             </label>
                             <select name="source_account_id" id="sourceAccountExpense" class="field-select w-full text-xs">
                                 <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
-                                @foreach ($accounts as $acc)
-                                    <option value="{{ $acc->id }}" {{ (string)old('source_account_id') === (string)$acc->id ? 'selected' : '' }}>
-                                        {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
-                                    </option>
-                                @endforeach
+                                @if ($liquidAccounts->isNotEmpty())
+                                    <optgroup label="Kas, Bank, E-Wallet &amp; Investasi">
+                                        @foreach ($liquidAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (string)old('source_account_id') === (string)$acc->id ? 'selected' : '' }}>
+                                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @php
+                                    $creditExpenseAccounts = $accounts->filter(fn ($acc) => $acc->isCreditSpendAccount() && $acc->creditAccount);
+                                @endphp
+                                @if ($creditExpenseAccounts->isNotEmpty())
+                                    <optgroup label="Kartu Kredit &amp; PayLater (Masuk Lembar Tagihan)">
+                                        @foreach ($creditExpenseAccounts as $acc)
+                                            <option value="{{ $acc->id }}" {{ (string)old('source_account_id') === (string)$acc->id ? 'selected' : '' }}>
+                                                💳 {{ $acc->creditAccount->name }} (Sisa Limit: {{ $acc->creditAccount->formatted_available_limit }})
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
                             </select>
                             <div class="text-[11px] text-muted mt-1">
-                                Kosongkan jika ingin memilih rekening saat konfirmasi tagihan tiba. Tagihan via Kartu Kredit? <a href="{{ route('credit.purchases.create') }}" class="text-forest font-semibold hover:underline">Catat di Kredit &amp; Cicilan &rarr;</a>
+                                Kosongkan jika ingin memilih rekening saat konfirmasi tiba. Jika memakai Kartu Kredit atau PayLater, transaksi otomatis tercatat di Lembar Tagihan saat dikonfirmasi.
                             </div>
                             @error('source_account_id')
                                 <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
@@ -197,7 +231,7 @@
                                 </label>
                                 <select name="source_account_id" id="sourceAccountTransfer" class="field-select w-full text-xs" onchange="syncTransferAccounts()" disabled>
                                     <option value="">Pilih Rekening Asal...</option>
-                                    @foreach ($accounts as $acc)
+                                    @foreach ($liquidAccounts as $acc)
                                         <option value="{{ $acc->id }}" {{ (string)old('source_account_id') === (string)$acc->id ? 'selected' : '' }}>
                                             {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                         </option>
@@ -211,7 +245,7 @@
                                 </label>
                                 <select name="destination_account_id" id="destinationAccountTransfer" class="field-select w-full text-xs" onchange="syncTransferAccounts()" disabled>
                                     <option value="">Pilih Rekening Tujuan...</option>
-                                    @foreach ($accounts as $acc)
+                                    @foreach ($liquidAccounts as $acc)
                                         <option value="{{ $acc->id }}" {{ (string)old('destination_account_id') === (string)$acc->id ? 'selected' : '' }}>
                                             {{ $acc->name }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                                         </option>
@@ -228,6 +262,68 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                             </svg>
                             <span>Rekening tujuan transfer tidak boleh sama dengan rekening asal.</span>
+                        </div>
+                    </div>
+
+                    <!-- Blok Pembayaran Tagihan Kredit -->
+                    <div id="creditPaymentFields" class="hidden space-y-3">
+                        @if ($creditAccounts->isEmpty())
+                            <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <div class="font-bold text-charcoal">Belum Ada Akun Kartu Kredit atau PayLater Aktif</div>
+                                    <p class="text-[11px] text-muted mt-0.5">Tambahkan kartu kredit atau paylater terlebih dahulu untuk menjadwalkan pembayaran tagihannya.</p>
+                                </div>
+                                <a href="{{ route('credit.index', ['tab' => 'accounts']) }}" class="btn-arus-secondary text-xs font-bold min-h-[44px] px-3 shrink-0">
+                                    + Tambah Akun Kredit
+                                </a>
+                            </div>
+                        @endif
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="creditAccountSelect" class="block text-xs font-bold text-charcoal mb-1">
+                                    Kartu Kredit / PayLater Tujuan <span class="text-rose-500">*</span>
+                                </label>
+                                <select name="credit_account_id" id="creditAccountSelect" class="field-select w-full text-xs" onchange="onCreditAccountSelectChange()" disabled>
+                                    <option value="">Pilih Kartu Kredit / PayLater...</option>
+                                    @foreach ($creditAccounts as $ca)
+                                        <option 
+                                            value="{{ $ca->id }}" 
+                                            data-due-day="{{ $ca->due_day ?? '' }}"
+                                            data-liability="{{ $ca->formatted_liability }}"
+                                            {{ (string)old('credit_account_id', $defaultCreditAccountId) === (string)$ca->id ? 'selected' : '' }}
+                                        >
+                                            💳 {{ $ca->name }} (Kewajiban: {{ $ca->formatted_liability }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div id="creditAccountDueHint" class="text-[11px] text-muted mt-1">
+                                    Pilih kartu atau akun kredit yang tagihannya akan dibayar secara berkala.
+                                </div>
+                                @error('credit_account_id')
+                                    <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="sourceAccountCreditPayment" class="block text-xs font-bold text-charcoal mb-1">
+                                    Rekening Kas / Bank Pembayar <span class="text-[10px] text-muted font-normal">(Opsional / Fleksibel)</span>
+                                </label>
+                                <select name="source_account_id" id="sourceAccountCreditPayment" class="field-select w-full text-xs" disabled>
+                                    <option value="">Pilih saat bayar (Rekening Fleksibel)</option>
+                                    @foreach ($billPaymentAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ (string)old('source_account_id') === (string)$acc->id ? 'selected' : '' }}>
+                                            {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="text-[11px] text-muted mt-1">
+                                    Saat dikonfirmasi, saldo rekening ini berkurang dan kewajiban kartu kredit ikut lunas.
+                                </div>
+                                @error('source_account_id')
+                                    <div class="field-error mt-1 text-xs text-rose-500">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -353,29 +449,57 @@
             currentType = type;
             const expFields = document.getElementById('expenseFields');
             const trfFields = document.getElementById('transferFields');
+            const ccFields = document.getElementById('creditPaymentFields');
             const expSource = document.getElementById('sourceAccountExpense');
             const expCat = document.getElementById('expenseCategory');
             const trfSource = document.getElementById('sourceAccountTransfer');
             const trfDest = document.getElementById('destinationAccountTransfer');
+            const ccSelect = document.getElementById('creditAccountSelect');
+            const ccSource = document.getElementById('sourceAccountCreditPayment');
+
+            expFields.classList.add('hidden');
+            trfFields.classList.add('hidden');
+            if (ccFields) ccFields.classList.add('hidden');
+
+            if (expSource) expSource.disabled = true;
+            if (expCat) expCat.disabled = true;
+            if (trfSource) trfSource.disabled = true;
+            if (trfDest) trfDest.disabled = true;
+            if (ccSelect) ccSelect.disabled = true;
+            if (ccSource) ccSource.disabled = true;
 
             if (type === 'transfer') {
-                expFields.classList.add('hidden');
                 trfFields.classList.remove('hidden');
-
-                expSource.disabled = true;
-                expCat.disabled = true;
-                trfSource.disabled = false;
-                trfDest.disabled = false;
+                if (trfSource) trfSource.disabled = false;
+                if (trfDest) trfDest.disabled = false;
                 syncTransferAccounts();
+            } else if (type === 'credit_payment') {
+                if (ccFields) ccFields.classList.remove('hidden');
+                if (ccSelect) ccSelect.disabled = false;
+                if (ccSource) ccSource.disabled = false;
+                onCreditAccountSelectChange();
             } else {
                 expFields.classList.remove('hidden');
-                trfFields.classList.add('hidden');
-
-                expSource.disabled = false;
-                expCat.disabled = false;
-                trfSource.disabled = true;
-                trfDest.disabled = true;
+                if (expSource) expSource.disabled = false;
+                if (expCat) expCat.disabled = false;
             }
+        }
+
+        function onCreditAccountSelectChange() {
+            const ccSelect = document.getElementById('creditAccountSelect');
+            const hintEl = document.getElementById('creditAccountDueHint');
+            if (!ccSelect || !hintEl) return;
+
+            const opt = ccSelect.options[ccSelect.selectedIndex];
+            if (!opt || !opt.value) {
+                hintEl.textContent = 'Pilih kartu atau akun kredit yang tagihannya akan dibayar secara berkala.';
+                return;
+            }
+
+            const dueDay = opt.dataset.dueDay;
+            const liability = opt.dataset.liability;
+            const dueText = dueDay ? 'Jatuh tempo kartu setiap tanggal ' + dueDay + '. ' : '';
+            hintEl.textContent = dueText + 'Sisa kewajiban saat ini: ' + (liability || 'Rp 0') + '.';
         }
 
         function onToggleVariable(isVariable) {

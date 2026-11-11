@@ -14,8 +14,8 @@
         
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-1">
             <div class="flex items-center gap-3">
-                <span class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold {{ $recurring->isExpense() ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-slate-500/10 text-charcoal' }}">
-                    {{ $recurring->isExpense() ? '🏷️' : '⇄' }}
+                <span class="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold {{ $recurring->isCreditPayment() ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : ($recurring->isExpense() ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-slate-500/10 text-charcoal') }}">
+                    {{ $recurring->isCreditPayment() ? '💳' : ($recurring->isExpense() ? '🏷️' : '⇄') }}
                 </span>
                 <div>
                     <h1 class="font-serif text-2xl sm:text-3xl text-forest font-normal tracking-tight">
@@ -23,7 +23,7 @@
                     </h1>
                     <div class="flex items-center gap-2 mt-0.5 text-xs text-muted flex-wrap">
                         <span class="font-bold text-charcoal uppercase text-[10px] px-2 py-0.5 rounded bg-sidebar border border-line">
-                            {{ $recurring->type === 'expense' ? 'Tagihan Pengeluaran' : 'Transfer Berulang' }}
+                            {{ $recurring->isCreditPayment() ? 'Pembayaran Tagihan Kredit' : ($recurring->isExpense() ? 'Tagihan Pengeluaran' : 'Transfer Berulang') }}
                         </span>
                         @if ($recurring->isPaused())
                             <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -89,7 +89,21 @@
         </div>
     </div>
 
-    @if ($recurring->sourceAccount?->isLiability())
+    @if ($errors->any())
+        <div class="mb-6 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 p-4 text-xs text-rose-800 dark:text-rose-200 space-y-1.5" role="alert">
+            <div class="font-bold flex items-center gap-1.5">
+                <span>⚠️</span>
+                <span>Konfirmasi gagal dicatat:</span>
+            </div>
+            <ul class="list-disc list-inside space-y-0.5 pl-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if ($recurring->sourceAccount?->isLiability() && ! $recurring->sourceAccount?->creditAccount)
         <div class="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
                 <div class="font-bold">Rekening Sumber Terhubung ke Akun Kredit</div>
@@ -142,11 +156,38 @@
                     @if ($recurring->isExpense())
                         <div>
                             <span class="text-muted block text-[11px] mb-0.5">Rekening Sumber:</span>
-                            <span class="font-bold text-charcoal">{{ $recurring->sourceAccount?->name ?: 'Pilih saat bayar (Fleksibel)' }}</span>
+                            @if ($recurring->creditAccount)
+                                <div class="font-bold text-charcoal">💳 {{ $recurring->creditAccount->name }}</div>
+                                <a href="{{ route('credit.accounts.statement', $recurring->creditAccount) }}" class="text-[11px] font-semibold text-forest hover:underline">
+                                    Lihat Lembar Tagihan &rarr;
+                                </a>
+                            @else
+                                <span class="font-bold text-charcoal">{{ $recurring->sourceAccount?->name ?: 'Pilih saat bayar (Fleksibel)' }}</span>
+                            @endif
                         </div>
                         <div>
                             <span class="text-muted block text-[11px] mb-0.5">Pos Pengeluaran:</span>
                             <span class="font-bold text-charcoal">{{ $recurring->category?->name }}</span>
+                        </div>
+                    @elseif ($recurring->isCreditPayment())
+                        <div>
+                            <span class="text-muted block text-[11px] mb-0.5">Rekening Pembayar:</span>
+                            <span class="font-bold text-charcoal">{{ $recurring->sourceAccount?->name ?: 'Pilih saat bayar (Fleksibel)' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-muted block text-[11px] mb-0.5">Kartu / Akun Kredit Tujuan:</span>
+                            @if ($recurring->creditAccount)
+                                <div class="font-bold text-charcoal">💳 {{ $recurring->creditAccount->name }}</div>
+                                <div class="text-[11px] text-muted mt-0.5">
+                                    Kewajiban saat ini: <strong class="text-charcoal font-mono">Rp {{ number_format($creditLiability, 0, ',', '.') }}</strong>
+                                    &bull;
+                                    <a href="{{ route('credit.accounts.statement', $recurring->creditAccount) }}" class="font-semibold text-forest hover:underline">
+                                        Tagihan &rarr;
+                                    </a>
+                                </div>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
                         </div>
                     @else
                         <div>
@@ -356,20 +397,46 @@
 
                 <div>
                     <label for="modalShowSourceAccount" class="block text-xs font-bold text-charcoal mb-1">
-                        Rekening Pembayaran <span class="text-rose-500">*</span>
+                        {{ $recurring->isCreditPayment() ? 'Rekening Kas / Bank Pembayar' : 'Rekening Pembayaran' }} <span class="text-rose-500">*</span>
                     </label>
+                    @php
+                        $showLiquidAccounts = $accounts->filter(fn ($acc) => ! $acc->isLiability());
+                        $showCreditAccounts = $accounts->filter(fn ($acc) => $acc->isCreditSpendAccount() && $acc->creditAccount);
+                    @endphp
                     <select name="source_account_id" id="modalShowSourceAccount" class="field-select w-full text-xs" required>
-                        @foreach ($accounts as $acc)
-                            <option value="{{ $acc->id }}" {{ (string)$recurring->source_account_id === (string)$acc->id ? 'selected' : '' }}>
-                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
-                            </option>
-                        @endforeach
+                        @if ($showCreditAccounts->isNotEmpty())
+                            @if ($showLiquidAccounts->isNotEmpty())
+                                <optgroup label="Kas, Bank, E-Wallet &amp; Investasi">
+                                    @foreach ($showLiquidAccounts as $acc)
+                                        <option value="{{ $acc->id }}" {{ (string)$recurring->source_account_id === (string)$acc->id ? 'selected' : '' }}>
+                                            {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                            <optgroup label="Kartu Kredit &amp; PayLater">
+                                @foreach ($showCreditAccounts as $acc)
+                                    <option value="{{ $acc->id }}" {{ (string)$recurring->source_account_id === (string)$acc->id ? 'selected' : '' }}>
+                                        💳 {{ $acc->creditAccount->name }} (Sisa Limit: {{ $acc->creditAccount->formatted_available_limit }})
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @else
+                            @foreach ($accounts as $acc)
+                                <option value="{{ $acc->id }}" {{ (string)$recurring->source_account_id === (string)$acc->id ? 'selected' : '' }}>
+                                    {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                                </option>
+                            @endforeach
+                        @endif
                     </select>
                     <div class="text-[11px] text-muted mt-1">
-                        Pilih rekening/dompet yang digunakan untuk transaksi ini.
+                        {{ $recurring->isCreditPayment() ? 'Saldo rekening ini akan dipotong untuk melunasi kewajiban kartu kredit.' : 'Pilih rekening atau kartu yang digunakan untuk transaksi ini.' }}
                     </div>
                 </div>
 
+                @php
+                    $defaultConfirmAmount = $recurring->amount ?: ($recurring->isCreditPayment() && $suggestedCreditAmount > 0 ? $suggestedCreditAmount : '');
+                @endphp
                 <div>
                     <label for="modalAmount" class="block text-xs font-bold text-charcoal mb-1">
                         Nominal Transaksi (Rp) <span class="text-rose-500">*</span>
@@ -379,12 +446,17 @@
                         name="amount" 
                         id="modalAmount" 
                         min="1" 
-                        value="{{ $recurring->amount }}"
+                        value="{{ $defaultConfirmAmount }}"
                         class="field-input w-full text-xs font-mono font-bold" 
                         required 
                         onfocus="this.select()"
                         onclick="this.select()"
                     />
+                    @if ($recurring->isCreditPayment() && $recurring->is_variable_amount && $suggestedCreditAmount > 0)
+                        <div class="text-[11px] text-muted mt-1">
+                            Terisi otomatis dari tagihan/kewajiban kartu saat ini (Rp {{ number_format($suggestedCreditAmount, 0, ',', '.') }}).
+                        </div>
+                    @endif
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -461,6 +533,12 @@
         function closeConfirmModal() {
             document.getElementById('confirmOccurrenceModal').classList.add('hidden');
         }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConfirmModal();
+            }
+        });
 
         document.getElementById('confirmOccurrenceForm')?.addEventListener('submit', function() {
             const btn = document.getElementById('btnConfirmShowSubmit');

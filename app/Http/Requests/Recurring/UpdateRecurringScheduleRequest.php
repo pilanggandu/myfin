@@ -41,7 +41,18 @@ class UpdateRecurringScheduleRequest extends FormRequest
                     ->where(function ($q) use ($schedule) {
                         $q->where(function ($sub) {
                             $sub->whereNull('archived_at')
-                                ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment']);
+                                ->where(function ($typeQ) {
+                                    $typeQ->whereIn('type', ['bank', 'e-wallet', 'cash', 'investment'])
+                                        ->orWhere(function ($creditQ) {
+                                            $creditQ->whereIn('type', ['credit_card', 'paylater'])
+                                                ->whereExists(function ($existsQ) {
+                                                    $existsQ->selectRaw('1')
+                                                        ->from('credit_accounts')
+                                                        ->whereColumn('credit_accounts.account_id', 'accounts.id')
+                                                        ->whereNull('credit_accounts.archived_at');
+                                                });
+                                        });
+                                });
                         });
                         if ($schedule?->source_account_id) {
                             $q->orWhere('id', $schedule->source_account_id);
@@ -109,6 +120,34 @@ class UpdateRecurringScheduleRequest extends FormRequest
                         }
                     }),
             ];
+        } elseif ($type === 'credit_payment') {
+            $rules['credit_account_id'] = [
+                'required',
+                'integer',
+                Rule::exists('credit_accounts', 'id')
+                    ->where('space_id', $spaceId)
+                    ->where(function ($q) use ($schedule) {
+                        $q->whereNull('archived_at');
+                        if ($schedule?->credit_account_id) {
+                            $q->orWhere('id', $schedule->credit_account_id);
+                        }
+                    }),
+            ];
+            $rules['source_account_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('accounts', 'id')
+                    ->where('space_id', $spaceId)
+                    ->where(function ($q) use ($schedule) {
+                        $q->where(function ($sub) {
+                            $sub->whereNull('archived_at')
+                                ->whereIn('type', ['bank', 'cash', 'e-wallet']);
+                        });
+                        if ($schedule?->source_account_id) {
+                            $q->orWhere('id', $schedule->source_account_id);
+                        }
+                    }),
+            ];
         }
 
         return $rules;
@@ -119,10 +158,12 @@ class UpdateRecurringScheduleRequest extends FormRequest
         return [
             'name.required' => 'Nama jadwal tagihan atau transfer wajib diisi.',
             'source_account_id.required' => 'Rekening sumber wajib dipilih.',
-            'source_account_id.exists' => 'Rekening sumber harus berupa akun kas, bank, atau e-wallet aktif. Untuk Kartu Kredit/Paylater, gunakan menu Kredit & Cicilan.',
+            'source_account_id.exists' => 'Rekening sumber tidak valid untuk jenis jadwal ini.',
             'destination_account_id.required' => 'Rekening tujuan transfer wajib dipilih.',
             'destination_account_id.different' => 'Rekening tujuan transfer harus berbeda dengan rekening asal.',
             'destination_account_id.exists' => 'Rekening tujuan transfer harus berupa akun kas, bank, atau e-wallet aktif.',
+            'credit_account_id.required' => 'Kartu kredit atau akun paylater tujuan pembayaran wajib dipilih.',
+            'credit_account_id.exists' => 'Akun kredit tujuan tidak valid atau telah diarsipkan.',
             'category_id.required' => 'Kategori pengeluaran wajib dipilih.',
             'category_id.exists' => 'Kategori pengeluaran tidak valid atau telah diarsipkan.',
             'member_id.exists' => 'Member yang dipilih tidak valid atau telah diarsipkan.',
