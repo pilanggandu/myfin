@@ -1307,7 +1307,7 @@ class TransactionTest extends TestCase
             ->withSession(['active_space_id' => $this->spaceA->id])
             ->postJson(route('transactions.store'), [
                 'type' => 'expense',
-                'account_id' => $this->bca->id,
+                'account_id' => $this->gopay->id,
                 'category_id' => $catKopi->id,
                 'amount' => 22000,
                 'transaction_date' => '2026-11-06',
@@ -1318,7 +1318,8 @@ class TransactionTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('transaction.category_id', $catKopi->id)
-            ->assertJsonPath('recent_category_ids.expense', [$catKopi->id, $this->expenseCat->id]);
+            ->assertJsonPath('recent_category_ids.expense', [$catKopi->id, $this->expenseCat->id])
+            ->assertJsonPath('recent_account_ids', [$this->gopay->id, $this->bca->id]);
     }
 
     public function test_transactions_index_search_matches_description_category_account_member_and_amount(): void
@@ -1467,5 +1468,121 @@ class TransactionTest extends TestCase
 
         $nonMatchingRes->assertOk();
         $this->assertSame(0, $nonMatchingRes->viewData('upcomingCount'));
+    }
+
+    public function test_recent_accounts_order_limit_isolation_and_picker_attributes(): void
+    {
+        $cashAcc = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Dompet Tunai',
+            'type' => 'cash',
+            'opening_balance' => 500000,
+            'opened_on' => '2026-01-01',
+        ]);
+        $archivedAcc = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Rekening Lama',
+            'type' => 'bank',
+            'opening_balance' => 100000,
+            'opened_on' => '2026-01-01',
+        ]);
+        $voidOnlyAcc = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'OVO Batal',
+            'type' => 'e-wallet',
+            'opening_balance' => 100000,
+            'opened_on' => '2026-01-01',
+        ]);
+        $accountB = Account::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'BCA Ruang B',
+            'type' => 'bank',
+            'opening_balance' => 1000000,
+            'opened_on' => '2026-01-01',
+        ]);
+        $catSpaceB = Category::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Makan Ruang B',
+            'type' => 'expense',
+        ]);
+
+        $service = app(TransactionService::class);
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 50000,
+            'transaction_date' => '2026-11-01',
+            'description' => 'Sarapan',
+        ]);
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $archivedAcc->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 25000,
+            'transaction_date' => '2026-11-02',
+            'description' => 'Sebelum arsip',
+        ]);
+        $archivedAcc->archive();
+
+        $voidTx = $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $voidOnlyAcc->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 30000,
+            'transaction_date' => '2026-11-03',
+            'description' => 'Salah rekening',
+        ]);
+        $service->voidTransaction($voidTx, $this->userA, 'Batal');
+
+        $service->recordIncome($this->spaceA, $this->userA, [
+            'account_id' => $cashAcc->id,
+            'category_id' => $this->incomeCat->id,
+            'amount' => 150000,
+            'transaction_date' => '2026-11-04',
+            'description' => 'Uang saku',
+        ]);
+        // Transfer touches both gopay (source) and bca (destination).
+        $lastTx = $service->recordTransfer($this->spaceA, $this->userA, [
+            'source_account_id' => $this->gopay->id,
+            'destination_account_id' => $this->bca->id,
+            'amount' => 40000,
+            'transaction_date' => '2026-11-05',
+            'description' => 'Balik ke BCA',
+        ]);
+        $service->recordExpense($this->spaceB, $this->userB, [
+            'account_id' => $accountB->id,
+            'category_id' => $catSpaceB->id,
+            'amount' => 80000,
+            'transaction_date' => '2026-11-06',
+            'description' => 'Belanja B',
+        ]);
+
+        $expectedRecentAccounts = [$this->bca->id, $this->gopay->id, $cashAcc->id];
+        $this->assertSame($expectedRecentAccounts, $this->spaceA->recentAccountIds(limit: 5));
+        $this->assertSame([$this->bca->id, $this->gopay->id], $this->spaceA->recentAccountIds(limit: 2));
+
+        $createResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.create'));
+
+        $createResponse->assertOk();
+        $this->assertSame($expectedRecentAccounts, $createResponse->viewData('recentAccountIds'));
+        $createResponse->assertSee('data-searchable-picker="true"', false);
+        $createResponse->assertSee('data-picker-kind="account"', false);
+
+        $editResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.edit', $lastTx));
+
+        $editResponse->assertOk();
+        $this->assertSame($expectedRecentAccounts, $editResponse->viewData('recentAccountIds'));
+        $editResponse->assertSee('data-picker-kind="account"', false);
+
+        $indexResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index'));
+
+        $indexResponse->assertOk();
+        $this->assertSame($expectedRecentAccounts, $indexResponse->viewData('recentAccountIds'));
+        $indexResponse->assertSee('id="filterAccountSelect"', false);
+        $indexResponse->assertSee('data-picker-kind="account"', false);
     }
 }

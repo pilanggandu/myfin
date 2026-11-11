@@ -174,7 +174,18 @@
                     <label for="quickModalAccountId" class="block text-xs font-bold text-charcoal mb-1" id="quickModalAccountLabel">
                         Rekening Sumber
                     </label>
-                    <select name="account_id" id="quickModalAccountId" class="field-select w-full text-xs" required>
+                    <select
+                        name="account_id"
+                        id="quickModalAccountId"
+                        class="field-select w-full text-xs"
+                        data-searchable-picker="true"
+                        data-picker-kind="account"
+                        data-recent-ids='@json($quickRecentAccountIds ?? [])'
+                        data-recent-scope="account"
+                        data-show-recent-chips="true"
+                        data-search-placeholder="Cari rekening..."
+                        required
+                    >
                         <option value="">Pilih Rekening...</option>
                         @foreach ($quickAccounts ?? [] as $acc)
                             @php
@@ -186,7 +197,13 @@
                                     default => '💳',
                                 };
                             @endphp
-                            <option value="{{ $acc->id }}" {{ $acc->is_default ? 'selected' : '' }}>
+                            <option
+                                value="{{ $acc->id }}"
+                                data-name="{{ $acc->name }}"
+                                data-chip-label="{{ $icon }} {{ $acc->name }}"
+                                data-search-text="{{ $acc->name }} {{ $acc->type }}{{ $acc->is_default ? ' default' : '' }}"
+                                {{ $acc->is_default ? 'selected' : '' }}
+                            >
                                 {{ $icon }} {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                             </option>
                         @endforeach
@@ -248,11 +265,38 @@
                     <label for="quickModalSourceId" class="block text-xs font-bold text-charcoal mb-1">
                         Rekening Asal
                     </label>
-                    <select name="source_account_id" id="quickModalSourceId" class="field-select w-full text-xs" onchange="syncQuickModalTransferAccounts()" disabled>
+                    <select
+                        name="source_account_id"
+                        id="quickModalSourceId"
+                        class="field-select w-full text-xs"
+                        data-searchable-picker="true"
+                        data-picker-kind="account"
+                        data-recent-ids='@json($quickRecentAccountIds ?? [])'
+                        data-recent-scope="account"
+                        data-show-recent-chips="true"
+                        data-search-placeholder="Cari rekening asal..."
+                        onchange="syncQuickModalTransferAccounts()"
+                        disabled
+                    >
                         <option value="">Pilih Asal...</option>
                         @foreach ($quickAccounts ?? [] as $acc)
-                            <option value="{{ $acc->id }}" {{ $acc->is_default ? 'selected' : '' }}>
-                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                            @php
+                                $icon = match($acc->type) {
+                                    'bank' => '🏦',
+                                    'e-wallet' => '📱',
+                                    'cash' => '💵',
+                                    'investment' => '📈',
+                                    default => '💳',
+                                };
+                            @endphp
+                            <option
+                                value="{{ $acc->id }}"
+                                data-name="{{ $acc->name }}"
+                                data-chip-label="{{ $icon }} {{ $acc->name }}"
+                                data-search-text="{{ $acc->name }} {{ $acc->type }}{{ $acc->is_default ? ' default' : '' }}"
+                                {{ $acc->is_default ? 'selected' : '' }}
+                            >
+                                {{ $icon }} {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                             </option>
                         @endforeach
                     </select>
@@ -261,11 +305,37 @@
                     <label for="quickModalDestId" class="block text-xs font-bold text-charcoal mb-1">
                         Rekening Tujuan
                     </label>
-                    <select name="destination_account_id" id="quickModalDestId" class="field-select w-full text-xs" onchange="syncQuickModalTransferAccounts()" disabled>
+                    <select
+                        name="destination_account_id"
+                        id="quickModalDestId"
+                        class="field-select w-full text-xs"
+                        data-searchable-picker="true"
+                        data-picker-kind="account"
+                        data-recent-ids='@json($quickRecentAccountIds ?? [])'
+                        data-recent-scope="account"
+                        data-show-recent-chips="true"
+                        data-search-placeholder="Cari rekening tujuan..."
+                        onchange="syncQuickModalTransferAccounts()"
+                        disabled
+                    >
                         <option value="">Pilih Tujuan...</option>
                         @foreach ($quickAccounts ?? [] as $acc)
-                            <option value="{{ $acc->id }}">
-                                {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
+                            @php
+                                $icon = match($acc->type) {
+                                    'bank' => '🏦',
+                                    'e-wallet' => '📱',
+                                    'cash' => '💵',
+                                    'investment' => '📈',
+                                    default => '💳',
+                                };
+                            @endphp
+                            <option
+                                value="{{ $acc->id }}"
+                                data-name="{{ $acc->name }}"
+                                data-chip-label="{{ $icon }} {{ $acc->name }}"
+                                data-search-text="{{ $acc->name }} {{ $acc->type }}{{ $acc->is_default ? ' default' : '' }}"
+                            >
+                                {{ $icon }} {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
                             </option>
                         @endforeach
                     </select>
@@ -567,6 +637,9 @@
                 quickModalSessionSavedCount++;
                 if (data.recent_category_ids && typeof window.updateCategoryPickersRecentIds === 'function') {
                     window.updateCategoryPickersRecentIds(data.recent_category_ids);
+                }
+                if (data.recent_account_ids && typeof window.updateSearchablePickersRecentIds === 'function') {
+                    window.updateSearchablePickersRecentIds({ account: data.recent_account_ids });
                 }
                 const formattedAmt = 'Rp ' + Number(amount).toLocaleString('id-ID');
                 showQuickModalAlert(`✓ Transaksi "<strong>${escapeHtml(desc)}</strong>" (${formattedAmt}) tersimpan! Total batch sesi ini: ${quickModalSessionSavedCount}. Silakan input transaksi berikutnya.`, 'success');

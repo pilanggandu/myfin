@@ -278,6 +278,12 @@
                                     name="account_id" 
                                     id="account_id" 
                                     class="field-select w-full"
+                                    data-searchable-picker="true"
+                                    data-picker-kind="account"
+                                    data-recent-ids='@json($recentAccountIds ?? [])'
+                                    data-recent-scope="account"
+                                    data-show-recent-chips="true"
+                                    data-search-placeholder="Cari rekening..."
                                     onchange="updateReceipt()"
                                 >
                                     <option value="">Pilih Rekening...</option>
@@ -296,6 +302,8 @@
                                             data-balance="{{ $acc->currentBalance() }}"
                                             data-name="{{ $acc->name }}"
                                             data-icon="{{ $icon }}"
+                                            data-chip-label="{{ $icon }} {{ $acc->name }}"
+                                            data-search-text="{{ $acc->name }} {{ $acc->type }}{{ $acc->is_default ? ' default' : '' }}"
                                             {{ (string)old('account_id', request('account_id', $defaultAccount?->id)) === (string)$acc->id ? 'selected' : '' }}
                                         >
                                             {{ $icon }} {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Saldo: Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
@@ -371,192 +379,14 @@
                         </div>
 
                         <!-- Transfer Flow (Antar-Rekening) -->
-                        <div id="transferBlock" class="hidden space-y-4">
-                            <div class="p-4 rounded-xl bg-sidebar/50 border border-line space-y-3">
-                                <div class="grid grid-cols-1 sm:grid-cols-11 gap-3 items-center">
-                                    <!-- Rekening Asal -->
-                                    <div class="sm:col-span-5">
-                                        <label for="source_account_id" class="block text-xs font-bold text-charcoal mb-1.5">
-                                            Dari Rekening (Asal)
-                                        </label>
-                                        <select 
-                                            name="source_account_id" 
-                                            id="source_account_id" 
-                                            class="field-select w-full"
-                                            disabled
-                                            onchange="onTransferAccountChange()"
-                                        >
-                                            <option value="">Pilih Rekening Asal...</option>
-                                            @foreach ($accounts as $acc)
-                                                @php
-                                                    $icon = match($acc->type) {
-                                                        'bank' => '🏦',
-                                                        'e-wallet' => '📱',
-                                                        'cash' => '💵',
-                                                        'investment' => '📈',
-                                                        default => '💳',
-                                                    };
-                                                @endphp
-                                                <option 
-                                                    value="{{ $acc->id }}" 
-                                                    data-balance="{{ $acc->currentBalance() }}"
-                                                    data-name="{{ $acc->name }}"
-                                                    data-icon="{{ $icon }}"
-                                                    {{ (string)old('source_account_id', request('source_account_id', $defaultAccount?->id)) === (string)$acc->id ? 'selected' : '' }}
-                                                >
-                                                    {{ $icon }} {{ $acc->name }}{{ $acc->is_default ? ' (Default)' : '' }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                    <!-- Divider Icon -->
-                                    <div class="sm:col-span-1 text-center py-1 sm:py-0">
-                                        <div class="w-8 h-8 rounded-full bg-panel border border-line text-muted flex items-center justify-center mx-auto text-xs shadow-xs">
-                                            &rarr;
-                                        </div>
-                                    </div>
-
-                                    <!-- Rekening Tujuan -->
-                                    <div class="sm:col-span-5">
-                                        <label for="destination_account_id" class="block text-xs font-bold text-charcoal mb-1.5">
-                                            Ke Rekening (Tujuan)
-                                        </label>
-                                        <select 
-                                            name="destination_account_id" 
-                                            id="destination_account_id" 
-                                            class="field-select w-full"
-                                            disabled
-                                            onchange="onTransferAccountChange()"
-                                        >
-                                            <option value="">Pilih Rekening Tujuan...</option>
-                                            @foreach ($accounts as $acc)
-                                                @php
-                                                    $icon = match($acc->type) {
-                                                        'bank' => '🏦',
-                                                        'e-wallet' => '📱',
-                                                        'cash' => '💵',
-                                                        'investment' => '📈',
-                                                        default => '💳',
-                                                    };
-                                                @endphp
-                                                <option 
-                                                    value="{{ $acc->id }}" 
-                                                    data-balance="{{ $acc->currentBalance() }}"
-                                                    data-name="{{ $acc->name }}"
-                                                    data-icon="{{ $icon }}"
-                                                    {{ (string)old('destination_account_id') === (string)$acc->id ? 'selected' : '' }}
-                                                >
-                                                    {{ $icon }} {{ $acc->name }} (Rp {{ number_format($acc->currentBalance(), 0, ',', '.') }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div id="transferSameAccountAlert" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-2">
-                                    <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                                    </svg>
-                                    <span>Rekening tujuan transfer tidak boleh sama dengan rekening asal.</span>
-                                </div>
-                                <p class="text-[11px] text-muted text-center pt-1 border-t border-line/40">
-                                    Nominal transfer akan menambah saldo rekening tujuan dan mengurangi saldo rekening asal.
-                                </p>
-                            </div>
-
-                            <div class="p-4 rounded-xl bg-sidebar/50 border border-line space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <label for="fee_amount_display" class="block text-xs font-bold text-charcoal">
-                                        Biaya Admin Transfer <span class="text-[11px] font-normal text-muted">(Opsional)</span>
-                                    </label>
-                                    <span class="text-[11px] text-muted">Dipotong dari rekening asal</span>
-                                </div>
-
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                                    <div>
-                                        <div class="relative field-prefix-wrapper">
-                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted font-bold text-xs select-none z-10">
-                                                Rp
-                                            </span>
-                                            <input 
-                                                type="hidden" 
-                                                id="fee_amount" 
-                                                name="fee_amount" 
-                                                value="{{ old('fee_amount', '0') }}"
-                                                disabled
-                                            >
-                                            <input 
-                                                type="text" 
-                                                inputmode="numeric" 
-                                                id="fee_amount_display" 
-                                                placeholder="0" 
-                                                value="{{ old('fee_amount') && old('fee_amount') > 0 ? number_format((float)old('fee_amount'), 0, ',', '.') : '0' }}" 
-                                                class="field-input w-full has-prefix font-mono text-sm"
-                                                style="padding-left: 44px !important;"
-                                                oninput="onFeeDisplayInput(this.value)"
-                                                disabled
-                                            >
-                                        </div>
-                                        <div class="flex flex-wrap items-center gap-1.5 mt-2">
-                                            <button type="button" onclick="setFeePreset(0)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
-                                                Gratis (Rp 0)
-                                            </button>
-                                            <button type="button" onclick="setFeePreset(2500)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
-                                                BI-FAST (Rp 2.500)
-                                            </button>
-                                            <button type="button" onclick="setFeePreset(6500)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
-                                                Online (Rp 6.500)
-                                            </button>
-                                            <button type="button" onclick="setFeePreset(1000)" class="px-2 py-1 rounded-md text-[11px] font-semibold border border-line bg-panel hover:bg-forest/10 hover:border-forest/30 text-charcoal transition cursor-pointer">
-                                                Top-Up (Rp 1.000)
-                                            </button>
-                                        </div>
-                                        @error('fee_amount')
-                                            <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
-                                        @enderror
-                                    </div>
-
-                                    <div>
-                                        <label for="fee_category_id" class="block text-xs font-bold text-charcoal mb-1.5">
-                                            Kategori Biaya Admin
-                                        </label>
-                                        <select 
-                                            name="fee_category_id" 
-                                            id="fee_category_id" 
-                                            class="field-select w-full text-xs {{ $errors->has('fee_category_id') ? 'has-error' : '' }}"
-                                            data-category-picker="true"
-                                            data-recent-ids='@json($recentExpenseCategoryIds ?? [])'
-                                            data-recent-scope="expense"
-                                            data-search-placeholder="Cari kategori biaya admin..."
-                                            disabled
-                                            onchange="updateReceipt()"
-                                        >
-                                            @foreach ($expenseCategories as $cat)
-                                                <option 
-                                                    value="{{ $cat->id }}" 
-                                                    data-name="{{ $cat->name }}"
-                                                    {{ (string)old('fee_category_id') === (string)$cat->id || (empty(old('fee_category_id')) && (str_contains(strtolower($cat->name), 'admin') || str_contains(strtolower($cat->name), 'layanan'))) ? 'selected' : '' }}
-                                                >
-                                                    {{ $cat->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <p class="text-[11px] text-muted mt-1.5">
-                                            Biaya admin dicatat sebagai beban pengeluaran pada kategori ini.
-                                        </p>
-                                        @error('fee_category_id')
-                                            <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                            @error('source_account_id')
-                                <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
-                            @enderror
-                            @error('destination_account_id')
-                                <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
-                            @enderror
-                        </div>
+                        @include('transactions.partials._transfer-fields', [
+                            'mode' => 'create',
+                            'accounts' => $accounts,
+                            'expenseCategories' => $expenseCategories,
+                            'recentExpenseCategoryIds' => $recentExpenseCategoryIds ?? [],
+                            'recentAccountIds' => $recentAccountIds ?? [],
+                            'defaultAccount' => $defaultAccount ?? null,
+                        ])
                     </div>
 
                     <!-- KARTU 3: WAKTU & KETERANGAN TRANSAKSI -->
@@ -1077,6 +907,32 @@
                 });
             }
 
+            function syncFeePresetButtons() {
+                const currentFee = parseInt(document.getElementById('fee_amount')?.value || '0', 10) || 0;
+                document.querySelectorAll('.fee-preset-btn[data-fee-preset]').forEach(btn => {
+                    const presetVal = parseInt(btn.getAttribute('data-fee-preset') || '0', 10);
+                    const isActive = presetVal === currentFee;
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                    btn.classList.toggle('bg-forest-light', isActive);
+                    btn.classList.toggle('border-forest', isActive);
+                    btn.classList.toggle('text-forest', isActive);
+                    btn.classList.toggle('dark:text-blue-300', isActive);
+                    btn.classList.toggle('bg-panel', !isActive);
+                    btn.classList.toggle('border-line', !isActive);
+                    btn.classList.toggle('text-charcoal', !isActive);
+                    btn.classList.toggle('hover:bg-cream', !isActive);
+                    btn.classList.toggle('hover:border-sage', !isActive);
+
+                    const amountLabel = btn.querySelector('.fee-preset-amount');
+                    if (amountLabel) {
+                        amountLabel.classList.toggle('text-forest', isActive);
+                        amountLabel.classList.toggle('dark:text-blue-300', isActive);
+                        amountLabel.classList.toggle('text-[#526070]', !isActive);
+                        amountLabel.classList.toggle('dark:text-muted', !isActive);
+                    }
+                });
+            }
+
             function onFeeDisplayInput(val) {
                 const cleanDigits = val.replace(/\D/g, '');
                 const num = parseInt(cleanDigits, 10) || 0;
@@ -1084,6 +940,7 @@
                 const feeDisplay = document.getElementById('fee_amount_display');
                 if (feeInput) feeInput.value = num;
                 if (feeDisplay) feeDisplay.value = num > 0 ? num.toLocaleString('id-ID') : (cleanDigits === '' ? '' : '0');
+                syncFeePresetButtons();
                 updateReceipt();
             }
 
@@ -1092,6 +949,7 @@
                 const feeDisplay = document.getElementById('fee_amount_display');
                 if (feeInput) feeInput.value = val;
                 if (feeDisplay) feeDisplay.value = val > 0 ? val.toLocaleString('id-ID') : '0';
+                syncFeePresetButtons();
                 updateReceipt();
             }
 
@@ -1342,6 +1200,7 @@
                 } else {
                     onTypeChanged('expense');
                 }
+                syncFeePresetButtons();
                 updateReceipt();
 
                 const txForm = document.getElementById('transactionForm');

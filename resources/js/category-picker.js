@@ -1,4 +1,5 @@
 const REGISTRY = new WeakMap();
+const PICKER_SELECTOR = 'select[data-category-picker="true"], select[data-searchable-picker="true"]';
 
 function parseRecentIds(selectEl) {
     try {
@@ -11,38 +12,48 @@ function parseRecentIds(selectEl) {
     }
 }
 
+function buildOptionItem(opt, groupLabel = '') {
+    const label = opt.textContent.trim();
+
+    return {
+        value: String(opt.value),
+        label,
+        chipLabel: (opt.getAttribute('data-chip-label') || label).trim(),
+        searchText: (opt.getAttribute('data-search-text') || label).trim(),
+        rawName: (opt.getAttribute('data-name') || opt.getAttribute('data-chip-label') || label).trim(),
+        group: groupLabel,
+        disabled: opt.disabled,
+    };
+}
+
 function parseSelectData(selectEl) {
     const items = [];
     let emptyOption = null;
 
     Array.from(selectEl.children).forEach(child => {
+        if (child.hidden) {
+            return;
+        }
         if (child.tagName === 'OPTGROUP') {
             const groupLabel = child.getAttribute('label') || '';
             Array.from(child.children).forEach(opt => {
-                if (opt.tagName === 'OPTION') {
-                    items.push({
-                        value: String(opt.value),
-                        label: opt.textContent.trim(),
-                        group: groupLabel,
-                        disabled: opt.disabled,
-                    });
+                if (opt.tagName === 'OPTION' && !opt.hidden) {
+                    items.push(buildOptionItem(opt, groupLabel));
                 }
             });
-        } else if (child.tagName === 'OPTION') {
+        } else if (child.tagName === 'OPTION' && !child.hidden) {
             if (child.value === '') {
                 emptyOption = {
                     value: '',
                     label: child.textContent.trim(),
+                    chipLabel: child.textContent.trim(),
+                    searchText: child.textContent.trim(),
+                    rawName: child.textContent.trim(),
                     group: '',
                     disabled: child.disabled,
                 };
             } else {
-                items.push({
-                    value: String(child.value),
-                    label: child.textContent.trim(),
-                    group: '',
-                    disabled: child.disabled,
-                });
+                items.push(buildOptionItem(child));
             }
         }
     });
@@ -74,17 +85,22 @@ function createCheckIcon() {
     `;
 }
 
-export function enhanceCategorySelect(selectEl) {
-    if (!selectEl || selectEl.dataset.categoryPickerInitialized) {
+export function enhanceSearchableSelect(selectEl) {
+    if (!selectEl || selectEl.dataset.searchablePickerInitialized || selectEl.dataset.categoryPickerInitialized) {
         return;
     }
+    selectEl.dataset.searchablePickerInitialized = 'true';
     selectEl.dataset.categoryPickerInitialized = 'true';
 
     const allowEmpty = selectEl.getAttribute('data-allow-empty') === 'true';
     const showRecentChips = selectEl.getAttribute('data-show-recent-chips') === 'true';
     const recentScope = selectEl.getAttribute('data-recent-scope') || '';
+    const pickerKind = selectEl.getAttribute('data-picker-kind') || 'category';
+    const itemNoun = selectEl.getAttribute('data-picker-noun') || (pickerKind === 'account' ? 'rekening' : 'kategori');
+    const itemTitleNoun = itemNoun.charAt(0).toUpperCase() + itemNoun.slice(1);
+    const allSectionLabel = selectEl.getAttribute('data-all-label') || `Semua ${itemTitleNoun}`;
     const isCompact = selectEl.classList.contains('h-9');
-    const searchPlaceholder = selectEl.getAttribute('data-search-placeholder') || 'Cari kategori...';
+    const searchPlaceholder = selectEl.getAttribute('data-search-placeholder') || `Cari ${itemNoun}...`;
 
     let recentIds = parseRecentIds(selectEl);
     let activeIndex = -1;
@@ -100,6 +116,10 @@ export function enhanceCategorySelect(selectEl) {
     selectEl.style.opacity = '0';
     selectEl.style.width = '1px';
     selectEl.style.height = '1px';
+    selectEl.style.minWidth = '0';
+    selectEl.style.padding = '0';
+    selectEl.style.border = '0';
+    selectEl.style.overflow = 'hidden';
     selectEl.style.pointerEvents = 'none';
     selectEl.style.zIndex = '-1';
     selectEl.tabIndex = -1;
@@ -129,8 +149,8 @@ export function enhanceCategorySelect(selectEl) {
     const clearValueBtn = document.createElement('button');
     clearValueBtn.type = 'button';
     clearValueBtn.className = 'hidden w-5 h-5 rounded items-center justify-center text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer';
-    clearValueBtn.setAttribute('aria-label', 'Hapus pilihan kategori');
-    clearValueBtn.title = 'Hapus pilihan kategori';
+    clearValueBtn.setAttribute('aria-label', `Hapus pilihan ${itemNoun}`);
+    clearValueBtn.title = `Hapus pilihan ${itemNoun}`;
     clearValueBtn.innerHTML = '&times;';
 
     const chevron = document.createElement('span');
@@ -183,7 +203,7 @@ export function enhanceCategorySelect(selectEl) {
     const clearSearchBtn = document.createElement('button');
     clearSearchBtn.type = 'button';
     clearSearchBtn.className = 'hidden absolute right-1.5 w-6 h-6 rounded flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer text-sm leading-none';
-    clearSearchBtn.setAttribute('aria-label', 'Hapus kata kunci kategori');
+    clearSearchBtn.setAttribute('aria-label', `Hapus kata kunci ${itemNoun}`);
     clearSearchBtn.innerHTML = '&times;';
 
     searchInputBox.appendChild(searchIconWrap);
@@ -328,7 +348,8 @@ export function enhanceCategorySelect(selectEl) {
                     ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold'
                     : 'bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage',
             ].join(' ');
-            chip.textContent = item.label;
+            chip.textContent = item.chipLabel;
+            chip.title = item.label;
 
             chip.addEventListener('click', () => {
                 setSelectValue(item.value, true);
@@ -352,7 +373,7 @@ export function enhanceCategorySelect(selectEl) {
             triggerLabel.textContent = currentItem.label;
             triggerLabel.className = 'truncate flex-1 font-medium text-charcoal';
         } else {
-            triggerLabel.textContent = emptyOption?.label || 'Pilih Kategori...';
+            triggerLabel.textContent = emptyOption?.label || `Pilih ${itemTitleNoun}...`;
             triggerLabel.className = 'truncate flex-1 text-[#526070] dark:text-[#94A3B8]';
         }
 
@@ -488,13 +509,13 @@ export function enhanceCategorySelect(selectEl) {
 
         if (query !== '') {
             const matches = items.filter(item => {
-                return item.label.toLowerCase().includes(query)
+                return item.searchText.toLowerCase().includes(query)
                     || (item.group && item.group.toLowerCase().includes(query));
             });
 
             matches.sort((a, b) => {
-                const aStarts = a.label.toLowerCase().startsWith(query) ? 0 : 1;
-                const bStarts = b.label.toLowerCase().startsWith(query) ? 0 : 1;
+                const aStarts = a.rawName.toLowerCase().startsWith(query) ? 0 : 1;
+                const bStarts = b.rawName.toLowerCase().startsWith(query) ? 0 : 1;
                 if (aStarts !== bStarts) return aStarts - bStarts;
                 const aRecent = recentSet.has(a.value) ? 0 : 1;
                 const bRecent = recentSet.has(b.value) ? 0 : 1;
@@ -508,7 +529,7 @@ export function enhanceCategorySelect(selectEl) {
 
                 const msg = document.createElement('p');
                 msg.className = 'text-xs text-muted';
-                msg.textContent = `Kategori "${searchQuery.trim()}" tidak ditemukan.`;
+                msg.textContent = `${itemTitleNoun} "${searchQuery.trim()}" tidak ditemukan.`;
 
                 const resetBtn = document.createElement('button');
                 resetBtn.type = 'button';
@@ -579,7 +600,7 @@ export function enhanceCategorySelect(selectEl) {
             });
         } else if (items.length > 0) {
             if (recentItems.length > 0) {
-                listEl.appendChild(renderSectionHeader('Semua Kategori'));
+                listEl.appendChild(renderSectionHeader(allSectionLabel));
             }
             items.forEach(item => {
                 const idx = renderedOptions.length;
@@ -587,14 +608,15 @@ export function enhanceCategorySelect(selectEl) {
                 listEl.appendChild(createOptionRow(item, idx, currentValue));
             });
         } else {
-            const noCat = document.createElement('div');
-            noCat.className = 'p-3 text-center text-xs text-muted';
-            noCat.textContent = 'Belum ada kategori aktif tersedia.';
-            listEl.appendChild(noCat);
+            const noItem = document.createElement('div');
+            noItem.className = 'p-3 text-center text-xs text-muted';
+            noItem.textContent = `Belum ada ${itemNoun} aktif tersedia.`;
+            listEl.appendChild(noItem);
         }
 
-        const selectedIdx = renderedOptions.findIndex(item => item.value === currentValue);
-        activeIndex = selectedIdx >= 0 ? selectedIdx : (renderedOptions.length > 0 ? 0 : -1);
+        const firstSelectable = renderedOptions.findIndex(item => item.value === currentValue && !item.disabled);
+        const fallbackSelectable = renderedOptions.findIndex(item => !item.disabled);
+        activeIndex = firstSelectable >= 0 ? firstSelectable : fallbackSelectable;
         updateHighlightOnly();
     }
 
@@ -680,13 +702,18 @@ export function enhanceCategorySelect(selectEl) {
         const optionBtns = listEl.querySelectorAll('[data-picker-option]');
         if (optionBtns.length === 0) return;
 
-        let next = activeIndex + delta;
-        if (next < 0) next = optionBtns.length - 1;
-        if (next >= optionBtns.length) next = 0;
-
-        activeIndex = next;
-        updateHighlightOnly();
-        optionBtns[activeIndex]?.scrollIntoView({ block: 'nearest' });
+        let candidate = activeIndex;
+        for (let step = 0; step < optionBtns.length; step++) {
+            candidate += delta;
+            if (candidate < 0) candidate = optionBtns.length - 1;
+            if (candidate >= optionBtns.length) candidate = 0;
+            if (!optionBtns[candidate].disabled) {
+                activeIndex = candidate;
+                updateHighlightOnly();
+                optionBtns[activeIndex]?.scrollIntoView({ block: 'nearest' });
+                return;
+            }
+        }
     }
 
     triggerBtn.addEventListener('click', ev => {
@@ -830,19 +857,29 @@ export function enhanceCategorySelect(selectEl) {
         },
     });
 
+    const optionObserver = new MutationObserver(() => {
+        syncFromSelect();
+    });
+    optionObserver.observe(selectEl, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['disabled', 'hidden'],
+    });
+
     syncFromSelect();
     syncDisabledState();
 }
 
-export function initCategoryPickers(container = document) {
-    const selects = container.querySelectorAll('select[data-category-picker="true"]');
-    selects.forEach(select => enhanceCategorySelect(select));
+export function initSearchablePickers(container = document) {
+    const selects = container.querySelectorAll(PICKER_SELECTOR);
+    selects.forEach(select => enhanceSearchableSelect(select));
 }
 
-export function updateCategoryPickersRecentIds(recentByScope) {
+export function updateSearchablePickersRecentIds(recentByScope) {
     if (!recentByScope || typeof recentByScope !== 'object') return;
 
-    document.querySelectorAll('select[data-category-picker="true"]').forEach(select => {
+    document.querySelectorAll(PICKER_SELECTOR).forEach(select => {
         const scope = select.getAttribute('data-recent-scope');
         if (!scope || !Array.isArray(recentByScope[scope])) return;
 
@@ -853,6 +890,13 @@ export function updateCategoryPickersRecentIds(recentByScope) {
     });
 }
 
+export const enhanceCategorySelect = enhanceSearchableSelect;
+export const initCategoryPickers = initSearchablePickers;
+export const updateCategoryPickersRecentIds = updateSearchablePickersRecentIds;
+
+window.initSearchablePickers = initSearchablePickers;
+window.enhanceSearchableSelect = enhanceSearchableSelect;
+window.updateSearchablePickersRecentIds = updateSearchablePickersRecentIds;
 window.initCategoryPickers = initCategoryPickers;
 window.enhanceCategorySelect = enhanceCategorySelect;
 window.updateCategoryPickersRecentIds = updateCategoryPickersRecentIds;

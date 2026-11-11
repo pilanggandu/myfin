@@ -149,6 +149,39 @@ class Space extends Model
             ->all();
     }
 
+    /**
+     * Get IDs of the most recently used accounts for transactions in this space.
+     *
+     * @return list<int>
+     */
+    public function recentAccountIds(?string $type = null, int $limit = 5, bool $activeOnly = true): array
+    {
+        $allowedAccountIds = $activeOnly
+            ? $this->activeAccounts()
+            : $this->accounts();
+
+        return TransactionEntry::query()
+            ->join('financial_transactions', 'financial_transactions.id', '=', 'transaction_entries.transaction_id')
+            ->where('financial_transactions.space_id', $this->id)
+            ->where('financial_transactions.status', 'posted')
+            ->when(
+                $type !== null,
+                fn ($query) => $query->where('financial_transactions.type', $type)
+            )
+            ->whereIn('transaction_entries.account_id', $allowedAccountIds->select('id'))
+            ->select('transaction_entries.account_id')
+            ->selectRaw('MAX(financial_transactions.updated_at) as last_used_at, MAX(financial_transactions.id) as last_transaction_id, MAX(transaction_entries.id) as last_entry_id')
+            ->groupBy('transaction_entries.account_id')
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('last_transaction_id')
+            ->orderByDesc('last_entry_id')
+            ->limit($limit)
+            ->pluck('transaction_entries.account_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
     public function financialTransactions(): HasMany
     {
         return $this->hasMany(FinancialTransaction::class);

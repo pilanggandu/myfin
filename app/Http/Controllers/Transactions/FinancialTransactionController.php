@@ -63,6 +63,7 @@ class FinancialTransactionController extends Controller
         $transactions = $query->paginate(15)->withQueryString();
 
         $accounts = $space->activeAccounts()->orderBy('name')->get();
+        $recentAccountIds = $space->recentAccountIds(limit: 5);
         $incomeCategories = $space->categories()->income()->orderBy('name')->get();
         $expenseCategories = $space->categories()->expense()->orderBy('name')->get();
         $members = $space->customMembers()->active()->orderBy('name')->get();
@@ -75,6 +76,7 @@ class FinancialTransactionController extends Controller
         return view('transactions.index', compact(
             'transactions',
             'accounts',
+            'recentAccountIds',
             'incomeCategories',
             'expenseCategories',
             'members',
@@ -142,6 +144,7 @@ class FinancialTransactionController extends Controller
         $space = app('currentSpace');
         $accounts = $space->activeAccounts()->orderByDesc('is_default')->orderBy('name')->get();
         $defaultAccount = $space->defaultAccount();
+        $recentAccountIds = $space->recentAccountIds(limit: 5);
         $incomeCategories = $space->activeCategories()->income()->orderBy('name')->get();
         $expenseCategories = $space->activeCategories()->expense()->orderBy('name')->get();
         $recentIncomeCategoryIds = $space->recentCategoryIds('income', 5);
@@ -154,6 +157,7 @@ class FinancialTransactionController extends Controller
         return view('transactions.create', compact(
             'accounts',
             'defaultAccount',
+            'recentAccountIds',
             'incomeCategories',
             'expenseCategories',
             'recentIncomeCategoryIds',
@@ -191,6 +195,7 @@ class FinancialTransactionController extends Controller
                     'income' => $space->recentCategoryIds('income', 5),
                     'expense' => $space->recentCategoryIds('expense', 5),
                 ],
+                'recent_account_ids' => $space->recentAccountIds(limit: 5),
             ]);
         }
 
@@ -238,6 +243,7 @@ class FinancialTransactionController extends Controller
 
         $space = $transaction->space;
         $accounts = $space->activeAccounts()->orderBy('name')->get();
+        $recentAccountIds = $space->recentAccountIds(limit: 5);
         $incomeCategories = $space->activeCategories()->income()->orderBy('name')->get();
         $expenseCategories = $space->activeCategories()->expense()->orderBy('name')->get();
         $recentIncomeCategoryIds = $space->recentCategoryIds('income', 5);
@@ -249,6 +255,7 @@ class FinancialTransactionController extends Controller
         return view('transactions.edit', compact(
             'transaction',
             'accounts',
+            'recentAccountIds',
             'incomeCategories',
             'expenseCategories',
             'recentIncomeCategoryIds',

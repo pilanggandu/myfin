@@ -174,11 +174,26 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Rekening</label>
-                        <select name="account_id" class="field-select h-9 py-1 text-xs w-full">
+                        <label for="filterAccountSelect" class="block text-xs font-bold text-charcoal mb-1">Rekening</label>
+                        <select
+                            name="account_id"
+                            id="filterAccountSelect"
+                            class="field-select h-9 py-1 text-xs w-full"
+                            data-searchable-picker="true"
+                            data-picker-kind="account"
+                            data-allow-empty="true"
+                            data-recent-ids='@json($recentAccountIds ?? [])'
+                            data-recent-scope="account"
+                            data-search-placeholder="Cari rekening..."
+                        >
                             <option value="">Semua Rekening</option>
                             @foreach ($accounts as $acc)
-                                <option value="{{ $acc->id }}" {{ (string)request('account_id') === (string)$acc->id ? 'selected' : '' }}>
+                                <option
+                                    value="{{ $acc->id }}"
+                                    data-name="{{ $acc->name }}"
+                                    data-search-text="{{ $acc->name }} {{ $acc->type }}"
+                                    {{ (string)request('account_id') === (string)$acc->id ? 'selected' : '' }}
+                                >
                                     {{ $acc->name }}
                                 </option>
                             @endforeach
