@@ -522,7 +522,10 @@
         function setDatePreset(offsetDays) {
             const d = new Date();
             d.setDate(d.getDate() + offsetDays);
-            const iso = d.toISOString().split('T')[0];
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const iso = `${yyyy}-${mm}-${dd}`;
             document.getElementById('transaction_date').value = iso;
             updateReceipt();
         }
@@ -785,7 +788,9 @@
             }
 
             if (alertEl) {
+                const alertTextEl = document.getElementById('transferSameAccountAlertText');
                 if (srcSelect.value && dstSelect.value && srcSelect.value === dstSelect.value) {
+                    if (alertTextEl) alertTextEl.textContent = 'Rekening tujuan transfer tidak boleh sama dengan rekening asal.';
                     alertEl.classList.remove('hidden');
                 } else {
                     alertEl.classList.add('hidden');
@@ -814,11 +819,21 @@
                         if (src && dst && (!src.value || !dst.value || src.value === dst.value)) {
                             e.preventDefault();
                             const alertEl = document.getElementById('transferSameAccountAlert');
+                            const alertTextEl = document.getElementById('transferSameAccountAlertText');
+                            if (alertTextEl) {
+                                if (!src.value) {
+                                    alertTextEl.textContent = 'Rekening asal transfer wajib dipilih.';
+                                } else if (!dst.value) {
+                                    alertTextEl.textContent = 'Rekening tujuan transfer wajib dipilih.';
+                                } else {
+                                    alertTextEl.textContent = 'Rekening tujuan transfer tidak boleh sama dengan rekening asal.';
+                                }
+                            }
                             if (alertEl) alertEl.classList.remove('hidden');
-                            if (src.value === dst.value || !dst.value) {
-                                dst.focus();
-                            } else {
+                            if (!src.value) {
                                 src.focus();
+                            } else {
+                                dst.focus();
                             }
                             return false;
                         }

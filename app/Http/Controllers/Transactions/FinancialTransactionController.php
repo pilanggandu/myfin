@@ -153,6 +153,9 @@ class FinancialTransactionController extends Controller
         $requestKey = (string) Str::uuid();
 
         $defaultType = $request->get('type', 'expense');
+        if (! in_array($defaultType, ['expense', 'income', 'transfer'], true)) {
+            $defaultType = 'expense';
+        }
 
         return view('transactions.create', compact(
             'accounts',

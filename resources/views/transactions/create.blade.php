@@ -375,6 +375,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('category_id')
+                                    <div class="field-error mt-1 text-xs text-red"><span>{{ $message }}</span></div>
+                                @enderror
                             </div>
                         </div>
 
@@ -721,7 +724,7 @@
             }
 
             function applyPagePreset(desc, amount, type, categoryKeyword) {
-                const radio = document.querySelector(`input[name="type"][value="${type}"]`);
+                const radio = document.querySelector(`#transactionForm input[name="type"][value="${type}"]`);
                 if (radio) {
                     radio.checked = true;
                     onTypeChanged(type);
@@ -760,7 +763,7 @@
                 }
 
                 updateReceipt();
-                amountInput.focus();
+                amountDisplay.focus();
             }
 
             function applyPageSmartText() {
@@ -886,7 +889,10 @@
             function setDatePreset(offsetDays) {
                 const d = new Date();
                 d.setDate(d.getDate() + offsetDays);
-                const iso = d.toISOString().split('T')[0];
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const iso = `${yyyy}-${mm}-${dd}`;
                 document.getElementById('transaction_date').value = iso;
                 updateReceipt();
             }
@@ -1140,6 +1146,7 @@
                 const srcSelect = document.getElementById('source_account_id');
                 const dstSelect = document.getElementById('destination_account_id');
                 const alertEl = document.getElementById('transferSameAccountAlert');
+                const alertTextEl = document.getElementById('transferSameAccountAlertText');
                 if (!srcSelect || !dstSelect) return;
 
                 const srcVal = srcSelect.value;
@@ -1173,6 +1180,7 @@
 
                 if (alertEl) {
                     if (srcSelect.value && dstSelect.value && srcSelect.value === dstSelect.value) {
+                        if (alertTextEl) alertTextEl.textContent = 'Rekening tujuan transfer tidak boleh sama dengan rekening asal.';
                         alertEl.classList.remove('hidden');
                     } else {
                         alertEl.classList.add('hidden');
@@ -1188,13 +1196,43 @@
                 if (actionInput) actionInput.value = action;
             }
 
+            function resetSubmitButtonsState() {
+                const btnClose = document.getElementById('btnSaveAndClose');
+                const btnAgain = document.getElementById('btnSaveAndAgain');
+                const cancelLink = document.getElementById('btnCancelTransaction');
+
+                const saveCloseIcon = document.getElementById('saveCloseIcon');
+                const saveCloseSpinner = document.getElementById('saveCloseSpinner');
+                const saveCloseLabel = document.getElementById('saveCloseLabel');
+                if (saveCloseIcon) saveCloseIcon.classList.remove('hidden');
+                if (saveCloseSpinner) saveCloseSpinner.classList.add('hidden');
+                if (saveCloseLabel) saveCloseLabel.textContent = 'Simpan Transaksi';
+
+                const saveAgainIcon = document.getElementById('saveAgainIcon');
+                const saveAgainSpinner = document.getElementById('saveAgainSpinner');
+                const saveAgainLabel = document.getElementById('saveAgainLabel');
+                if (saveAgainIcon) saveAgainIcon.classList.remove('hidden');
+                if (saveAgainSpinner) saveAgainSpinner.classList.add('hidden');
+                if (saveAgainLabel) saveAgainLabel.textContent = 'Simpan & Input Lagi';
+
+                if (btnClose) btnClose.classList.remove('opacity-75', 'opacity-50', 'pointer-events-none');
+                if (btnAgain) btnAgain.classList.remove('opacity-75', 'opacity-50', 'pointer-events-none');
+                if (cancelLink) cancelLink.classList.remove('opacity-50', 'pointer-events-none');
+            }
+
             function onTransferAccountChange() {
                 syncTransferAccounts();
                 updateReceipt();
             }
 
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted) {
+                    resetSubmitButtonsState();
+                }
+            });
+
             document.addEventListener('DOMContentLoaded', function() {
-                const checked = document.querySelector('input[name="type"]:checked');
+                const checked = document.querySelector('#transactionForm input[name="type"]:checked');
                 if (checked) {
                     onTypeChanged(checked.value);
                 } else {
@@ -1206,17 +1244,33 @@
                 const txForm = document.getElementById('transactionForm');
                 if (txForm) {
                     txForm.addEventListener('submit', function(e) {
+                        if (e.submitter?.id === 'btnSaveAndAgain') {
+                            setTransactionAction('save_and_again');
+                        } else if (e.submitter?.id === 'btnSaveAndClose') {
+                            setTransactionAction('save_and_close');
+                        }
+
                         if (currentType === 'transfer') {
                             const src = document.getElementById('source_account_id').value;
                             const dst = document.getElementById('destination_account_id').value;
                             if (!src || !dst || src === dst) {
                                 e.preventDefault();
                                 const alertEl = document.getElementById('transferSameAccountAlert');
+                                const alertTextEl = document.getElementById('transferSameAccountAlertText');
+                                if (alertTextEl) {
+                                    if (!src) {
+                                        alertTextEl.textContent = 'Rekening asal transfer wajib dipilih.';
+                                    } else if (!dst) {
+                                        alertTextEl.textContent = 'Rekening tujuan transfer wajib dipilih.';
+                                    } else {
+                                        alertTextEl.textContent = 'Rekening tujuan transfer tidak boleh sama dengan rekening asal.';
+                                    }
+                                }
                                 if (alertEl) alertEl.classList.remove('hidden');
-                                if (src === dst || !dst) {
-                                    document.getElementById('destination_account_id').focus();
-                                } else {
+                                if (!src) {
                                     document.getElementById('source_account_id').focus();
+                                } else {
+                                    document.getElementById('destination_account_id').focus();
                                 }
                                 return false;
                             }

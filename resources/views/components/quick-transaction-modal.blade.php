@@ -400,8 +400,6 @@
                 <button 
                     type="submit" 
                     id="quickModalBtnSaveClose"
-                    name="action" 
-                    value="save_and_close" 
                     class="btn-arus-primary flex-1 min-h-[44px] sm:min-h-[42px] text-xs font-bold cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
                     <svg id="quickSaveCloseSpinner" class="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white shrink-0 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -417,10 +415,14 @@
                     class="btn-arus-secondary min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold inline-flex items-center justify-center gap-1.5 text-forest border-forest/30 hover:bg-forest-light cursor-pointer"
                     title="Simpan transaksi ini dan lanjut input transaksi baru langsung tanpa menutup modal"
                 >
-                    <svg class="w-4 h-4 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg id="quickSaveAgainIcon" class="w-4 h-4 text-forest shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                     </svg>
-                    <span>Simpan & Input Lagi</span>
+                    <svg id="quickSaveAgainSpinner" class="animate-spin h-4 w-4 text-forest shrink-0 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span id="quickSaveAgainLabel">Simpan & Input Lagi</span>
                 </button>
                 <button type="button" onclick="closeQuickTransactionModal()" class="btn-arus-secondary min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold cursor-pointer">
                     Batal
@@ -514,6 +516,12 @@
     }
 
     function validateQuickModalSubmit(e) {
+        const btnSaveAgain = document.getElementById('quickModalBtnSaveAndAgain');
+        if (e && btnSaveAgain && btnSaveAgain.disabled) {
+            e.preventDefault();
+            return false;
+        }
+
         const amount = parseInt(document.getElementById('quickModalAmount').value, 10) || 0;
         if (amount <= 0) {
             if (e) e.preventDefault();
@@ -527,6 +535,13 @@
             if (e) e.preventDefault();
             showQuickModalAlert('Keterangan transaksi wajib diisi.', 'error');
             document.getElementById('quickModalDesc').focus();
+            return false;
+        }
+
+        const txDate = document.getElementById('quickModalDate')?.value;
+        if (!txDate) {
+            if (e) e.preventDefault();
+            showQuickModalAlert('Tanggal transaksi wajib diisi.', 'error');
             return false;
         }
 
@@ -581,19 +596,44 @@
             const btn = document.getElementById('quickModalBtnSaveClose');
             const spinner = document.getElementById('quickSaveCloseSpinner');
             const label = document.getElementById('quickSaveCloseLabel');
-            const btnAgain = document.getElementById('quickModalBtnSaveAndAgain');
             if (spinner) spinner.classList.remove('hidden');
             if (label) label.textContent = 'Menyimpan...';
             if (btn) btn.classList.add('opacity-75', 'pointer-events-none');
-            if (btnAgain) btnAgain.classList.add('opacity-50', 'pointer-events-none');
+            if (btnSaveAgain) btnSaveAgain.classList.add('opacity-50', 'pointer-events-none');
         }
         return true;
+    }
+
+    function setQuickSaveAgainLoading(isLoading) {
+        const btnSaveAgain = document.getElementById('quickModalBtnSaveAndAgain');
+        const btnSaveClose = document.getElementById('quickModalBtnSaveClose');
+        const icon = document.getElementById('quickSaveAgainIcon');
+        const spinner = document.getElementById('quickSaveAgainSpinner');
+        const label = document.getElementById('quickSaveAgainLabel');
+
+        if (btnSaveAgain) {
+            btnSaveAgain.disabled = isLoading;
+            btnSaveAgain.classList.toggle('opacity-70', isLoading);
+            btnSaveAgain.classList.toggle('cursor-not-allowed', isLoading);
+        }
+        if (btnSaveClose) {
+            btnSaveClose.disabled = isLoading;
+            btnSaveClose.classList.toggle('opacity-50', isLoading);
+            btnSaveClose.classList.toggle('pointer-events-none', isLoading);
+        }
+        if (icon) icon.classList.toggle('hidden', isLoading);
+        if (spinner) spinner.classList.toggle('hidden', !isLoading);
+        if (label) label.textContent = isLoading ? 'Menyimpan...' : 'Simpan & Input Lagi';
     }
 
     async function submitQuickModalAndAgain() {
         const form = document.getElementById('quickModalForm');
         const alertBox = document.getElementById('quickModalAlert');
         const btnSaveAgain = document.getElementById('quickModalBtnSaveAndAgain');
+
+        if (!form || !btnSaveAgain || btnSaveAgain.disabled) {
+            return;
+        }
         
         if (alertBox) {
             alertBox.classList.add('hidden');
@@ -610,19 +650,13 @@
         const formData = new FormData(form);
         formData.append('action', 'save_and_again');
 
-        const originalBtnHtml = btnSaveAgain.innerHTML;
-        btnSaveAgain.disabled = true;
-        btnSaveAgain.classList.add('opacity-70', 'cursor-not-allowed');
-        btnSaveAgain.innerHTML = `
-            <svg class="animate-spin w-4 h-4 text-forest" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-            </svg>
-            <span>Menyimpan...</span>
-        `;
+        // Use the HTML action attribute so child elements named "action" cannot shadow form.action.
+        const submitUrl = form.getAttribute('action') || @js(route('transactions.store'));
+
+        setQuickSaveAgainLoading(true);
 
         try {
-            const response = await fetch(form.action, {
+            const response = await fetch(submitUrl, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -631,7 +665,8 @@
                 body: formData
             });
 
-            const data = await response.json();
+            const contentType = response.headers.get('content-type') || '';
+            const data = contentType.includes('application/json') ? await response.json() : {};
 
             if (response.ok && data.success) {
                 quickModalSessionSavedCount++;
@@ -661,6 +696,8 @@
                         document.getElementById('quickModalAmountDisplay').focus();
                     }
                 }, 100);
+            } else if (response.status === 419) {
+                showQuickModalAlert('Sesi Anda telah kedaluwarsa. Muat ulang halaman lalu coba lagi.', 'error');
             } else {
                 let errorMsg = data.message || 'Gagal menyimpan transaksi. Periksa input Anda.';
                 if (data.errors) {
@@ -674,9 +711,7 @@
         } catch (err) {
             showQuickModalAlert('Terjadi kesalahan koneksi atau server. Silakan coba lagi.', 'error');
         } finally {
-            btnSaveAgain.disabled = false;
-            btnSaveAgain.classList.remove('opacity-70', 'cursor-not-allowed');
-            btnSaveAgain.innerHTML = originalBtnHtml;
+            setQuickSaveAgainLoading(false);
         }
     }
 
@@ -695,6 +730,7 @@
             <div class="flex-1">${msg}</div>
             <button type="button" onclick="this.parentElement.classList.add('hidden')" class="ml-2 text-sm font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
         `;
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function escapeHtml(text) {
@@ -768,8 +804,8 @@
     }
 
     function applyQuickPreset(desc, amount, type, categoryKeyword) {
-        // Set type
-        const radio = document.querySelector(`input[name="type"][value="${type}"]`);
+        // Set type scoped to modal form so background page radios are never touched
+        const radio = document.querySelector(`#quickModalForm input[name="type"][value="${type}"]`);
         if (radio) {
             radio.checked = true;
             onQuickModalTypeChange(type);
@@ -806,8 +842,7 @@
             }
         }
 
-        // Focus submit button
-        amountInput.focus();
+        amountDisplay.focus();
     }
 
     function applyQuickSmartText() {

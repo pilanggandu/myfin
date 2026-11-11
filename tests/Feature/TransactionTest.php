@@ -1610,4 +1610,79 @@ class TransactionTest extends TestCase
         $indexResponse->assertSee('id="filterAccountSelect"', false);
         $indexResponse->assertSee('data-picker-kind="account"', false);
     }
+
+    public function test_quick_transaction_modal_uses_safe_form_action_attribute_without_dom_clobbering_and_scopes_presets(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index'));
+
+        $response->assertOk();
+        $response->assertSee("form.getAttribute('action')", false);
+        $response->assertSee('#quickModalForm input[name="type"][value="${type}"]', false);
+        $response->assertDontSee('id="quickModalBtnSaveClose"'."\n".'                    name="action"', false);
+    }
+
+    public function test_income_category_validation_error_renders_inside_income_category_container_and_invalid_type_falls_back_to_expense(): void
+    {
+        $failedResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->from(route('transactions.create', ['type' => 'income']))
+            ->followingRedirects()
+            ->post(route('transactions.store'), [
+                'type' => 'income',
+                'account_id' => $this->bca->id,
+                'amount' => 150000,
+                'transaction_date' => '2026-01-05',
+                'description' => 'Bonus Tanpa Kategori',
+                'action' => 'save_and_again',
+            ]);
+
+        $failedResponse->assertOk();
+        $failedResponse->assertSee('Kategori transaksi wajib dipilih.');
+        $html = $failedResponse->getContent();
+        $incomeStart = strpos($html, 'id="incomeCategoryContainer"');
+        $transferStart = strpos($html, 'id="transferBlock"');
+        $this->assertNotFalse($incomeStart);
+        $this->assertNotFalse($transferStart);
+        $incomeSection = substr($html, $incomeStart, $transferStart - $incomeStart);
+        $this->assertStringContainsString('Kategori transaksi wajib dipilih.', $incomeSection);
+
+        $invalidTypeResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.create', ['type' => 'invalid_type']));
+
+        $invalidTypeResponse->assertOk();
+        $this->assertSame('expense', $invalidTypeResponse->viewData('defaultType'));
+    }
+
+    public function test_transfer_save_and_again_redirects_to_create_with_transfer_context(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('transactions.store'), [
+                'type' => 'transfer',
+                'source_account_id' => $this->bca->id,
+                'destination_account_id' => $this->gopay->id,
+                'amount' => 125000,
+                'fee_amount' => 2500,
+                'fee_category_id' => $this->expenseCat->id,
+                'transaction_date' => '2026-01-06',
+                'transaction_time' => '11:30',
+                'description' => 'Top Up Cepat',
+                'action' => 'save_and_again',
+            ]);
+
+        $response->assertRedirect(route('transactions.create', [
+            'type' => 'transfer',
+            'date' => '2026-01-06',
+            'time' => '11:30',
+            'source_account_id' => $this->bca->id,
+        ]));
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('financial_transactions', [
+            'type' => 'transfer',
+            'description' => 'Top Up Cepat',
+        ]);
+    }
 }

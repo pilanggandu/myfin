@@ -133,7 +133,7 @@
             <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
-            <span>Rekening tujuan transfer tidak boleh sama dengan rekening asal.</span>
+            <span id="transferSameAccountAlertText">Rekening tujuan transfer tidak boleh sama dengan rekening asal.</span>
         </div>
 
         @if ($errors->has('source_account_id') || $errors->has('destination_account_id'))
