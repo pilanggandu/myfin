@@ -675,7 +675,7 @@ input[type=number] {
   cursor: pointer;
   border-radius: 4px;
   padding: 1px 4px;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .privacy-balance:hover {
@@ -699,16 +699,6 @@ input[type=number] {
 
 .privacy-balance.privacy-masked {
   letter-spacing: 0.04em;
-  border-bottom: 1px dashed rgba(101, 116, 132, 0.55);
-}
-
-.dark .privacy-balance.privacy-masked {
-  border-bottom-color: rgba(148, 163, 184, 0.55);
-}
-
-.stat-folder-card.dark .privacy-balance.privacy-masked,
-.metric-card.dark .privacy-balance.privacy-masked {
-  border-bottom-color: rgba(255, 255, 255, 0.5);
 }
 
 .privacy-balance:focus-visible {
