@@ -318,7 +318,7 @@
                             <div class="mt-3 p-3 rounded-xl border border-line bg-cream/40 flex items-center justify-between gap-3">
                                 <div>
                                     <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Tagihan Bulan Ini</span>
-                                    <span class="font-serif font-bold text-sm text-charcoal block">
+                                    <span class="font-serif font-bold text-sm text-charcoal block privacy-balance" data-raw-value="{{ $statement['formatted_total_pending'] }}">
                                         {{ $statement['formatted_total_pending'] }}
                                     </span>
                                     <span class="text-[10px] text-muted block">

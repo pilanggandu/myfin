@@ -136,6 +136,20 @@ class Account extends Model
         return 'Rp '.number_format($bal, $decimals, ',', '.');
     }
 
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            'bank' => 'Bank',
+            'e-wallet' => 'E-Wallet',
+            'cash' => 'Kas Tunai',
+            'investment' => 'Investasi / RDN',
+            'credit_card' => 'Kartu Kredit',
+            'paylater' => 'PayLater',
+            'loan' => 'Pinjaman',
+            default => $this->type,
+        };
+    }
+
     public function isCreditCard(): bool
     {
         return $this->type === 'credit_card';

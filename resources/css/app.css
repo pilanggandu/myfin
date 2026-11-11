@@ -634,3 +634,63 @@ input[type=number] {
   max-height: 120px !important;
   box-sizing: border-box !important;
 }
+
+.privacy-balance {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 4px;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.privacy-balance:hover {
+  background-color: rgba(11, 74, 139, 0.08);
+}
+
+.dark .privacy-balance:hover {
+  background-color: rgba(96, 165, 250, 0.14);
+}
+
+.privacy-balance.text-muted:hover,
+.text-muted .privacy-balance:hover {
+  color: var(--color-charcoal);
+}
+
+.stat-folder-card.dark .privacy-balance:hover,
+.metric-card.dark .privacy-balance:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.privacy-balance.privacy-masked {
+  letter-spacing: 0.04em;
+  border-bottom: 1px dashed rgba(101, 116, 132, 0.55);
+}
+
+.dark .privacy-balance.privacy-masked {
+  border-bottom-color: rgba(148, 163, 184, 0.55);
+}
+
+.stat-folder-card.dark .privacy-balance.privacy-masked,
+.metric-card.dark .privacy-balance.privacy-masked {
+  border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+.privacy-balance:focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+}
+
+.dark .privacy-balance:focus-visible {
+  outline-color: #60A5FA;
+}
+
+.stat-folder-card.dark .privacy-balance:focus-visible,
+.metric-card.dark .privacy-balance:focus-visible {
+  outline-color: #ffffff;
+}
+
+.stat-folder-card .text-2xl > .privacy-balance {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

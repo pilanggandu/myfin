@@ -32,7 +32,17 @@ class AccountController extends Controller
         $activeAccounts = $accounts->whereNull('archived_at');
         $totalBalance = $space->totalBalance();
 
-        return view('accounts.index', compact('accounts', 'activeAccounts', 'totalBalance'));
+        $requestedView = $request->query('view');
+        $hasExplicitView = in_array($requestedView, ['list', 'card'], true);
+        $viewMode = $hasExplicitView ? $requestedView : 'list';
+
+        return view('accounts.index', compact(
+            'accounts',
+            'activeAccounts',
+            'totalBalance',
+            'viewMode',
+            'hasExplicitView'
+        ));
     }
 
     public function create(): View

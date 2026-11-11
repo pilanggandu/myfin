@@ -575,15 +575,15 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Kas Masuk</span>
-                                    <div id="calModalInflow" class="text-sm sm:text-base font-mono font-bold text-forest">Rp 0</div>
+                                    <div id="calModalInflow" class="text-sm sm:text-base font-mono font-bold text-forest privacy-balance">Rp 0</div>
                                 </div>
                                 <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Kas Keluar</span>
-                                    <div id="calModalOutflow" class="text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400">Rp 0</div>
+                                    <div id="calModalOutflow" class="text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400 privacy-balance">Rp 0</div>
                                 </div>
                                 <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
                                     <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Arus Kas Bersih</span>
-                                    <div id="calModalNet" class="text-sm sm:text-base font-mono font-bold">Rp 0</div>
+                                    <div id="calModalNet" class="text-sm sm:text-base font-mono font-bold privacy-balance">Rp 0</div>
                                 </div>
                             </div>
 
@@ -659,15 +659,24 @@
                     document.getElementById('calModalDateTitle').textContent = formattedDate;
                     document.getElementById('calModalSubTitle').textContent = count > 0 ? (count + ' transaksi tercatat') : 'Tidak ada mutasi';
                     
-                    document.getElementById('calModalInflow').textContent = 'Rp ' + Number(inflow).toLocaleString('id-ID');
-                    document.getElementById('calModalOutflow').textContent = 'Rp ' + Number(outflow).toLocaleString('id-ID');
+                    const inflowEl = document.getElementById('calModalInflow');
+                    const inflowFormatted = 'Rp ' + Number(inflow).toLocaleString('id-ID');
+                    inflowEl.setAttribute('data-raw-value', inflowFormatted);
+                    inflowEl.textContent = inflowFormatted;
+
+                    const outflowEl = document.getElementById('calModalOutflow');
+                    const outflowFormatted = 'Rp ' + Number(outflow).toLocaleString('id-ID');
+                    outflowEl.setAttribute('data-raw-value', outflowFormatted);
+                    outflowEl.textContent = outflowFormatted;
 
                     const netEl = document.getElementById('calModalNet');
-                    netEl.textContent = (net >= 0 ? '+Rp ' : '-Rp ') + Number(Math.abs(net)).toLocaleString('id-ID');
+                    const netFormatted = (net >= 0 ? '+Rp ' : '-Rp ') + Number(Math.abs(net)).toLocaleString('id-ID');
+                    netEl.setAttribute('data-raw-value', netFormatted);
+                    netEl.textContent = netFormatted;
                     if (net >= 0) {
-                        netEl.className = 'text-sm sm:text-base font-mono font-bold text-forest';
+                        netEl.className = 'text-sm sm:text-base font-mono font-bold text-forest privacy-balance';
                     } else {
-                        netEl.className = 'text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400';
+                        netEl.className = 'text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400 privacy-balance';
                     }
 
                     document.getElementById('calModalTxCountBadge').textContent = count + ' transaksi';
@@ -727,7 +736,9 @@
                                     </div>
                                 </td>
                                 <td class="py-2.5 px-3 font-mono text-[11px] text-muted whitespace-nowrap">${accountStr}</td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-right whitespace-nowrap ${amountClass}">${formattedNominal}</td>
+                                <td class="py-2.5 px-3 font-mono font-bold text-right whitespace-nowrap ${amountClass}">
+                                    <span class="privacy-balance" data-raw-value="${formattedNominal}">${formattedNominal}</span>
+                                </td>
                                 <td class="py-2.5 px-3 text-center whitespace-nowrap">
                                     <a href="${item.url}" class="text-[11px] font-semibold text-forest hover:underline inline-flex items-center gap-0.5">
                                         Detail &rarr;
@@ -775,7 +786,9 @@
                                 </div>
                                 <div class="flex items-center gap-3 shrink-0">
                                     <div class="text-right">
-                                        <div class="font-mono font-bold text-charcoal">Rp ${Number(bill.amount).toLocaleString('id-ID')}</div>
+                                        <div class="font-mono font-bold text-charcoal">
+                                            <span class="privacy-balance" data-raw-value="Rp ${Number(bill.amount).toLocaleString('id-ID')}">Rp ${Number(bill.amount).toLocaleString('id-ID')}</span>
+                                        </div>
                                         <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold ${badgeColor}">
                                             ${bill.status_label}
                                         </span>
@@ -793,6 +806,9 @@
                     }
 
                     const modal = document.getElementById('calendarDayModal');
+                    if (typeof window.syncPrivacyContainer === 'function') {
+                        window.syncPrivacyContainer(modal);
+                    }
                     modal.classList.remove('hidden');
                     document.body.classList.add('overflow-hidden');
                 }

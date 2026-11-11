@@ -433,4 +433,122 @@ class AccountTest extends TestCase
         $loanShowResponse->assertOk();
         $loanShowResponse->assertSee('KEWAJIBAN / SISA HUTANG', false);
     }
+
+    public function test_accounts_index_renders_list_mode_by_default_with_card_view_and_switcher(): void
+    {
+        $bankAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'BCA Operasional',
+            'type' => 'bank',
+            'opening_balance' => 3500000,
+            'opened_on' => '2026-01-01',
+            'is_default' => true,
+        ]);
+
+        $archivedAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Kas Lama',
+            'type' => 'cash',
+            'opening_balance' => 250000,
+            'opened_on' => '2025-06-01',
+            'archived_at' => now(),
+        ]);
+
+        $otherSpaceAccount = Account::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Rahasia Ruang B',
+            'type' => 'bank',
+            'opening_balance' => 9999999,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('viewMode', 'list');
+        $response->assertViewHas('hasExplicitView', false);
+        $response->assertSee('id="accountsViewListBtn"', false);
+        $response->assertSee('id="accountsViewCardBtn"', false);
+        $response->assertSee('id="accountsListView" class=""', false);
+        $response->assertSee('data-account-card="'.$bankAccount->id.'"', false);
+        $response->assertSee('data-account-card="'.$archivedAccount->id.'"', false);
+        $response->assertDontSee($otherSpaceAccount->name);
+    }
+
+    public function test_accounts_index_supports_card_mode_via_query_parameter(): void
+    {
+        $account = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Mandiri Tabungan',
+            'type' => 'bank',
+            'opening_balance' => 1250000,
+            'opened_on' => '2026-02-01',
+            'is_default' => true,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['view' => 'card']));
+
+        $response->assertOk();
+        $response->assertViewHas('viewMode', 'card');
+        $response->assertViewHas('hasExplicitView', true);
+        $response->assertSee('id="accountsListView" class="hidden"', false);
+        $response->assertSee('id="accountsCardView"', false);
+        $response->assertSee('data-account-card="'.$account->id.'"', false);
+        $response->assertSee('Mandiri Tabungan');
+    }
+
+    public function test_accounts_index_falls_back_to_list_mode_for_invalid_view_parameter(): void
+    {
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'GoPay Harian',
+            'type' => 'e-wallet',
+            'opening_balance' => 150000,
+            'opened_on' => '2026-03-01',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['view' => 'grid-invalid']));
+
+        $response->assertOk();
+        $response->assertViewHas('viewMode', 'list');
+        $response->assertViewHas('hasExplicitView', false);
+        $response->assertSee('id="accountsListView" class=""', false);
+    }
+
+    public function test_accounts_index_hides_view_switcher_when_no_accounts_exist(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index'));
+
+        $response->assertOk();
+        $response->assertSee('Belum Ada Rekening atau Wallet');
+        $response->assertDontSee('id="accountsViewListBtn"', false);
+        $response->assertDontSee('id="accountsViewCardBtn"', false);
+    }
+
+    public function test_account_type_label_maps_known_and_custom_types(): void
+    {
+        $expected = [
+            'bank' => 'Bank',
+            'e-wallet' => 'E-Wallet',
+            'cash' => 'Kas Tunai',
+            'investment' => 'Investasi / RDN',
+            'credit_card' => 'Kartu Kredit',
+            'paylater' => 'PayLater',
+            'loan' => 'Pinjaman',
+            'custom_vault' => 'custom_vault',
+        ];
+
+        foreach ($expected as $type => $label) {
+            $account = new Account(['type' => $type]);
+            $this->assertSame($label, $account->typeLabel());
+        }
+    }
 }

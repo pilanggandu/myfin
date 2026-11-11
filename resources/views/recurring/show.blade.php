@@ -128,11 +128,13 @@
 
                     <div>
                         <span class="text-muted block text-[11px] mb-0.5">Nominal:</span>
-                        <span class="font-mono font-bold text-sm text-charcoal privacy-balance">
+                        <span class="font-mono font-bold text-sm text-charcoal">
                             @if ($recurring->is_variable_amount)
                                 <span class="text-xs text-muted font-normal italic">Fleksibel (diisi saat konfirmasi)</span>
                             @else
-                                Rp {{ number_format($recurring->amount, 0, ',', '.') }}
+                                <span class="privacy-balance" data-raw-value="Rp {{ number_format($recurring->amount, 0, ',', '.') }}">
+                                    Rp {{ number_format($recurring->amount, 0, ',', '.') }}
+                                </span>
                             @endif
                         </span>
                     </div>

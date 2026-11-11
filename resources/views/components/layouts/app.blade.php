@@ -396,25 +396,46 @@
             return localStorage.getItem('arus_hide_balances') === 'true';
         }
 
+        function setupBalanceInteractiveAttributes(el, isMasked) {
+            const interactiveParent = el.parentElement?.closest('a, button, [onclick]');
+            el.setAttribute('role', 'button');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('aria-pressed', isMasked ? 'false' : 'true');
+
+            if (isMasked) {
+                el.setAttribute('aria-label', 'Saldo disembunyikan. Klik untuk menampilkan saldo.');
+                el.setAttribute('title', 'Klik untuk menampilkan saldo');
+            } else {
+                el.removeAttribute('aria-label');
+                if (interactiveParent) {
+                    el.removeAttribute('title');
+                } else {
+                    el.setAttribute('title', 'Klik untuk menyembunyikan saldo');
+                }
+            }
+        }
+
         function maskElement(el) {
             if (!el.hasAttribute('data-raw-value')) {
                 el.setAttribute('data-raw-value', el.textContent.trim());
             }
-            const raw = el.getAttribute('data-raw-value');
-            if (raw.startsWith('+Rp ') || raw.startsWith('+ Rp ') || raw.startsWith('+Rp')) {
+            const raw = el.getAttribute('data-raw-value') || '';
+            const trimmed = raw.trim();
+            if (/^\+\s*Rp\b/i.test(trimmed)) {
                 el.textContent = '+Rp ••••••••';
-            } else if (raw.startsWith('-Rp ') || raw.startsWith('- Rp ') || raw.startsWith('-Rp')) {
+            } else if (/^-\s*Rp\b/i.test(trimmed)) {
                 el.textContent = '-Rp ••••••••';
-            } else if (raw.startsWith('⇄ Rp ') || raw.startsWith('⇄Rp ')) {
+            } else if (/^⇄\s*Rp\b/i.test(trimmed)) {
                 el.textContent = '⇄ Rp ••••••••';
-            } else if (raw.startsWith('Rp ') || raw.startsWith('Rp. ') || raw.startsWith('Rp')) {
-                el.textContent = 'Rp ••••••••';
-            } else if (raw.includes('Rp ') || raw.includes('Rp.')) {
-                el.textContent = raw.replace(/Rp\.?\s?[0-9.,]+/g, 'Rp ••••••••');
+            } else if (/^Rp\.?\s*-?[0-9.,]+$/i.test(trimmed)) {
+                el.textContent = /^Rp\.?\s*-/i.test(trimmed) ? '-Rp ••••••••' : 'Rp ••••••••';
+            } else if (/Rp\.?\s?-?[0-9.,]+/i.test(raw)) {
+                el.textContent = raw.replace(/Rp\.?\s?-?[0-9.,]+/gi, 'Rp ••••••••');
             } else {
                 el.textContent = '••••••••';
             }
             el.classList.add('privacy-masked');
+            setupBalanceInteractiveAttributes(el, true);
         }
 
         function unmaskElement(el) {
@@ -422,6 +443,7 @@
                 el.textContent = el.getAttribute('data-raw-value');
             }
             el.classList.remove('privacy-masked');
+            setupBalanceInteractiveAttributes(el, false);
         }
 
         function updateToggleBtnUI(btn, isHidden, isMaster = false) {
@@ -442,6 +464,52 @@
                 btn.setAttribute('aria-label', isHidden ? 'Tampilkan Saldo Bagian Ini' : 'Sembunyikan Saldo Bagian Ini');
             }
         }
+
+        function resolvePrivacyToggleContainer(btn, explicitScope = null) {
+            if (explicitScope) {
+                return typeof explicitScope === 'string'
+                    ? (document.getElementById(explicitScope) || document.querySelector(`[data-privacy-scope="${explicitScope}"]`) || document.querySelector(explicitScope))
+                    : explicitScope;
+            }
+            if (!btn) return null;
+
+            const onclickAttr = btn.getAttribute('onclick') || '';
+            const scopeMatch = onclickAttr.match(/toggleCardPrivacy\(\s*this\s*,\s*(['"])(.*?)\1/);
+            if (scopeMatch && scopeMatch[2]) {
+                const selector = scopeMatch[2].replace(/\\'/g, "'").replace(/\\"/g, '"');
+                const resolved = document.getElementById(selector) || document.querySelector(`[data-privacy-scope="${selector}"]`) || document.querySelector(selector);
+                if (resolved) return resolved;
+            }
+
+            const targetAttr = btn.getAttribute('data-privacy-target');
+            if (targetAttr) {
+                const resolved = document.getElementById(targetAttr) || document.querySelector(`[data-privacy-scope="${targetAttr}"]`) || document.querySelector(targetAttr);
+                if (resolved) return resolved;
+            }
+
+            return btn.closest('[data-privacy-scope], .privacy-scope, .panel-card, .metric-card, .stat-folder-card') || btn.parentElement;
+        }
+
+        function syncCardToggleButtons() {
+            document.querySelectorAll('.privacy-card-toggle, [data-privacy-card-toggle], [onclick*="toggleCardPrivacy"]').forEach(btn => {
+                const container = resolvePrivacyToggleContainer(btn);
+                if (container) {
+                    const hasMasked = container.querySelector('.privacy-masked') !== null;
+                    updateToggleBtnUI(btn, hasMasked, false);
+                }
+            });
+        }
+
+        function toggleSingleBalance(el) {
+            if (!el) return;
+            if (el.classList.contains('privacy-masked')) {
+                unmaskElement(el);
+            } else {
+                maskElement(el);
+            }
+            syncCardToggleButtons();
+        }
+        window.toggleSingleBalance = toggleSingleBalance;
 
         function toggleMasterPrivacy() {
             setMasterPrivacy(!isMasterHidden());
@@ -466,25 +534,15 @@
                 }
             });
 
-            document.querySelectorAll('.master-privacy-toggle, #masterPrivacyToggle').forEach(btn => {
+            document.querySelectorAll('.master-privacy-toggle, #masterPrivacyToggle, .privacy-toggle-btn').forEach(btn => {
                 updateToggleBtnUI(btn, hide, true);
             });
 
-            document.querySelectorAll('.privacy-card-toggle, [data-privacy-card-toggle]').forEach(btn => {
-                updateToggleBtnUI(btn, hide, false);
-            });
+            syncCardToggleButtons();
         }
 
         function toggleCardPrivacy(btn, explicitScope) {
-            let container = null;
-            if (explicitScope) {
-                container = typeof explicitScope === 'string'
-                    ? (document.getElementById(explicitScope) || document.querySelector(`[data-privacy-scope="${explicitScope}"]`) || document.querySelector(explicitScope))
-                    : explicitScope;
-            }
-            if (!container && btn) {
-                container = btn.closest('[data-privacy-scope], .privacy-scope, .panel-card, .metric-card, .stat-folder-card') || btn.parentElement;
-            }
+            const container = resolvePrivacyToggleContainer(btn, explicitScope);
             if (!container) return;
 
             const balances = container.querySelectorAll('.privacy-balance');
@@ -511,8 +569,23 @@
             if (scopeId) {
                 localStorage.setItem('arus_scope_privacy_' + scopeId, willHide ? 'hidden' : 'shown');
             }
+            syncCardToggleButtons();
         }
         window.toggleCardPrivacy = toggleCardPrivacy;
+
+        function syncPrivacyContainer(container) {
+            if (!container) return;
+            const masterHidden = isMasterHidden();
+            container.querySelectorAll('.privacy-balance').forEach(el => {
+                if (masterHidden) {
+                    maskElement(el);
+                } else {
+                    unmaskElement(el);
+                }
+            });
+            syncCardToggleButtons();
+        }
+        window.syncPrivacyContainer = syncPrivacyContainer;
 
         function initPrivacySystem() {
             const masterHidden = isMasterHidden();
@@ -537,18 +610,47 @@
                 }
             });
 
-            document.querySelectorAll('.master-privacy-toggle, #masterPrivacyToggle').forEach(btn => {
+            document.querySelectorAll('.master-privacy-toggle, #masterPrivacyToggle, .privacy-toggle-btn').forEach(btn => {
                 updateToggleBtnUI(btn, masterHidden, true);
             });
 
-            document.querySelectorAll('.privacy-card-toggle, [data-privacy-card-toggle], [onclick*="toggleCardPrivacy"]').forEach(btn => {
-                const container = btn.closest('[data-privacy-scope], .privacy-scope, .panel-card, .metric-card, .stat-folder-card') || btn.parentElement;
-                if (container) {
-                    const hasMasked = container.querySelector('.privacy-masked') !== null;
-                    updateToggleBtnUI(btn, hasMasked, false);
-                }
-            });
+            syncCardToggleButtons();
         }
+        window.initPrivacySystem = initPrivacySystem;
+
+        // Use capture phase so clicking a masked balance inside a clickable card runs before parent onclick handlers.
+        document.addEventListener('click', function(e) {
+            const balanceEl = e.target.closest ? e.target.closest('.privacy-balance') : null;
+            if (!balanceEl) return;
+
+            const selection = window.getSelection();
+            if (selection && selection.toString().trim().length > 0) {
+                return;
+            }
+
+            const interactiveParent = balanceEl.parentElement?.closest('a, button, [onclick]');
+            if (interactiveParent && !balanceEl.classList.contains('privacy-masked')) {
+                return;
+            }
+
+            if (interactiveParent) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            toggleSingleBalance(balanceEl);
+        }, true);
+
+        document.addEventListener('keydown', function(e) {
+            const balanceEl = e.target.closest ? e.target.closest('.privacy-balance') : null;
+            if (!balanceEl) return;
+
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSingleBalance(balanceEl);
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             initPrivacySystem();
