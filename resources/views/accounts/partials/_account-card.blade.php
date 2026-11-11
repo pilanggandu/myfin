@@ -7,14 +7,14 @@
 
     $iconBadgeClass = match($account->type) {
         'investment' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20',
-        'loan' => 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/25',
-        default => 'bg-forest-light text-forest dark:text-blue-300 border border-forest/20',
+        'loan' => 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30',
+        default => 'bg-forest-light text-forest dark:text-blue-400 border border-forest/20',
     };
 @endphp
 
 <article
     data-account-card="{{ $account->id }}"
-    class="min-w-0 rounded-xl border p-4 sm:p-5 flex flex-col justify-between transition-colors {{ $isArchived ? 'bg-panel/75 border-line border-dashed opacity-75' : ($isDefault ? 'bg-panel border-forest/50 ring-1 ring-forest/15' : 'bg-panel border-line hover:border-sage') }}"
+    class="min-w-0 rounded-xl border p-4 sm:p-5 flex flex-col justify-between transition-colors {{ $isArchived ? 'bg-sidebar/30 border-line border-dashed opacity-75' : ($isDefault ? 'bg-panel border-forest/40 shadow-sm' : 'bg-panel border-line hover:border-sage shadow-xs') }}"
 >
     <div>
         <div class="flex items-start justify-between gap-3">
@@ -23,10 +23,10 @@
                     @include('accounts.partials._type-icon', ['type' => $account->type])
                 </span>
                 <div class="min-w-0 flex-1">
-                    <h3 class="font-bold text-base text-charcoal leading-snug break-words">
+                    <h3 class="font-bold text-base text-charcoal leading-snug line-clamp-2">
                         <a
                             href="{{ route('accounts.show', $account) }}"
-                            class="hover:text-forest dark:hover:text-blue-300 transition rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                            class="hover:text-forest transition rounded focus:ring-2 focus:ring-forest"
                         >
                             {{ $account->name }}
                         </a>
@@ -34,7 +34,7 @@
                     <div class="flex items-center gap-1.5 flex-wrap mt-1">
                         <x-badge variant="default">{{ $typeLabel }}</x-badge>
                         @if ($isDefault)
-                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 uppercase tracking-wider">
                                 Default
                             </span>
                         @endif
@@ -46,15 +46,15 @@
                 @if ($isArchived)
                     <x-badge variant="inactive">Diarsipkan</x-badge>
                 @else
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest dark:text-blue-300 border border-forest/20">
-                        <span class="w-1.5 h-1.5 rounded-full bg-forest dark:bg-blue-400"></span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest dark:text-blue-400 border border-forest/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>
                         Aktif
                     </span>
                 @endif
             </div>
         </div>
 
-        <div class="mt-4 p-3.5 rounded-lg bg-field-bg border border-line/80">
+        <div class="mt-4 p-3.5 rounded-lg bg-sidebar/50 border border-line">
             @if ($account->isCreditCard() && $availableLimit !== null)
                 @php
                     $creditLimit = (float) ($account->creditAccount?->credit_limit ?? 0);
@@ -62,7 +62,7 @@
                     $usedPct = $creditLimit > 0 ? min(100, round(($usedAmount / $creditLimit) * 100)) : 0;
                 @endphp
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Sisa Limit Tersedia</span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-charcoal/80">Sisa Limit Tersedia</span>
                     <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
                         Sisa Limit
                     </span>
@@ -72,7 +72,7 @@
                         Rp {{ number_format($availableLimit, 0, ',', '.') }}
                     </span>
                 </div>
-                <div class="mt-2 text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2">
+                <div class="mt-2 text-xs text-charcoal/80 flex items-center justify-between gap-2">
                     <span>
                         Terpakai:
                         <span class="privacy-balance font-mono font-semibold text-charcoal" data-raw-value="Rp {{ number_format($usedAmount, 0, ',', '.') }}">
@@ -84,13 +84,13 @@
                     @endif
                 </div>
                 @if ($creditLimit > 0)
-                    <div class="w-full h-1.5 rounded-full bg-line/60 overflow-hidden mt-1.5" aria-hidden="true">
+                    <div class="w-full h-1.5 rounded-full bg-cream border border-line overflow-hidden mt-1.5" aria-hidden="true">
                         <div class="h-full rounded-full {{ $usedPct >= 80 ? 'bg-red' : 'bg-forest' }}" style="width: {{ $usedPct }}%"></div>
                     </div>
                 @endif
             @elseif ($account->isLoan())
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Sisa Kewajiban</span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-charcoal/80">Sisa Kewajiban</span>
                     <span class="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded uppercase tracking-wider">
                         Kewajiban
                     </span>
@@ -100,9 +100,9 @@
                         Rp {{ number_format(abs($balance), 0, ',', '.') }}
                     </span>
                 </div>
-                <div class="mt-1.5 text-xs text-slate-600 dark:text-slate-300">Total hutang berjalan</div>
+                <div class="mt-1.5 text-xs text-charcoal/80">Total hutang berjalan</div>
             @else
-                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Saldo Saat Ini</div>
+                <div class="text-[11px] font-bold uppercase tracking-wider text-charcoal/80">Saldo Saat Ini</div>
                 <div class="font-mono text-xl sm:text-2xl font-bold tracking-tight mt-1 {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
                         Rp {{ number_format($balance, 0, ',', '.') }}
@@ -111,7 +111,7 @@
             @endif
         </div>
 
-        <dl class="mt-3.5 grid grid-cols-2 gap-3 text-xs">
+        <dl class="mt-3 grid grid-cols-2 gap-3 text-xs">
             <div class="min-w-0">
                 <dt class="text-[11px] text-muted">Saldo Awal</dt>
                 <dd class="font-mono font-semibold text-charcoal mt-0.5 truncate">
@@ -129,10 +129,10 @@
         </dl>
     </div>
 
-    <div class="mt-4 pt-3.5 border-t border-line flex items-center justify-between gap-2 flex-wrap">
+    <div class="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2 flex-wrap">
         <a
             href="{{ route('accounts.show', $account) }}"
-            class="min-h-[44px] lg:min-h-[36px] px-3.5 py-2 rounded-lg text-xs font-bold bg-forest-light text-forest dark:text-blue-300 hover:bg-forest hover:text-white dark:hover:text-white transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+            class="min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center focus:ring-2 focus:ring-forest"
         >
             Riwayat Mutasi
         </a>
@@ -143,7 +143,7 @@
                     @csrf
                     <button
                         type="submit"
-                        class="min-w-[44px] min-h-[44px] lg:min-w-[36px] lg:min-h-[36px] rounded-lg border border-line bg-panel text-slate-600 dark:text-slate-300 hover:text-amber-700 dark:hover:text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/10 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                        class="min-h-[44px] px-3 rounded-lg border border-line bg-panel text-muted hover:text-amber-500 hover:border-amber-500/40 hover:bg-amber-500/5 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                         title="Jadikan Rekening Default Transaksi"
                         aria-label="Jadikan {{ $account->name }} rekening default transaksi"
                     >
@@ -161,7 +161,7 @@
                     data-account-name="{{ $account->name }}"
                     data-account-balance="{{ $balance }}"
                     onclick="openAdjustModal(Number(this.dataset.accountId), this.dataset.accountName, Number(this.dataset.accountBalance))"
-                    class="min-w-[44px] min-h-[44px] lg:min-w-[36px] lg:min-h-[36px] rounded-lg border border-line bg-panel text-slate-600 dark:text-slate-300 hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                    class="min-h-[44px] px-3 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                     title="Penyesuaian Saldo (Opname / Rekonsiliasi)"
                     aria-label="Penyesuaian saldo {{ $account->name }}"
                 >
@@ -173,7 +173,7 @@
 
             <a
                 href="{{ route('accounts.edit', $account) }}"
-                class="min-w-[44px] min-h-[44px] lg:min-w-[36px] lg:min-h-[36px] rounded-lg border border-line bg-panel text-slate-600 dark:text-slate-300 hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                class="min-h-[44px] px-3 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center focus:ring-2 focus:ring-forest"
                 title="Ubah Data Rekening"
                 aria-label="Ubah data rekening {{ $account->name }}"
             >
@@ -187,7 +187,7 @@
                     @csrf
                     <button
                         type="submit"
-                        class="min-w-[44px] min-h-[44px] lg:min-w-[36px] lg:min-h-[36px] rounded-lg border border-line bg-panel text-slate-600 dark:text-slate-300 hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                        class="min-h-[44px] px-3 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                         title="Aktifkan Kembali Rekening"
                         aria-label="Aktifkan kembali rekening {{ $account->name }}"
                     >
@@ -201,7 +201,7 @@
                     @csrf
                     <button
                         type="submit"
-                        class="min-w-[44px] min-h-[44px] lg:min-w-[36px] lg:min-h-[36px] rounded-lg border border-line bg-panel text-slate-600 dark:text-slate-300 hover:text-red hover:border-red/40 hover:bg-red/10 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                        class="min-h-[44px] px-3 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                         title="Arsipkan Rekening"
                         aria-label="Arsipkan rekening {{ $account->name }}"
                     >

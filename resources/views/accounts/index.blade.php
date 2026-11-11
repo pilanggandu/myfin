@@ -7,7 +7,7 @@
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / REKENING</div>
-            <h1 class="font-serif text-3xl sm:text-4xl text-forest dark:text-blue-300 font-normal tracking-tight mt-1 mb-0.5">
+            <h1 class="font-serif text-3xl sm:text-4xl text-forest dark:text-blue-400 font-normal tracking-tight mt-1 mb-0.5">
                 Rekening &amp; Wallet
             </h1>
             <p class="text-xs text-muted">Kelola akun bank, dompet digital, dan kas tunai pada ruang aktif ini.</p>
@@ -16,13 +16,13 @@
             <button
                 type="button"
                 onclick="toggleBalanceVisibility()"
-                class="privacy-toggle-btn btn-arus-secondary min-h-[44px] sm:min-h-[38px] inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                class="privacy-toggle-btn btn-arus-secondary min-h-[44px] inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold focus:ring-2 focus:ring-forest"
                 title="Sembunyikan / Tampilkan Saldo"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
                 <span class="privacy-toggle-text">Sembunyikan Saldo</span>
             </button>
-            <a href="{{ route('accounts.create') }}" class="btn-arus-primary min-h-[44px] sm:min-h-[38px] w-full sm:w-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+            <a href="{{ route('accounts.create') }}" class="btn-arus-primary min-h-[44px] w-full sm:w-auto focus:ring-2 focus:ring-forest">
                 + Tambah Rekening
             </a>
         </div>
@@ -60,13 +60,13 @@
         <div class="px-5 sm:px-6 py-4 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="min-w-0">
-                    <span class="text-sm font-bold text-forest dark:text-blue-300 block">Daftar Rekening Terdaftar ({{ $accounts->count() }})</span>
+                    <span class="text-sm font-bold text-forest dark:text-blue-400 block">Daftar Rekening Terdaftar ({{ $accounts->count() }})</span>
                     <span class="text-xs text-muted block">Saldo dihitung dari saldo awal ditambah seluruh mutasi transaksi yang sah</span>
                 </div>
                 <button
                     type="button"
                     onclick="toggleCardPrivacy(this)"
-                    class="privacy-card-toggle min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 md:w-7 md:h-7 rounded border border-line bg-panel text-muted hover:text-forest dark:hover:text-blue-300 transition inline-flex items-center justify-center cursor-pointer text-xs flex-shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                    class="privacy-card-toggle w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs flex-shrink-0 focus:ring-2 focus:ring-forest"
                     title="Sembunyikan / Tampilkan Saldo Daftar Rekening"
                     aria-label="Sembunyikan atau tampilkan saldo daftar rekening"
                 >
@@ -74,7 +74,7 @@
                 </button>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="text-xs text-muted">
                     {{ $activeAccounts->count() }} Aktif &bull; {{ $accounts->whereNotNull('archived_at')->count() }} Diarsipkan
                 </div>
@@ -83,7 +83,7 @@
                     <div
                         role="group"
                         aria-label="Pilih mode tampilan daftar rekening"
-                        class="inline-flex items-center rounded-lg border border-line bg-field-bg p-1 gap-1"
+                        class="inline-flex items-center rounded-lg border border-line bg-sidebar p-1 gap-1"
                     >
                         <button
                             type="button"
@@ -91,7 +91,7 @@
                             data-account-view-btn="list"
                             onclick="setAccountViewMode('list')"
                             aria-pressed="{{ $viewMode === 'list' ? 'true' : 'false' }}"
-                            class="min-h-[44px] md:min-h-[34px] px-3 py-1.5 rounded-md text-xs inline-flex items-center gap-1.5 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest {{ $viewMode === 'list' ? 'bg-forest-btn text-white shadow-xs font-bold' : 'font-semibold text-slate-600 dark:text-slate-300 hover:text-charcoal hover:bg-panel/80' }}"
+                            class="min-h-[44px] px-3.5 py-2 rounded-md text-xs inline-flex items-center gap-1.5 transition cursor-pointer focus:ring-2 focus:ring-forest {{ $viewMode === 'list' ? 'bg-forest text-white shadow-xs font-bold' : 'font-semibold text-charcoal/80 hover:text-charcoal hover:bg-panel' }}"
                             title="Tampilan Mode List"
                         >
                             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -105,7 +105,7 @@
                             data-account-view-btn="card"
                             onclick="setAccountViewMode('card')"
                             aria-pressed="{{ $viewMode === 'card' ? 'true' : 'false' }}"
-                            class="min-h-[44px] md:min-h-[34px] px-3 py-1.5 rounded-md text-xs inline-flex items-center gap-1.5 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest {{ $viewMode === 'card' ? 'bg-forest-btn text-white shadow-xs font-bold' : 'font-semibold text-slate-600 dark:text-slate-300 hover:text-charcoal hover:bg-panel/80' }}"
+                            class="min-h-[44px] px-3.5 py-2 rounded-md text-xs inline-flex items-center gap-1.5 transition cursor-pointer focus:ring-2 focus:ring-forest {{ $viewMode === 'card' ? 'bg-forest text-white shadow-xs font-bold' : 'font-semibold text-charcoal/80 hover:text-charcoal hover:bg-panel' }}"
                             title="Tampilan Mode Card"
                         >
                             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -120,7 +120,7 @@
 
         @if ($accounts->isEmpty())
             <div class="p-10 text-center space-y-3">
-                <div class="w-12 h-12 mx-auto rounded-xl bg-forest-light text-forest dark:text-blue-300 border border-forest/20 flex items-center justify-center">
+                <div class="w-12 h-12 mx-auto rounded-xl bg-forest-light text-forest dark:text-blue-400 border border-forest/20 flex items-center justify-center">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-6.75 3h18a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
                     </svg>
@@ -130,7 +130,7 @@
                     Tambahkan rekening bank, dompet digital, atau kas tunai pertama Anda untuk mulai mencatat arus kas.
                 </p>
                 <div class="pt-2">
-                    <a href="{{ route('accounts.create') }}" class="btn-arus-primary min-h-[44px] sm:min-h-[38px]">
+                    <a href="{{ route('accounts.create') }}" class="btn-arus-primary min-h-[44px]">
                         + Tambah Rekening Sekarang
                     </a>
                 </div>
@@ -147,12 +147,12 @@
                         <div class="p-5 space-y-4 hover:bg-cream/20 transition-colors {{ $account->isArchived() ? 'opacity-70 bg-sidebar/30' : '' }}">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex items-start gap-3 min-w-0 flex-1">
-                                    <span class="w-10 h-10 rounded-xl bg-forest-light text-forest dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                                    <span class="w-10 h-10 rounded-xl bg-forest-light text-forest dark:text-blue-400 flex items-center justify-center flex-shrink-0">
                                         @include('accounts.partials._type-icon', ['type' => $account->type])
                                     </span>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <span class="font-bold text-base text-charcoal break-words">{{ $account->name }}</span>
+                                            <span class="font-bold text-base text-charcoal line-clamp-2">{{ $account->name }}</span>
                                             <x-badge variant="default">{{ $typeLabel }}</x-badge>
                                             @if ($account->isCreditCard() && $availableLimit !== null)
                                                 <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -178,19 +178,19 @@
                                     @if ($account->isArchived())
                                         <x-badge variant="inactive">Diarsipkan</x-badge>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest dark:text-blue-300 border border-forest/20">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-forest dark:bg-blue-400"></span>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest dark:text-blue-400 border border-forest/20">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>
                                             Aktif
                                         </span>
                                     @endif
                                 </div>
                             </div>
 
-                            <div class="p-3 rounded-lg bg-field-bg border border-line flex items-center justify-between gap-2">
+                            <div class="p-3 rounded-lg bg-sidebar/50 border border-line flex items-center justify-between gap-2">
                                 @if ($account->isCreditCard() && $availableLimit !== null)
                                     <div>
-                                        <span class="text-xs text-slate-600 dark:text-slate-300 block">Sisa Limit Tersedia:</span>
-                                        <span class="text-[11px] text-slate-600 dark:text-slate-300">Terpakai: <span class="privacy-balance font-mono" data-raw-value="Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}">Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}</span></span>
+                                        <span class="text-xs text-charcoal/80 block">Sisa Limit Tersedia:</span>
+                                        <span class="text-[11px] text-charcoal/80">Terpakai: <span class="privacy-balance font-mono" data-raw-value="Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}">Rp {{ number_format($account->liabilityAmount(), 0, ',', '.') }}</span></span>
                                     </div>
                                     <span class="font-bold text-base font-mono text-emerald-700 dark:text-emerald-400">
                                         <span class="privacy-balance" data-raw-value="Rp {{ number_format($availableLimit, 0, ',', '.') }}">
@@ -199,8 +199,8 @@
                                     </span>
                                 @elseif ($account->isLoan())
                                     <div>
-                                        <span class="text-xs text-slate-600 dark:text-slate-300 block">Sisa Kewajiban:</span>
-                                        <span class="text-[11px] text-slate-600 dark:text-slate-300">Total Hutang Berjalan</span>
+                                        <span class="text-xs text-charcoal/80 block">Sisa Kewajiban:</span>
+                                        <span class="text-[11px] text-charcoal/80">Total Hutang Berjalan</span>
                                     </div>
                                     <span class="font-bold text-base font-mono text-charcoal">
                                         <span class="privacy-balance" data-raw-value="Rp {{ number_format(abs($balance), 0, ',', '.') }}">
@@ -208,7 +208,7 @@
                                         </span>
                                     </span>
                                 @else
-                                    <span class="text-xs text-slate-600 dark:text-slate-300">Saldo Saat Ini:</span>
+                                    <span class="text-xs text-charcoal/80">Saldo Saat Ini:</span>
                                     <span class="font-bold text-base font-mono {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
                                         <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
                                             Rp {{ number_format($balance, 0, ',', '.') }}
@@ -221,12 +221,12 @@
                                 @if (! $account->isDefault() && ! $account->isArchived())
                                     <form method="POST" action="{{ route('accounts.setDefault', $account) }}">
                                         @csrf
-                                        <button type="submit" class="min-h-[44px] px-3 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 transition cursor-pointer inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+                                        <button type="submit" class="min-h-[44px] px-3 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 transition cursor-pointer inline-flex items-center justify-center focus:ring-2 focus:ring-forest">
                                             Set Default
                                         </button>
                                     </form>
                                 @endif
-                                <a href="{{ route('accounts.show', $account) }}" class="flex-1 min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+                                <a href="{{ route('accounts.show', $account) }}" class="flex-1 min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center focus:ring-2 focus:ring-forest">
                                     Riwayat Mutasi
                                 </a>
                                 @if (! $account->isArchived())
@@ -236,7 +236,7 @@
                                         data-account-name="{{ $account->name }}"
                                         data-account-balance="{{ $balance }}"
                                         onclick="openAdjustModal(Number(this.dataset.accountId), this.dataset.accountName, Number(this.dataset.accountBalance))"
-                                        class="min-h-[44px] px-3.5 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center gap-1.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                        class="min-h-[44px] px-3.5 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center gap-1.5 cursor-pointer focus:ring-2 focus:ring-forest"
                                         title="Penyesuaian Saldo"
                                     >
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
@@ -245,20 +245,20 @@
                                         <span>Sesuaikan</span>
                                     </button>
                                 @endif
-                                <a href="{{ route('accounts.edit', $account) }}" class="min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+                                <a href="{{ route('accounts.edit', $account) }}" class="min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center focus:ring-2 focus:ring-forest">
                                     Ubah
                                 </a>
                                 @if ($account->isArchived())
                                     <form method="POST" action="{{ route('accounts.unarchive', $account) }}">
                                         @csrf
-                                        <button type="submit" class="min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-forest dark:text-blue-300 hover:bg-forest-light transition cursor-pointer inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+                                        <button type="submit" class="min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold border border-line bg-panel text-forest dark:text-blue-400 hover:bg-forest-light transition cursor-pointer inline-flex items-center justify-center focus:ring-2 focus:ring-forest">
                                             Aktifkan
                                         </button>
                                     </form>
                                 @else
                                     <form method="POST" action="{{ route('accounts.archive', $account) }}" onsubmit="return confirm('Arsipkan rekening ini? Rekening arsip tidak dapat digunakan untuk transaksi baru, namun saldo dan riwayat tetap tersimpan.')">
                                         @csrf
-                                        <button type="submit" class="min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-red border border-line bg-panel hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">
+                                        <button type="submit" class="min-h-[44px] px-4 py-2.5 rounded-lg text-xs font-bold text-charcoal/80 hover:text-red border border-line bg-panel hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer inline-flex items-center justify-center focus:ring-2 focus:ring-forest">
                                             Arsipkan
                                         </button>
                                     </form>
@@ -290,7 +290,7 @@
                                 <tr class="hover:bg-cream/30 transition-colors {{ $account->isArchived() ? 'opacity-65' : '' }}">
                                     <td class="py-4 px-6">
                                         <div class="flex items-center gap-3">
-                                            <span class="w-8 h-8 rounded-lg bg-forest-light text-forest dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                                            <span class="w-8 h-8 rounded-lg bg-forest-light text-forest dark:text-blue-400 flex items-center justify-center flex-shrink-0">
                                                 @include('accounts.partials._type-icon', ['type' => $account->type])
                                             </span>
                                             <div>
@@ -327,8 +327,8 @@
                                         @if ($account->isArchived())
                                             <x-badge variant="inactive">Diarsipkan</x-badge>
                                         @else
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest dark:text-blue-300 border border-forest/20">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-forest dark:bg-blue-400"></span>
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-forest-light text-forest dark:text-blue-400 border border-forest/20">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>
                                                 Aktif
                                             </span>
                                         @endif
@@ -377,7 +377,7 @@
                                                     @csrf
                                                     <button
                                                         type="submit"
-                                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-amber-700 dark:hover:text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/5 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-amber-500 hover:border-amber-500/40 hover:bg-amber-500/5 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                                                         title="Jadikan Rekening Default Transaksi"
                                                         aria-label="Jadikan Rekening Default Transaksi"
                                                     >
@@ -390,7 +390,7 @@
 
                                             <a
                                                 href="{{ route('accounts.show', $account) }}"
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center focus:ring-2 focus:ring-forest"
                                                 title="Lihat Riwayat Mutasi"
                                                 aria-label="Lihat Riwayat Mutasi"
                                             >
@@ -405,7 +405,7 @@
                                                     data-account-name="{{ $account->name }}"
                                                     data-account-balance="{{ $balance }}"
                                                     onclick="openAdjustModal(Number(this.dataset.accountId), this.dataset.accountName, Number(this.dataset.accountBalance))"
-                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                                                     title="Penyesuaian Saldo (Opname / Rekonsiliasi)"
                                                     aria-label="Penyesuaian Saldo"
                                                 >
@@ -416,7 +416,7 @@
                                             @endif
                                             <a
                                                 href="{{ route('accounts.edit', $account) }}"
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center focus:ring-2 focus:ring-forest"
                                                 title="Ubah Data Rekening"
                                                 aria-label="Ubah Data Rekening"
                                             >
@@ -429,7 +429,7 @@
                                                     @csrf
                                                     <button
                                                         type="submit"
-                                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest dark:hover:text-blue-300 hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                                                         title="Aktifkan Kembali Rekening"
                                                         aria-label="Aktifkan Kembali Rekening"
                                                     >
@@ -443,7 +443,7 @@
                                                     @csrf
                                                     <button
                                                         type="submit"
-                                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
+                                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer focus:ring-2 focus:ring-forest"
                                                         title="Arsipkan Rekening"
                                                         aria-label="Arsipkan Rekening"
                                                     >
@@ -462,8 +462,8 @@
                 </div>
             </div>
 
-            <div id="accountsCardView" class="p-4 sm:p-5 lg:p-6 bg-field-bg/50 dark:bg-sidebar/40 {{ $viewMode === 'card' ? '' : 'hidden' }}">
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div id="accountsCardView" class="p-4 sm:p-5 bg-cream/20 dark:bg-sidebar/40 {{ $viewMode === 'card' ? '' : 'hidden' }}">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach ($accounts as $account)
                         @include('accounts.partials._account-card', ['account' => $account])
                     @endforeach
@@ -495,8 +495,8 @@
                     cardView.classList.toggle('hidden', mode !== 'card');
                 }
 
-                const activeClasses = ['bg-forest-btn', 'text-white', 'shadow-xs', 'font-bold'];
-                const inactiveClasses = ['font-semibold', 'text-slate-600', 'dark:text-slate-300', 'hover:text-charcoal', 'hover:bg-panel/80'];
+                const activeClasses = ['bg-forest', 'text-white', 'shadow-xs', 'font-bold'];
+                const inactiveClasses = ['font-semibold', 'text-charcoal/80', 'hover:text-charcoal', 'hover:bg-panel'];
 
                 [
                     { btn: listBtn, active: mode === 'list' },
