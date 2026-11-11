@@ -197,7 +197,17 @@
                     <label for="quickModalExpenseCatId" class="block text-xs font-bold text-charcoal mb-1">
                         Kategori Pengeluaran
                     </label>
-                    <select name="category_id" id="quickModalExpenseCatId" class="field-select w-full text-xs" required>
+                    <select
+                        name="category_id"
+                        id="quickModalExpenseCatId"
+                        class="field-select w-full text-xs"
+                        data-category-picker="true"
+                        data-recent-ids='@json($quickRecentExpenseCategoryIds ?? [])'
+                        data-recent-scope="expense"
+                        data-show-recent-chips="true"
+                        data-search-placeholder="Cari kategori pengeluaran..."
+                        required
+                    >
                         <option value="">Pilih Kategori...</option>
                         @foreach ($quickExpenseCategories ?? [] as $cat)
                             <option value="{{ $cat->id }}" data-name="{{ strtolower($cat->name) }}">
@@ -211,7 +221,17 @@
                     <label for="quickModalIncomeCatId" class="block text-xs font-bold text-charcoal mb-1">
                         Kategori Pemasukan
                     </label>
-                    <select name="category_id" id="quickModalIncomeCatId" class="field-select w-full text-xs" disabled>
+                    <select
+                        name="category_id"
+                        id="quickModalIncomeCatId"
+                        class="field-select w-full text-xs"
+                        data-category-picker="true"
+                        data-recent-ids='@json($quickRecentIncomeCategoryIds ?? [])'
+                        data-recent-scope="income"
+                        data-show-recent-chips="true"
+                        data-search-placeholder="Cari kategori pemasukan..."
+                        disabled
+                    >
                         <option value="">Pilih Kategori...</option>
                         @foreach ($quickIncomeCategories ?? [] as $cat)
                             <option value="{{ $cat->id }}" data-name="{{ strtolower($cat->name) }}">
@@ -368,6 +388,7 @@
     }
 
     function closeQuickTransactionModal() {
+        document.querySelectorAll('.arus-category-popover').forEach(p => p.dispatchEvent(new CustomEvent('arus:force-close')));
         const modal = document.getElementById('quickTransactionModal');
         if (!modal) return;
         modal.classList.add('hidden');
@@ -544,6 +565,9 @@
 
             if (response.ok && data.success) {
                 quickModalSessionSavedCount++;
+                if (data.recent_category_ids && typeof window.updateCategoryPickersRecentIds === 'function') {
+                    window.updateCategoryPickersRecentIds(data.recent_category_ids);
+                }
                 const formattedAmt = 'Rp ' + Number(amount).toLocaleString('id-ID');
                 showQuickModalAlert(`✓ Transaksi "<strong>${escapeHtml(desc)}</strong>" (${formattedAmt}) tersimpan! Total batch sesi ini: ${quickModalSessionSavedCount}. Silakan input transaksi berikutnya.`, 'success');
 
@@ -778,6 +802,9 @@
         const isModalOpen = modal && !modal.classList.contains('hidden');
 
         if (e.key === 'Escape') {
+            if (e.defaultPrevented || document.querySelector('.arus-category-popover[style*="display: block"]')) {
+                return;
+            }
             closeQuickTransactionModal();
             return;
         }

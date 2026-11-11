@@ -126,6 +126,10 @@
                                 ? $transaction->destinationAccount()?->id 
                                 : $transaction->sourceAccount()?->id;
                             $categories = $transaction->isIncome() ? $incomeCategories : $expenseCategories;
+                            $recentCategoryIds = $transaction->isIncome()
+                                ? ($recentIncomeCategoryIds ?? [])
+                                : ($recentExpenseCategoryIds ?? []);
+                            $recentCategoryScope = $transaction->isIncome() ? 'income' : 'expense';
                             $accountLabel = $transaction->isIncome() ? 'Rekening Tujuan (Kas Masuk)' : 'Rekening Sumber (Kas Keluar)';
                         @endphp
 
@@ -176,7 +180,12 @@
                                 <select 
                                     name="category_id" 
                                     id="category_id" 
-                                    class="field-select w-full"
+                                    class="field-select w-full {{ $errors->has('category_id') ? 'has-error' : '' }}"
+                                    data-category-picker="true"
+                                    data-recent-ids='@json($recentCategoryIds)'
+                                    data-recent-scope="{{ $recentCategoryScope }}"
+                                    data-show-recent-chips="true"
+                                    data-search-placeholder="Cari kategori transaksi..."
                                     required
                                     onchange="updateReceipt()"
                                 >
@@ -341,7 +350,11 @@
                                     <select 
                                         name="fee_category_id" 
                                         id="fee_category_id" 
-                                        class="field-select w-full text-xs"
+                                        class="field-select w-full text-xs {{ $errors->has('fee_category_id') ? 'has-error' : '' }}"
+                                        data-category-picker="true"
+                                        data-recent-ids='@json($recentExpenseCategoryIds ?? [])'
+                                        data-recent-scope="expense"
+                                        data-search-placeholder="Cari kategori biaya admin..."
                                         onchange="updateReceipt()"
                                     >
                                         @foreach ($expenseCategories as $cat)

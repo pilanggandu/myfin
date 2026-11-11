@@ -44,6 +44,8 @@ class EnsureActiveSpace
                 View::share('quickAccounts', $currentSpace->activeAccounts()->orderByDesc('is_default')->orderBy('name')->get());
                 View::share('quickIncomeCategories', $currentSpace->activeCategories()->income()->orderBy('name')->get());
                 View::share('quickExpenseCategories', $currentSpace->activeCategories()->expense()->orderBy('name')->get());
+                View::share('quickRecentIncomeCategoryIds', $currentSpace->recentCategoryIds('income', 5));
+                View::share('quickRecentExpenseCategoryIds', $currentSpace->recentCategoryIds('expense', 5));
             }
         }
 

@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Transactions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
+use App\Models\Category;
 use App\Models\FinancialTransaction;
 use App\Services\TransactionService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -34,13 +38,63 @@ class FinancialTransactionController extends Controller
             $query->latestFirst();
         }
 
+        $this->applyIndexFilters($query, $request);
+
+        $today = $space ? $space->now()->toDateString() : now()->toDateString();
+        $showUpcoming = $request->boolean('include_future', false);
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('transaction_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('transaction_date', '<=', $request->end_date);
+        } elseif (! $showUpcoming && (! $request->filled('start_date') || $request->start_date <= $today)) {
+            $query->whereDate('transaction_date', '<=', $today);
+        }
+
+        $upcomingQuery = $space->financialTransactions()
+            ->whereDate('transaction_date', '>', $today);
+
+        $this->applyIndexFilters($upcomingQuery, $request, forUpcomingCount: true);
+
+        $upcomingCount = $upcomingQuery->count();
+
+        $transactions = $query->paginate(15)->withQueryString();
+
+        $accounts = $space->activeAccounts()->orderBy('name')->get();
+        $incomeCategories = $space->categories()->income()->orderBy('name')->get();
+        $expenseCategories = $space->categories()->expense()->orderBy('name')->get();
+        $members = $space->customMembers()->active()->orderBy('name')->get();
+        $recentCategoryIds = $space->recentCategoryIds(null, 6, activeOnly: false);
+        $recentFilterCategories = $this->orderCategoriesByIds(
+            $expenseCategories->concat($incomeCategories),
+            $recentCategoryIds
+        );
+
+        return view('transactions.index', compact(
+            'transactions',
+            'accounts',
+            'incomeCategories',
+            'expenseCategories',
+            'members',
+            'recentCategoryIds',
+            'recentFilterCategories',
+            'upcomingCount',
+            'showUpcoming',
+            'today'
+        ));
+    }
+
+    protected function applyIndexFilters(Builder|HasMany $query, Request $request, bool $forUpcomingCount = false): void
+    {
         if ($request->filled('type') && in_array($request->type, ['income', 'expense', 'transfer'])) {
             $query->where('type', $request->type);
         }
 
         $status = $request->input('status', 'posted');
         if ($status !== 'all') {
-            if (in_array($status, ['posted', 'void'])) {
+            if (! $forUpcomingCount && in_array($status, ['posted', 'void'])) {
                 $query->where('status', $status);
             } else {
                 $query->where('status', 'posted');
@@ -61,72 +115,26 @@ class FinancialTransactionController extends Controller
             });
         }
 
-        $today = $space ? $space->now()->toDateString() : now()->toDateString();
-        $showUpcoming = $request->boolean('include_future', false);
-
-        if ($request->filled('start_date')) {
-            $query->whereDate('transaction_date', '>=', $request->start_date);
-        }
-
-        if ($request->filled('end_date')) {
-            $query->whereDate('transaction_date', '<=', $request->end_date);
-        } elseif (! $showUpcoming && (! $request->filled('start_date') || $request->start_date <= $today)) {
-            $query->whereDate('transaction_date', '<=', $today);
-        }
-
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('description', 'like', "%{$search}%");
+            $query->search($request->input('search'));
         }
+    }
 
-        $upcomingQuery = $space->financialTransactions()
-            ->whereDate('transaction_date', '>', $today);
+    /**
+     * Order a category collection by an explicit list of recent category IDs.
+     *
+     * @param  Collection<int, Category>  $categories
+     * @param  list<int>  $orderedIds
+     * @return Collection<int, Category>
+     */
+    protected function orderCategoriesByIds($categories, array $orderedIds)
+    {
+        $byId = $categories->keyBy('id');
 
-        if ($status !== 'all') {
-            $upcomingQuery->where('status', 'posted');
-        }
-
-        if ($request->filled('type') && in_array($request->type, ['income', 'expense', 'transfer'])) {
-            $upcomingQuery->where('type', $request->type);
-        }
-
-        if ($request->filled('category_id')) {
-            $upcomingQuery->where('category_id', $request->category_id);
-        }
-
-        if ($request->filled('member_id')) {
-            $upcomingQuery->where('member_id', $request->member_id);
-        }
-
-        if ($request->filled('account_id')) {
-            $upcomingQuery->whereHas('entries', function ($q) use ($request) {
-                $q->where('account_id', $request->account_id);
-            });
-        }
-
-        if ($request->filled('search')) {
-            $upcomingQuery->where('description', 'like', "%{$request->search}%");
-        }
-
-        $upcomingCount = $upcomingQuery->count();
-
-        $transactions = $query->paginate(15)->withQueryString();
-
-        $accounts = $space->activeAccounts()->orderBy('name')->get();
-        $incomeCategories = $space->categories()->income()->orderBy('name')->get();
-        $expenseCategories = $space->categories()->expense()->orderBy('name')->get();
-        $members = $space->customMembers()->active()->orderBy('name')->get();
-
-        return view('transactions.index', compact(
-            'transactions',
-            'accounts',
-            'incomeCategories',
-            'expenseCategories',
-            'members',
-            'upcomingCount',
-            'showUpcoming',
-            'today'
-        ));
+        return collect($orderedIds)
+            ->map(fn (int $id) => $byId->get($id))
+            ->filter()
+            ->values();
     }
 
     public function create(Request $request): View
@@ -136,6 +144,8 @@ class FinancialTransactionController extends Controller
         $defaultAccount = $space->defaultAccount();
         $incomeCategories = $space->activeCategories()->income()->orderBy('name')->get();
         $expenseCategories = $space->activeCategories()->expense()->orderBy('name')->get();
+        $recentIncomeCategoryIds = $space->recentCategoryIds('income', 5);
+        $recentExpenseCategoryIds = $space->recentCategoryIds('expense', 5);
         $members = $space->customMembers()->active()->orderBy('name')->get();
         $requestKey = (string) Str::uuid();
 
@@ -146,6 +156,8 @@ class FinancialTransactionController extends Controller
             'defaultAccount',
             'incomeCategories',
             'expenseCategories',
+            'recentIncomeCategoryIds',
+            'recentExpenseCategoryIds',
             'members',
             'requestKey',
             'defaultType'
@@ -172,7 +184,12 @@ class FinancialTransactionController extends Controller
                     'id' => $transaction->id,
                     'description' => $transaction->description,
                     'type' => $transaction->type,
+                    'category_id' => $transaction->category_id,
                     'amount' => $transaction->totalAmount(),
+                ],
+                'recent_category_ids' => [
+                    'income' => $space->recentCategoryIds('income', 5),
+                    'expense' => $space->recentCategoryIds('expense', 5),
                 ],
             ]);
         }
@@ -223,6 +240,8 @@ class FinancialTransactionController extends Controller
         $accounts = $space->activeAccounts()->orderBy('name')->get();
         $incomeCategories = $space->activeCategories()->income()->orderBy('name')->get();
         $expenseCategories = $space->activeCategories()->expense()->orderBy('name')->get();
+        $recentIncomeCategoryIds = $space->recentCategoryIds('income', 5);
+        $recentExpenseCategoryIds = $space->recentCategoryIds('expense', 5);
         $members = $space->customMembers()->active()->orderBy('name')->get();
 
         $transaction->load(['entries.account', 'category', 'feeCategory', 'member']);
@@ -232,6 +251,8 @@ class FinancialTransactionController extends Controller
             'accounts',
             'incomeCategories',
             'expenseCategories',
+            'recentIncomeCategoryIds',
+            'recentExpenseCategoryIds',
             'members'
         ));
     }

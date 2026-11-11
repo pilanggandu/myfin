@@ -155,6 +155,64 @@ class FinancialTransaction extends Model
             ->orderBy('id', 'asc');
     }
 
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $trimmed = trim((string) $term);
+
+        if ($trimmed === '') {
+            return $query;
+        }
+
+        $like = "%{$trimmed}%";
+        $amount = self::parseSearchableAmount($trimmed);
+
+        return $query->where(function (Builder $searchQuery) use ($like, $amount): void {
+            $searchQuery->where('description', 'like', $like)
+                ->orWhereHas('category', fn (Builder $q) => $q->where('name', 'like', $like))
+                ->orWhereHas('feeCategory', fn (Builder $q) => $q->where('name', 'like', $like))
+                ->orWhereHas('member', fn (Builder $q) => $q->where('name', 'like', $like))
+                ->orWhereHas('entries.account', fn (Builder $q) => $q->where('name', 'like', $like));
+
+            if ($amount !== null) {
+                $searchQuery->orWhere('fee_amount', $amount)
+                    ->orWhereHas('entries', fn (Builder $q) => $q->whereIn('amount_signed', [$amount, -$amount]));
+            }
+        });
+    }
+
+    public static function parseSearchableAmount(string $term): ?float
+    {
+        $trimmed = trim($term);
+
+        if ($trimmed === '' || ! preg_match('/^(?:rp\.?\s*)?[\d.,]+$/i', $trimmed)) {
+            return null;
+        }
+
+        $cleaned = preg_replace('/^rp\.?\s*/i', '', $trimmed);
+        if ($cleaned === null || $cleaned === '') {
+            return null;
+        }
+
+        if (str_contains($cleaned, ',')) {
+            $normalized = str_replace('.', '', $cleaned);
+            $normalized = str_replace(',', '.', $normalized);
+        } elseif (preg_match('/^\d{1,3}(\.\d{3})+$/', $cleaned)) {
+            $normalized = str_replace('.', '', $cleaned);
+        } elseif (substr_count($cleaned, '.') > 1) {
+            $normalized = str_replace('.', '', $cleaned);
+        } else {
+            $normalized = $cleaned;
+        }
+
+        if (! is_numeric($normalized)) {
+            return null;
+        }
+
+        $value = round((float) $normalized, 2);
+
+        return $value > 0 ? $value : null;
+    }
+
     public function isPosted(): bool
     {
         return $this->status === 'posted';

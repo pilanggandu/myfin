@@ -249,6 +249,7 @@
                         <input 
                             type="search" 
                             id="globalSearchInput"
+                            value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
                             placeholder="Cari transaksi, rekening, atau catatan... ⌘K" 
                             class="field-input pl-9 pr-12 text-xs h-8.5 rounded-lg w-full bg-panel"
                             style="padding-left: 34px !important; padding-right: 48px !important;"

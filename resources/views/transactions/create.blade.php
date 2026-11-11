@@ -315,7 +315,12 @@
                                 <select 
                                     name="category_id" 
                                     id="expense_category_id" 
-                                    class="field-select w-full"
+                                    class="field-select w-full {{ $errors->has('category_id') ? 'has-error' : '' }}"
+                                    data-category-picker="true"
+                                    data-recent-ids='@json($recentExpenseCategoryIds ?? [])'
+                                    data-recent-scope="expense"
+                                    data-show-recent-chips="true"
+                                    data-search-placeholder="Cari kategori pengeluaran..."
                                     onchange="updateReceipt()"
                                 >
                                     <option value="">Pilih Kategori Pengeluaran...</option>
@@ -342,7 +347,12 @@
                                 <select 
                                     name="category_id" 
                                     id="income_category_id" 
-                                    class="field-select w-full" 
+                                    class="field-select w-full {{ $errors->has('category_id') ? 'has-error' : '' }}" 
+                                    data-category-picker="true"
+                                    data-recent-ids='@json($recentIncomeCategoryIds ?? [])'
+                                    data-recent-scope="income"
+                                    data-show-recent-chips="true"
+                                    data-search-placeholder="Cari kategori pemasukan..."
                                     disabled
                                     onchange="updateReceipt()"
                                 >
@@ -513,7 +523,11 @@
                                         <select 
                                             name="fee_category_id" 
                                             id="fee_category_id" 
-                                            class="field-select w-full text-xs"
+                                            class="field-select w-full text-xs {{ $errors->has('fee_category_id') ? 'has-error' : '' }}"
+                                            data-category-picker="true"
+                                            data-recent-ids='@json($recentExpenseCategoryIds ?? [])'
+                                            data-recent-scope="expense"
+                                            data-search-placeholder="Cari kategori biaya admin..."
                                             disabled
                                             onchange="updateReceipt()"
                                         >

@@ -456,6 +456,42 @@ input[type=number] {
   box-shadow: 0 0 0 3px rgba(11, 74, 139, 0.15);
 }
 
+.arus-category-trigger {
+  font-family: var(--font-sans);
+  color: var(--color-charcoal);
+  background-color: var(--color-field-bg);
+  border: 1px solid var(--color-field-border);
+  border-radius: 7px;
+  outline: none;
+}
+
+.arus-category-trigger:hover:not(:disabled) {
+  background-color: var(--color-panel);
+  border-color: var(--color-sage);
+}
+
+.arus-category-trigger:focus-visible,
+.arus-category-trigger[aria-expanded="true"] {
+  background-color: var(--color-panel);
+  border-color: var(--color-forest);
+  box-shadow: 0 0 0 3px rgba(11, 74, 139, 0.18);
+}
+
+.dark .arus-category-trigger:focus-visible,
+.dark .arus-category-trigger[aria-expanded="true"] {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
+}
+
+.arus-category-trigger.has-error {
+  background-color: #FFFDFD;
+  border-color: #D9776E;
+}
+
+.dark .arus-category-trigger.has-error {
+  background-color: #261A19;
+  border-color: #E07A70;
+}
+
 .field-input::placeholder {
   color: var(--color-muted);
   opacity: 0.75;

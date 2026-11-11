@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinancialTransaction;
+use App\Models\Member;
 use App\Models\Space;
 use App\Models\TransactionRevision;
 use App\Models\User;
@@ -1151,5 +1152,320 @@ class TransactionTest extends TestCase
         $this->assertTrue($txFutureList->contains('id', $futureTrx->id));
         $responseFuture->assertSee('Menampilkan transaksi termasuk transaksi mendatang', false);
         $responseFuture->assertSee('Sembunyikan Transaksi Mendatang', false);
+    }
+
+    public function test_recently_used_categories_reflect_latest_posted_usage_and_exclude_void_archived_and_other_spaces(): void
+    {
+        $catTransport = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Transportasi',
+            'type' => 'expense',
+        ]);
+        $catBelanja = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Belanja Harian',
+            'type' => 'expense',
+        ]);
+        $catVoidOnly = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Kategori Void',
+            'type' => 'expense',
+        ]);
+        $catArchived = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Kategori Arsip',
+            'type' => 'expense',
+        ]);
+        $catSpaceB = Category::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Kategori Ruang B',
+            'type' => 'expense',
+        ]);
+        $accountB = Account::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Dompet B',
+            'type' => 'cash',
+            'opening_balance' => 500000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $service = app(TransactionService::class);
+
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 25000,
+            'transaction_date' => '2026-11-05',
+            'description' => 'Makan Pagi',
+        ]);
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $catTransport->id,
+            'amount' => 30000,
+            'transaction_date' => '2026-11-06',
+            'description' => 'Bensin',
+        ]);
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $catArchived->id,
+            'amount' => 40000,
+            'transaction_date' => '2026-11-07',
+            'description' => 'Transaksi Arsip',
+        ]);
+        $catArchived->archive();
+
+        $voidTx = $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $catVoidOnly->id,
+            'amount' => 50000,
+            'transaction_date' => '2026-11-08',
+            'description' => 'Salah Input',
+        ]);
+        $service->voidTransaction($voidTx, $this->userA, 'Batal');
+
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $catBelanja->id,
+            'amount' => 75000,
+            'transaction_date' => '2026-11-09',
+            'description' => 'Belanja Mingguan',
+        ]);
+        // Re-use initial expense category so it becomes #1 most recently used.
+        $lastTx = $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 15000,
+            'transaction_date' => '2026-11-01',
+            'description' => 'Kopi Susu',
+        ]);
+        $service->recordIncome($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->incomeCat->id,
+            'amount' => 1000000,
+            'transaction_date' => '2026-11-10',
+            'description' => 'Gaji',
+        ]);
+        $service->recordExpense($this->spaceB, $this->userB, [
+            'account_id' => $accountB->id,
+            'category_id' => $catSpaceB->id,
+            'amount' => 60000,
+            'transaction_date' => '2026-11-10',
+            'description' => 'Belanja B',
+        ]);
+
+        $expectedExpenseRecent = [$this->expenseCat->id, $catBelanja->id, $catTransport->id];
+        $this->assertSame($expectedExpenseRecent, $this->spaceA->recentCategoryIds('expense', 5));
+        $this->assertSame([$this->incomeCat->id], $this->spaceA->recentCategoryIds('income', 5));
+
+        $createResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.create'));
+
+        $createResponse->assertOk();
+        $this->assertSame($expectedExpenseRecent, $createResponse->viewData('recentExpenseCategoryIds'));
+        $this->assertSame([$this->incomeCat->id], $createResponse->viewData('recentIncomeCategoryIds'));
+        $createResponse->assertSee('data-category-picker="true"', false);
+        $createResponse->assertSee('data-show-recent-chips="true"', false);
+
+        $editResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.edit', $lastTx));
+
+        $editResponse->assertOk();
+        $this->assertSame($expectedExpenseRecent, $editResponse->viewData('recentExpenseCategoryIds'));
+        $editResponse->assertSee('data-category-picker="true"', false);
+
+        $indexResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index'));
+
+        $indexResponse->assertOk();
+        $indexResponse->assertSee('Kategori terakhir:', false);
+        $this->assertContains($this->incomeCat->id, $indexResponse->viewData('recentCategoryIds'));
+        $this->assertNotContains($catSpaceB->id, $indexResponse->viewData('recentCategoryIds'));
+        $this->assertNotContains($catVoidOnly->id, $indexResponse->viewData('recentCategoryIds'));
+    }
+
+    public function test_transaction_store_json_returns_updated_recent_category_ids(): void
+    {
+        $catKopi = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Kopi & Camilan',
+            'type' => 'expense',
+        ]);
+
+        $service = app(TransactionService::class);
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->expenseCat->id,
+            'amount' => 30000,
+            'transaction_date' => '2026-11-05',
+            'description' => 'Nasi Goreng',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->postJson(route('transactions.store'), [
+                'type' => 'expense',
+                'account_id' => $this->bca->id,
+                'category_id' => $catKopi->id,
+                'amount' => 22000,
+                'transaction_date' => '2026-11-06',
+                'description' => 'Es Kopi Susu',
+                'action' => 'save_and_again',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('transaction.category_id', $catKopi->id)
+            ->assertJsonPath('recent_category_ids.expense', [$catKopi->id, $this->expenseCat->id]);
+    }
+
+    public function test_transactions_index_search_matches_description_category_account_member_and_amount(): void
+    {
+        $catCafe = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Kafe & Minuman',
+            'type' => 'expense',
+        ]);
+        $catUtility = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Utilitas Rumah',
+            'type' => 'expense',
+        ]);
+        $catAdminFee = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Biaya Layanan Bank',
+            'type' => 'expense',
+        ]);
+        $memberBudi = Member::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Budi Santoso',
+            'color' => '#0B4A8B',
+        ]);
+
+        $service = app(TransactionService::class);
+        $txCafe = $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->gopay->id,
+            'category_id' => $catCafe->id,
+            'member_id' => $memberBudi->id,
+            'amount' => 45000,
+            'transaction_date' => '2026-11-01',
+            'description' => 'Beli Matcha Latte',
+        ]);
+        $txUtility = $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $catUtility->id,
+            'amount' => 350000,
+            'transaction_date' => '2026-11-02',
+            'description' => 'Token Listrik',
+        ]);
+        $txTransfer = $service->recordTransfer($this->spaceA, $this->userA, [
+            'source_account_id' => $this->bca->id,
+            'destination_account_id' => $this->gopay->id,
+            'amount' => 100000,
+            'fee_amount' => 2500,
+            'fee_category_id' => $catAdminFee->id,
+            'transaction_date' => '2026-11-03',
+            'description' => 'Isi Saldo Dompet',
+        ]);
+
+        // Different space transaction containing matching keyword must remain isolated.
+        $accountB = Account::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Bank B',
+            'type' => 'bank',
+            'opening_balance' => 1000000,
+            'opened_on' => '2026-01-01',
+        ]);
+        $catB = Category::create([
+            'space_id' => $this->spaceB->id,
+            'name' => 'Kafe B',
+            'type' => 'expense',
+        ]);
+        $txSpaceB = $service->recordExpense($this->spaceB, $this->userB, [
+            'account_id' => $accountB->id,
+            'category_id' => $catB->id,
+            'amount' => 45000,
+            'transaction_date' => '2026-11-03',
+            'description' => 'Beli Matcha Latte Ruang B',
+        ]);
+
+        $search = function (string $term) {
+            return $this->actingAs($this->userA)
+                ->withSession(['active_space_id' => $this->spaceA->id])
+                ->get(route('transactions.index', ['search' => $term]));
+        };
+
+        // 1. Description match (isolated to active space)
+        $byDesc = $search('Matcha')->assertOk()->viewData('transactions');
+        $this->assertTrue($byDesc->contains('id', $txCafe->id));
+        $this->assertFalse($byDesc->contains('id', $txSpaceB->id));
+
+        // 2. Category name match
+        $byCat = $search('Kafe')->assertOk()->viewData('transactions');
+        $this->assertSame([$txCafe->id], $byCat->pluck('id')->all());
+
+        // 3. Fee category name match on transfer
+        $byFeeCat = $search('Layanan Bank')->assertOk()->viewData('transactions');
+        $this->assertSame([$txTransfer->id], $byFeeCat->pluck('id')->all());
+
+        // 4. Account name match
+        $byAccount = $search('Bank BCA')->assertOk()->viewData('transactions');
+        $this->assertTrue($byAccount->contains('id', $txUtility->id));
+        $this->assertTrue($byAccount->contains('id', $txTransfer->id));
+        $this->assertFalse($byAccount->contains('id', $txCafe->id));
+
+        // 5. Member name match
+        $byMember = $search('Santoso')->assertOk()->viewData('transactions');
+        $this->assertSame([$txCafe->id], $byMember->pluck('id')->all());
+
+        // 6. Plain & formatted Rupiah amount match + admin fee amount match
+        $byPlainAmount = $search('350000')->assertOk()->viewData('transactions');
+        $this->assertSame([$txUtility->id], $byPlainAmount->pluck('id')->all());
+
+        $byFormattedAmount = $search('Rp 350.000')->assertOk()->viewData('transactions');
+        $this->assertSame([$txUtility->id], $byFormattedAmount->pluck('id')->all());
+
+        $byFeeAmount = $search('2.500')->assertOk()->viewData('transactions');
+        $this->assertSame([$txTransfer->id], $byFeeAmount->pluck('id')->all());
+
+        // 7. Empty search result state
+        $emptyRes = $search('KeywordTidakAdaSamaSekali')->assertOk();
+        $emptyRes->assertSee('Tidak Ada Transaksi yang Cocok', false);
+        $emptyRes->assertSee('Reset Pencarian &amp; Filter', false);
+    }
+
+    public function test_transactions_index_upcoming_count_respects_expanded_search(): void
+    {
+        $futureDate = $this->spaceA->now()->addDays(10)->toDateString();
+        $catSubscription = Category::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Langganan Digital',
+            'type' => 'expense',
+        ]);
+
+        $service = app(TransactionService::class);
+        $service->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $catSubscription->id,
+            'amount' => 189000,
+            'transaction_date' => $futureDate,
+            'description' => 'Tagihan Cloud Mendatang',
+        ]);
+
+        $matchingRes = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index', ['search' => 'Langganan']));
+
+        $matchingRes->assertOk();
+        $this->assertSame(1, $matchingRes->viewData('upcomingCount'));
+
+        $nonMatchingRes = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.index', ['search' => 'Bensin']));
+
+        $nonMatchingRes->assertOk();
+        $this->assertSame(0, $nonMatchingRes->viewData('upcomingCount'));
     }
 }

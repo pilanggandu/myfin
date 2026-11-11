@@ -113,6 +113,42 @@ class Space extends Model
         return $this->categories()->whereNull('archived_at');
     }
 
+    /**
+     * Get IDs of the most recently used categories for transactions in this space.
+     *
+     * @return list<int>
+     */
+    public function recentCategoryIds(?string $type = null, int $limit = 5, bool $activeOnly = true): array
+    {
+        $allowedCategoryIds = $activeOnly
+            ? $this->activeCategories()
+            : $this->categories();
+
+        if ($type !== null) {
+            $allowedCategoryIds->where('type', $type);
+        }
+
+        return $this->financialTransactions()
+            ->where('status', 'posted')
+            ->when(
+                $type !== null,
+                fn ($query) => $query->where('type', $type),
+                fn ($query) => $query->whereIn('type', ['income', 'expense'])
+            )
+            ->whereNotNull('category_id')
+            ->whereIn('category_id', $allowedCategoryIds->select('id'))
+            ->select('category_id')
+            ->selectRaw('MAX(updated_at) as last_used_at, MAX(id) as last_transaction_id')
+            ->groupBy('category_id')
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('last_transaction_id')
+            ->limit($limit)
+            ->pluck('category_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
     public function financialTransactions(): HasMany
     {
         return $this->hasMany(FinancialTransaction::class);
