@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\Goal;
 use App\Models\RecurringSchedule;
 use App\Models\Space;
 use App\Models\User;
 use App\Services\CreditService;
+use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -149,5 +151,135 @@ class BalanceClickPrivacyTest extends TestCase
         $response->assertSee('id="calModalOutflow" class="text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400 privacy-balance"', false);
         $response->assertSee('id="calModalNet" class="text-sm sm:text-base font-mono font-bold privacy-balance"', false);
         $response->assertSee('window.syncPrivacyContainer(modal)', false);
+    }
+
+    public function test_click_to_hide_selection_guard_only_blocks_selection_inside_balance_element(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('balanceEl.contains(selection.anchorNode)', false);
+        $response->assertSee('balanceEl.contains(selection.focusNode)', false);
+        $response->assertSee('Klik untuk menyembunyikan saldo', false);
+        $response->assertSee('toggleSingleBalance(balanceEl)', false);
+    }
+
+    public function test_credit_statement_and_installment_plan_pages_wrap_balances_for_click_to_hide(): void
+    {
+        $category = Category::create([
+            'space_id' => $this->space->id,
+            'name' => 'Gadget',
+            'type' => 'expense',
+        ]);
+
+        /** @var CreditService $creditService */
+        $creditService = app(CreditService::class);
+        $creditAccount = $creditService->createCreditAccount($this->space, [
+            'name' => 'Kartu Visa',
+            'type' => 'credit_card',
+            'credit_limit' => 20000000,
+            'billing_cycle_day' => 15,
+            'due_day' => 5,
+        ]);
+
+        $plan = $creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $creditAccount->id,
+            'category_id' => $category->id,
+            'name' => 'Monitor Kerja',
+            'total_amount' => 3000000,
+            'tenor' => 3,
+            'start_date' => now()->toDateString(),
+            'first_due_date' => now()->toDateString(),
+        ]);
+
+        $plansTabResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.index', ['tab' => 'plans']));
+
+        $plansTabResponse->assertOk();
+        $plansTabResponse->assertSee('<span class="privacy-balance" data-raw-value="Rp 3.000.000">Rp 3.000.000</span>', false);
+        $plansTabResponse->assertSee('<span class="font-semibold text-charcoal privacy-balance" data-raw-value="Rp 1.000.000">', false);
+
+        $statementResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.accounts.statement', $creditAccount));
+
+        $statementResponse->assertOk();
+        $statementResponse->assertSee('<span class="privacy-balance" data-raw-value="Rp 1.000.000">Rp 1.000.000</span>', false);
+        $statementResponse->assertSee('<span class="privacy-balance" data-raw-value="Rp 17.000.000">Rp 17.000.000</span>', false);
+        $statementResponse->assertSee('<span class="privacy-balance" data-raw-value="Rp 20.000.000">Rp 20.000.000</span>', false);
+
+        $planResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.plans.show', $plan));
+
+        $planResponse->assertOk();
+        $planResponse->assertSee('<span class="privacy-balance" data-raw-value="Rp 3.000.000">Rp 3.000.000</span>', false);
+        $planResponse->assertSee('<span class="privacy-balance" data-raw-value="Rp 1.000.000">Rp 1.000.000</span>', false);
+    }
+
+    public function test_goal_show_and_transfer_fee_details_wrap_amounts_in_privacy_balance(): void
+    {
+        $goal = Goal::create([
+            'space_id' => $this->space->id,
+            'name' => 'Dana Cadangan',
+            'target_amount' => 12000000,
+            'current_amount' => 0,
+            'start_date' => now()->toDateString(),
+            'target_date' => now()->addMonths(6)->toDateString(),
+            'status' => 'active',
+            'created_by' => $this->user->id,
+        ]);
+
+        $goalResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('goals.show', $goal));
+
+        $goalResponse->assertOk();
+        $goalResponse->assertSee('<strong class="font-mono text-charcoal privacy-balance" data-raw-value="Rp 12.000.000">Rp 12.000.000</strong>', false);
+        $goalResponse->assertSee('Rekomendasi Cerdas', false);
+
+        $destAccount = Account::create([
+            'space_id' => $this->space->id,
+            'name' => 'GoPay Operasional',
+            'type' => 'e-wallet',
+            'opening_balance' => 0,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $feeCategory = Category::create([
+            'space_id' => $this->space->id,
+            'name' => 'Biaya Admin',
+            'type' => 'expense',
+        ]);
+
+        /** @var TransactionService $transactionService */
+        $transactionService = app(TransactionService::class);
+        $transfer = $transactionService->recordTransfer($this->space, $this->user, [
+            'source_account_id' => $this->account->id,
+            'destination_account_id' => $destAccount->id,
+            'amount' => 100000,
+            'fee_amount' => 2500,
+            'fee_category_id' => $feeCategory->id,
+            'transaction_date' => '2026-01-10',
+            'description' => 'Transfer dengan fee',
+        ]);
+
+        $trxShowResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('transactions.show', $transfer));
+
+        $trxShowResponse->assertOk();
+        $trxShowResponse->assertSee('<span class="font-bold text-red privacy-balance" data-raw-value="Rp 2.500">', false);
+        $trxShowResponse->assertSee('<span class="font-bold text-charcoal privacy-balance" data-raw-value="Rp 102.500">', false);
+
+        $trxIndexResponse = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('transactions.index'));
+
+        $trxIndexResponse->assertOk();
+        $trxIndexResponse->assertSee('+ fee <span class="privacy-balance" data-raw-value="Rp 2.500">Rp 2.500</span>', false);
     }
 }

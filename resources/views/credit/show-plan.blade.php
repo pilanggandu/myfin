@@ -117,14 +117,14 @@
             <div>
                 <span class="text-[11px] text-muted uppercase tracking-wider font-semibold block mb-1">Total Pokok Hutang</span>
                 <div class="font-serif text-xl font-bold text-charcoal">
-                    {{ $plan->formatted_total_amount }}
+                    <span class="privacy-balance" data-raw-value="{{ $plan->formatted_total_amount }}">{{ $plan->formatted_total_amount }}</span>
                 </div>
                 @if ($plan->hasInterestOrFees())
                     <span class="text-xs text-muted block mt-0.5">
-                        + Bunga: <strong class="text-amber-600">{{ $plan->formatted_interest }}</strong> | Admin: <strong>{{ $plan->formatted_fee }}</strong>
+                        + Bunga: <strong class="text-amber-600 privacy-balance" data-raw-value="{{ $plan->formatted_interest }}">{{ $plan->formatted_interest }}</strong> | Admin: <strong class="privacy-balance" data-raw-value="{{ $plan->formatted_fee }}">{{ $plan->formatted_fee }}</strong>
                     </span>
                     <span class="text-xs text-muted block">
-                        Grand Total: <strong class="text-forest">{{ $plan->formatted_grand_total }}</strong>
+                        Grand Total: <strong class="text-forest privacy-balance" data-raw-value="{{ $plan->formatted_grand_total }}">{{ $plan->formatted_grand_total }}</strong>
                     </span>
                 @else
                     <span class="text-xs text-muted">0% Bunga (Tanpa Bunga)</span>
@@ -144,10 +144,10 @@
                     Progress Pelunasan: <strong class="text-charcoal">{{ $plan->paidInstallments->count() }} dari {{ $plan->tenor }} cicilan lunas</strong> ({{ $percent }}%)
                 </span>
                 <div class="flex items-center gap-4 flex-wrap">
-                    <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Terbayar: {{ $plan->formatted_paid }}</span>
-                    <span class="text-amber-600 dark:text-amber-400 font-semibold">Sisa Pokok: {{ $plan->formatted_remaining }}</span>
+                    <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Terbayar: <span class="privacy-balance" data-raw-value="{{ $plan->formatted_paid }}">{{ $plan->formatted_paid }}</span></span>
+                    <span class="text-amber-600 dark:text-amber-400 font-semibold">Sisa Pokok: <span class="privacy-balance" data-raw-value="{{ $plan->formatted_remaining }}">{{ $plan->formatted_remaining }}</span></span>
                     @if ($plan->hasInterestOrFees())
-                        <span class="text-forest font-semibold">Sisa Total: {{ $plan->formatted_remaining_total }}</span>
+                        <span class="text-forest font-semibold">Sisa Total: <span class="privacy-balance" data-raw-value="{{ $plan->formatted_remaining_total }}">{{ $plan->formatted_remaining_total }}</span></span>
                     @endif
                 </div>
             </div>
@@ -249,16 +249,16 @@
                                 @endif
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono font-medium text-charcoal">
-                                {{ $inst->formatted_principal }}
+                                <span class="privacy-balance" data-raw-value="{{ $inst->formatted_principal }}">{{ $inst->formatted_principal }}</span>
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono text-muted">
-                                {{ $inst->formatted_interest }}
+                                <span class="privacy-balance" data-raw-value="{{ $inst->formatted_interest }}">{{ $inst->formatted_interest }}</span>
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono text-muted">
-                                {{ $inst->formatted_fee }}
+                                <span class="privacy-balance" data-raw-value="{{ $inst->formatted_fee }}">{{ $inst->formatted_fee }}</span>
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono font-bold text-charcoal">
-                                {{ $inst->formatted_total_amount }}
+                                <span class="privacy-balance" data-raw-value="{{ $inst->formatted_total_amount }}">{{ $inst->formatted_total_amount }}</span>
                             </td>
                             <td class="py-3.5 px-3 text-center whitespace-nowrap">
                                 @if ($inst->isPaid())
@@ -416,7 +416,7 @@
                                     @endif
                                 </td>
                                 <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-bold {{ $note->isCreditNote() ? 'text-forest' : 'text-amber-700 dark:text-amber-400' }}">
-                                    {{ $note->isCreditNote() ? '-' : '+' }} {{ $note->formatted_amount }}
+                                    <span class="privacy-balance" data-raw-value="{{ $note->isCreditNote() ? '-' : '+' }} {{ $note->formatted_amount }}">{{ $note->isCreditNote() ? '-' : '+' }} {{ $note->formatted_amount }}</span>
                                 </td>
                                 <td class="py-2.5 px-3 text-muted">
                                     {{ $note->description }}
@@ -612,7 +612,7 @@
                     Pelunasan sekaligus akan melunasi seluruh sisa <strong>{{ $plan->pendingInstallments->count() }} cicilan pokok</strong> dan mengembalikan limit kredit Anda sepenuhnya.
                 </span>
                 <div class="mt-2 text-sm font-serif font-bold text-emerald-700 dark:text-emerald-300">
-                    Total Pelunasan: {{ $plan->formatted_remaining }}
+                    Total Pelunasan: <span class="privacy-balance" data-raw-value="{{ $plan->formatted_remaining }}">{{ $plan->formatted_remaining }}</span>
                 </div>
             </div>
 

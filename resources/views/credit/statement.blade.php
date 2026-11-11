@@ -90,7 +90,7 @@
             <div>
                 <span class="text-xs text-muted block">Total Tagihan Tercetak</span>
                 <span class="text-xl font-serif font-bold text-charcoal mt-1 block">
-                    {{ $statement['formatted_total_billed'] }}
+                    <span class="privacy-balance" data-raw-value="{{ $statement['formatted_total_billed'] }}">{{ $statement['formatted_total_billed'] }}</span>
                 </span>
                 <span class="text-[11px] text-muted">{{ $statement['item_count'] }} transaksi / cicilan</span>
             </div>
@@ -98,7 +98,7 @@
             <div>
                 <span class="text-xs text-muted block">Sudah Dibayar</span>
                 <span class="text-xl font-serif font-bold text-forest mt-1 block">
-                    {{ $statement['formatted_total_paid'] }}
+                    <span class="privacy-balance" data-raw-value="{{ $statement['formatted_total_paid'] }}">{{ $statement['formatted_total_paid'] }}</span>
                 </span>
                 <span class="text-[11px] text-muted">{{ $statement['item_count'] - $statement['pending_count'] }} item lunas</span>
             </div>
@@ -106,7 +106,7 @@
             <div>
                 <span class="text-xs text-muted block">Sisa Belum Dibayar</span>
                 <span class="text-xl font-serif font-bold {{ $statement['total_pending'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-charcoal' }} mt-1 block">
-                    {{ $statement['formatted_total_pending'] }}
+                    <span class="privacy-balance" data-raw-value="{{ $statement['formatted_total_pending'] }}">{{ $statement['formatted_total_pending'] }}</span>
                 </span>
                 <span class="text-[11px] text-muted">{{ $statement['pending_count'] }} item menunggu pelunasan</span>
             </div>
@@ -114,9 +114,9 @@
             <div>
                 <span class="text-xs text-muted block">Sisa Limit Kartu</span>
                 <span class="text-xl font-serif font-bold text-forest mt-1 block">
-                    {{ $creditAccount->formatted_available_limit }}
+                    <span class="privacy-balance" data-raw-value="{{ $creditAccount->formatted_available_limit }}">{{ $creditAccount->formatted_available_limit }}</span>
                 </span>
-                <span class="text-[11px] text-muted">Dari limit {{ $creditAccount->formatted_limit }}</span>
+                <span class="text-[11px] text-muted">Dari limit <span class="privacy-balance" data-raw-value="{{ $creditAccount->formatted_limit }}">{{ $creditAccount->formatted_limit }}</span></span>
             </div>
         </div>
     </div>
@@ -136,7 +136,7 @@
                 </div>
                 <div class="text-right">
                     <span class="text-xs text-muted block">Total Yang Perlu Dibayar:</span>
-                    <span class="font-serif text-2xl font-bold text-forest">{{ $statement['formatted_total_pending'] }}</span>
+                    <span class="font-serif text-2xl font-bold text-forest"><span class="privacy-balance" data-raw-value="{{ $statement['formatted_total_pending'] }}">{{ $statement['formatted_total_pending'] }}</span></span>
                 </div>
             </div>
 
@@ -283,17 +283,18 @@
                                     {{ $inst->installmentPlan->category->name ?? '-' }}
                                 </td>
                                 <td class="py-3 px-3 whitespace-nowrap text-right font-mono text-charcoal">
-                                    {{ $inst->formatted_principal }}
+                                    <span class="privacy-balance" data-raw-value="{{ $inst->formatted_principal }}">{{ $inst->formatted_principal }}</span>
                                 </td>
                                 <td class="py-3 px-3 whitespace-nowrap text-right font-mono text-muted">
                                     @php
                                         $extra = (float) $inst->interest_amount + (float) $inst->fee_amount;
                                         $extraDec = fmod($extra, 1.0) == 0.0 ? 0 : 2;
+                                        $formattedExtra = 'Rp ' . number_format($extra, $extraDec, ',', '.');
                                     @endphp
-                                    {{ 'Rp ' . number_format($extra, $extraDec, ',', '.') }}
+                                    <span class="privacy-balance" data-raw-value="{{ $formattedExtra }}">{{ $formattedExtra }}</span>
                                 </td>
                                 <td class="py-3 px-3 whitespace-nowrap text-right font-mono font-bold text-charcoal">
-                                    {{ $inst->formatted_total }}
+                                    <span class="privacy-balance" data-raw-value="{{ $inst->formatted_total }}">{{ $inst->formatted_total }}</span>
                                 </td>
                                 <td class="py-3 px-3 whitespace-nowrap text-center">
                                     @if ($inst->isPaid())

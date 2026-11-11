@@ -101,7 +101,7 @@
                     @if ($transaction->isTransfer() && (float)($transaction->fee_amount ?? 0) > 0)
                         <div class="py-3 flex justify-between items-center">
                             <span class="text-muted">Biaya Admin Transfer</span>
-                            <span class="font-bold text-red">
+                            <span class="font-bold text-red privacy-balance" data-raw-value="Rp {{ number_format($transaction->fee_amount, 0, ',', '.') }}">
                                 Rp {{ number_format($transaction->fee_amount, 0, ',', '.') }}
                             </span>
                         </div>
@@ -115,7 +115,7 @@
                         @endif
                         <div class="py-3 flex justify-between items-center">
                             <span class="text-muted">Total Pengurangan Rekening Asal</span>
-                            <span class="font-bold text-charcoal">
+                            <span class="font-bold text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($transaction->totalDeductedFromSource(), 0, ',', '.') }}">
                                 Rp {{ number_format($transaction->totalDeductedFromSource(), 0, ',', '.') }}
                             </span>
                         </div>

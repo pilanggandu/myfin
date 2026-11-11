@@ -179,7 +179,7 @@
                             @if ($recurring->creditAccount)
                                 <div class="font-bold text-charcoal">💳 {{ $recurring->creditAccount->name }}</div>
                                 <div class="text-[11px] text-muted mt-0.5">
-                                    Kewajiban saat ini: <strong class="text-charcoal font-mono">Rp {{ number_format($creditLiability, 0, ',', '.') }}</strong>
+                                    Kewajiban saat ini: <strong class="text-charcoal font-mono privacy-balance" data-raw-value="Rp {{ number_format($creditLiability, 0, ',', '.') }}">Rp {{ number_format($creditLiability, 0, ',', '.') }}</strong>
                                     &bull;
                                     <a href="{{ route('credit.accounts.statement', $recurring->creditAccount) }}" class="font-semibold text-forest hover:underline">
                                         Tagihan &rarr;

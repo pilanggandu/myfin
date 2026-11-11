@@ -118,7 +118,7 @@
                         <div class="flex items-center justify-between text-xs">
                             <span class="font-bold font-mono text-charcoal text-sm">{{ $pct }}% Tercapai</span>
                             @if (! $isAchieved)
-                                <span class="text-muted">Kurang: <strong class="font-mono text-charcoal">Rp {{ number_format($rem, 0, ',', '.') }}</strong></span>
+                                <span class="text-muted">Kurang: <strong class="font-mono text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($rem, 0, ',', '.') }}">Rp {{ number_format($rem, 0, ',', '.') }}</strong></span>
                             @else
                                 <span class="font-bold text-forest">Target Berhasil Dipenuhi! 🎊</span>
                             @endif
@@ -166,11 +166,11 @@
                             <div class="p-3 rounded-xl bg-forest-light/60 dark:bg-forest-light/20 border border-forest/20 text-xs">
                                 <span class="text-[10px] uppercase font-bold text-forest block mb-0.5">Rekomendasi Cerdas</span>
                                 <div class="font-mono text-base font-bold text-forest">
-                                    Rp {{ number_format($monthlyRec, 0, ',', '.') }} <span class="font-sans text-xs text-muted font-normal">/ bln</span>
+                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($monthlyRec, 0, ',', '.') }}">Rp {{ number_format($monthlyRec, 0, ',', '.') }}</span> <span class="font-sans text-xs text-muted font-normal">/ bln</span>
                                 </div>
                                 @if ($dailyRec !== null)
                                     <span class="text-[10px] text-muted block mt-0.5">
-                                        atau sekitar ~Rp {{ number_format($dailyRec, 0, ',', '.') }} / hari
+                                        atau sekitar ~<span class="privacy-balance" data-raw-value="Rp {{ number_format($dailyRec, 0, ',', '.') }}">Rp {{ number_format($dailyRec, 0, ',', '.') }}</span> / hari
                                     </span>
                                 @endif
                             </div>

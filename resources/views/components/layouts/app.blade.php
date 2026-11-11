@@ -626,7 +626,11 @@
 
             const selection = window.getSelection();
             if (selection && selection.toString().trim().length > 0) {
-                return;
+                const anchorInside = selection.anchorNode && balanceEl.contains(selection.anchorNode);
+                const focusInside = selection.focusNode && balanceEl.contains(selection.focusNode);
+                if (anchorInside || focusInside) {
+                    return;
+                }
             }
 
             const interactiveParent = balanceEl.parentElement?.closest('a, button, [onclick]');

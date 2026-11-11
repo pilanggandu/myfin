@@ -162,7 +162,7 @@
                                     </span>
                                     @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0 && ! $isPositive)
                                         <div class="text-[10px] text-muted font-normal mt-0.5">
-                                            Termasuk fee Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}
+                                            Termasuk fee <span class="privacy-balance" data-raw-value="Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}">Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}</span>
                                         </div>
                                     @endif
                                 </td>

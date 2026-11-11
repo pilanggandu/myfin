@@ -69,7 +69,7 @@
                 <span class="text-2xl">⚠️</span>
                 <div>
                     <span class="font-bold text-red text-sm block">Perhatian: Ada {{ $overdueInstallments->count() }} cicilan terlambat melewati tanggal jatuh tempo!</span>
-                    <span class="text-muted">Total tunggakan: <strong class="text-charcoal">Rp {{ number_format($overdueInstallments->sum('total_amount'), 0, ',', '.') }}</strong>. Segera lakukan pelunasan untuk menjaga kesehatan finansial Anda.</span>
+                    <span class="text-muted">Total tunggakan: <strong class="text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($overdueInstallments->sum('total_amount'), 0, ',', '.') }}">Rp {{ number_format($overdueInstallments->sum('total_amount'), 0, ',', '.') }}</strong>. Segera lakukan pelunasan untuk menjaga kesehatan finansial Anda.</span>
                 </div>
             </div>
             <a href="{{ route('credit.index', ['tab' => 'plans']) }}" class="self-start sm:self-auto min-h-[36px] inline-flex items-center px-3.5 py-1.5 bg-red text-white font-bold rounded-lg hover:bg-red/90 transition shadow-xs text-xs whitespace-nowrap">
@@ -82,7 +82,7 @@
                 <span class="text-2xl">⏳</span>
                 <div>
                     <span class="font-bold text-amber-800 dark:text-amber-300 text-sm block">Pengingat: Ada {{ $dueSoonInstallments->count() }} cicilan jatuh tempo dalam 3 hari ke depan.</span>
-                    <span class="text-muted">Total tagihan terdekat: <strong class="text-charcoal">Rp {{ number_format($dueSoonInstallments->sum('total_amount'), 0, ',', '.') }}</strong>. Pastikan saldo rekening kas mencukupi.</span>
+                    <span class="text-muted">Total tagihan terdekat: <strong class="text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($dueSoonInstallments->sum('total_amount'), 0, ',', '.') }}">Rp {{ number_format($dueSoonInstallments->sum('total_amount'), 0, ',', '.') }}</strong>. Pastikan saldo rekening kas mencukupi.</span>
                 </div>
             </div>
             <a href="{{ route('credit.index', ['tab' => 'plans']) }}" class="self-start sm:self-auto min-h-[36px] inline-flex items-center px-3.5 py-1.5 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition shadow-xs text-xs whitespace-nowrap">
@@ -161,7 +161,7 @@
                     <p class="text-xs text-muted">Estimasi komitmen kas bulanan berdasarkan jadwal jatuh tempo cicilan aktif saat ini.</p>
                 </div>
                 <span class="text-xs font-mono font-bold text-forest bg-forest-light px-2.5 py-1 rounded-full border border-forest/20">
-                    Sisa Pokok: Rp {{ number_format($totalLiability, 0, ',', '.') }}
+                    Sisa Pokok: <span class="privacy-balance" data-raw-value="Rp {{ number_format($totalLiability, 0, ',', '.') }}">Rp {{ number_format($totalLiability, 0, ',', '.') }}</span>
                 </span>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -169,7 +169,7 @@
                     <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-sidebar/40 flex flex-col justify-between">
                         <span class="text-[11px] font-bold text-muted uppercase">{{ $proj['month_short'] }}</span>
                         <div class="mt-2">
-                            <span class="font-mono text-sm font-bold {{ $proj['total_amount'] > 0 ? 'text-charcoal' : 'text-muted' }}">
+                            <span class="font-mono text-sm font-bold {{ $proj['total_amount'] > 0 ? 'text-charcoal' : 'text-muted' }} privacy-balance" data-raw-value="Rp {{ number_format($proj['total_amount'], 0, ',', '.') }}">
                                 Rp {{ number_format($proj['total_amount'], 0, ',', '.') }}
                             </span>
                             @if ($proj['total_amount'] > 0)
@@ -493,10 +493,10 @@
                                 <div class="text-right sm:text-left">
                                     <div class="text-[11px] text-muted uppercase tracking-wider font-semibold">Sisa Pokok</div>
                                     <div class="font-serif text-xl font-bold text-amber-600 dark:text-amber-400">
-                                        {{ $plan->formatted_remaining }}
+                                        <span class="privacy-balance" data-raw-value="{{ $plan->formatted_remaining }}">{{ $plan->formatted_remaining }}</span>
                                     </div>
                                     <div class="text-[11px] text-muted">
-                                        Total: {{ $plan->formatted_total_amount }}
+                                        Total: <span class="privacy-balance" data-raw-value="{{ $plan->formatted_total_amount }}">{{ $plan->formatted_total_amount }}</span>
                                     </div>
                                 </div>
 
@@ -520,7 +520,7 @@
                                 <span class="text-muted">
                                     Jatuh tempo berikutnya: <strong class="text-charcoal">{{ $nextPending->due_date->format('d M Y') }}</strong> (Cicilan #{{ $nextPending->installment_number }})
                                 </span>
-                                <span class="font-semibold text-charcoal">
+                                <span class="font-semibold text-charcoal privacy-balance" data-raw-value="{{ $nextPending->formatted_principal }}">
                                     {{ $nextPending->formatted_principal }}
                                 </span>
                             </div>
@@ -552,7 +552,7 @@
                                 <h4 class="font-semibold text-sm text-charcoal truncate">{{ $plan->name }}</h4>
                             </div>
                             <div class="text-xs text-muted mt-1">
-                                {{ $plan->creditAccount->name }} • {{ $plan->tenor }} bulan • Total {{ $plan->formatted_total_amount }}
+                                {{ $plan->creditAccount->name }} • {{ $plan->tenor }} bulan • Total <span class="privacy-balance" data-raw-value="{{ $plan->formatted_total_amount }}">{{ $plan->formatted_total_amount }}</span>
                             </div>
                         </div>
                         <a 

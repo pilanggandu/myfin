@@ -516,7 +516,7 @@
                                 </div>
                                 @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0)
                                     <div class="text-[10px] text-muted font-normal mt-0.5">
-                                        + fee Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}
+                                        + fee <span class="privacy-balance" data-raw-value="Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}">Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}</span>
                                     </div>
                                 @endif
                                 <div>
@@ -667,7 +667,7 @@
                                     </span>
                                     @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0)
                                         <div class="text-[10px] text-muted font-normal mt-0.5">
-                                            + fee Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}
+                                            + fee <span class="privacy-balance" data-raw-value="Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}">Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}</span>
                                         </div>
                                     @endif
                                 </td>
