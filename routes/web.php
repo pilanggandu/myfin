@@ -16,6 +16,7 @@ use App\Http\Controllers\Profile\ProfileController;
 use App\Http\Controllers\Recurring\RecurringScheduleController;
 use App\Http\Controllers\Reminders\ReminderController;
 use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\ShortPlans\ShortPlanController;
 use App\Http\Controllers\Spaces\SpaceController;
 use App\Http\Controllers\Transactions\FinancialTransactionController;
 use Illuminate\Support\Facades\Route;
@@ -100,6 +101,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/goals/{goal}/contribute', [GoalController::class, 'contribute'])->name('goals.contribute');
     Route::post('/goals/{goal}/withdraw', [GoalController::class, 'withdraw'])->name('goals.withdraw');
     Route::post('/goals/{goal}/toggle-status', [GoalController::class, 'toggleStatus'])->name('goals.toggle-status');
+
+    Route::get('/short-plans', [ShortPlanController::class, 'index'])->name('short-plans.index');
+    Route::get('/short-plans/create', [ShortPlanController::class, 'create'])->name('short-plans.create');
+    Route::post('/short-plans', [ShortPlanController::class, 'store'])->name('short-plans.store');
+    Route::get('/short-plans/{shortPlan}', [ShortPlanController::class, 'show'])->name('short-plans.show');
+    Route::get('/short-plans/{shortPlan}/edit', [ShortPlanController::class, 'edit'])->name('short-plans.edit');
+    Route::put('/short-plans/{shortPlan}', [ShortPlanController::class, 'update'])->name('short-plans.update');
+    Route::delete('/short-plans/{shortPlan}', [ShortPlanController::class, 'destroy'])->name('short-plans.destroy');
+    Route::post('/short-plans/{shortPlan}/realize', [ShortPlanController::class, 'realize'])->name('short-plans.realize');
+    Route::post('/short-plans/{shortPlan}/cancel', [ShortPlanController::class, 'cancel'])->name('short-plans.cancel');
+    Route::post('/short-plans/{shortPlan}/reopen', [ShortPlanController::class, 'reopen'])->name('short-plans.reopen');
+    Route::post('/short-plans/{shortPlan}/items', [ShortPlanController::class, 'storeItem'])->name('short-plans.items.store');
+    Route::post('/short-plans/{shortPlan}/items/{item}/toggle', [ShortPlanController::class, 'toggleItem'])->name('short-plans.items.toggle');
+    Route::post('/short-plans/{shortPlan}/sync-amount', [ShortPlanController::class, 'syncAmountFromItems'])->name('short-plans.sync-amount');
+    Route::delete('/short-plans/{shortPlan}/items/{item}', [ShortPlanController::class, 'destroyItem'])->name('short-plans.items.destroy');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])->name('reports.export-csv');

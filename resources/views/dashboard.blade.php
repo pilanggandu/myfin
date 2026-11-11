@@ -709,4 +709,118 @@
             </div>
         </div>
     </div>
+
+    <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-short-plans">
+        <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="text-forest shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+                    </svg>
+                </span>
+                <h2 class="text-xs font-bold text-charcoal truncate">Short Plan</h2>
+                @if ($shortPlanActiveCount > 0)
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line">
+                        {{ $shortPlanActiveCount }}
+                    </span>
+                @endif
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <button
+                    type="button"
+                    onclick="toggleCardPrivacy(this)"
+                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0"
+                    title="Sembunyikan / Tampilkan Nominal Short Plan"
+                    aria-label="Sembunyikan atau tampilkan nominal short plan"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
+                <a href="{{ route('short-plans.create') }}" class="h-6 px-2 text-[10.5px] font-bold rounded bg-forest text-white hover:bg-forest-hover transition inline-flex items-center">
+                    + Rencana
+                </a>
+                <a href="{{ route('short-plans.index') }}" class="text-xs font-semibold text-forest hover:underline">
+                    Kelola &rarr;
+                </a>
+            </div>
+        </div>
+
+        @php
+            $shortPlanCoverage = $totalBalance - $shortPlanActiveTotal;
+        @endphp
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5 border-b border-line bg-cream/40">
+            <div class="p-2.5 rounded-lg bg-panel border border-line flex items-center justify-between sm:block sm:text-center">
+                <span class="text-[10px] uppercase font-bold text-muted block">Total Estimasi Aktif</span>
+                <span class="text-xs font-bold font-mono text-charcoal block sm:mt-0.5 privacy-balance" data-raw-value="{{ 'Rp ' . number_format($shortPlanActiveTotal, 0, ',', '.') }}">
+                    Rp {{ number_format($shortPlanActiveTotal, 0, ',', '.') }}
+                </span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-panel border border-line flex items-center justify-between sm:block sm:text-center">
+                <span class="text-[10px] uppercase font-bold text-muted block">Mendesak / Dekat</span>
+                <span class="text-xs font-bold {{ $shortPlanUrgentCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-charcoal' }} block sm:mt-0.5">
+                    {{ $shortPlanUrgentCount }} Rencana
+                </span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-panel border border-line flex items-center justify-between sm:block sm:text-center">
+                <span class="text-[10px] uppercase font-bold text-muted block">Kecukupan Saldo Cair</span>
+                @if ($shortPlanCoverage >= 0)
+                    <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300 block sm:mt-0.5">
+                        Cukup (+<span class="font-mono privacy-balance" data-raw-value="{{ 'Rp ' . number_format($shortPlanCoverage, 0, ',', '.') }}">Rp {{ number_format($shortPlanCoverage, 0, ',', '.') }}</span>)
+                    </span>
+                @else
+                    <span class="text-xs font-bold text-rose-700 dark:text-rose-300 block sm:mt-0.5">
+                        Kurang <span class="font-mono privacy-balance" data-raw-value="{{ 'Rp ' . number_format(abs($shortPlanCoverage), 0, ',', '.') }}">Rp {{ number_format(abs($shortPlanCoverage), 0, ',', '.') }}</span>
+                    </span>
+                @endif
+            </div>
+        </div>
+
+        <div class="divide-y divide-line">
+            @forelse ($activeShortPlans as $plan)
+                @php
+                    $planItemsCount = $plan->items->count();
+                    $planCheckedCount = $plan->items->where('is_checked', true)->count();
+                @endphp
+                <div class="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-cream/40 transition">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center flex-wrap gap-2">
+                            <a href="{{ route('short-plans.show', $plan) }}" class="text-xs font-bold text-charcoal hover:text-forest truncate">
+                                {{ $plan->title }}
+                            </a>
+                            @include('short-plans.partials._badges', ['plan' => $plan, 'now' => $now])
+                        </div>
+                        <div class="text-[11px] text-muted flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                            <span>{{ $plan->account?->name ?? 'Rekening belum dipilih' }}</span>
+                            @if ($plan->category)
+                                <span>&bull;</span>
+                                <span>{{ $plan->category->name }}</span>
+                            @endif
+                            @if ($planItemsCount > 0)
+                                <span>&bull;</span>
+                                <span class="font-semibold text-forest dark:text-blue-300">{{ $planCheckedCount }}/{{ $planItemsCount }} item</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                        <span class="text-xs font-bold font-mono text-charcoal privacy-balance" data-raw-value="{{ 'Rp ' . number_format($plan->planned_amount, 0, ',', '.') }}">
+                            Rp {{ number_format($plan->planned_amount, 0, ',', '.') }}
+                        </span>
+                        <a href="{{ route('short-plans.show', $plan) }}" class="text-[11px] font-bold text-forest hover:underline">
+                            Detail &rarr;
+                        </a>
+                    </div>
+                </div>
+            @empty
+                <div class="p-6 text-center text-xs text-muted">
+                    Belum ada rencana pengeluaran jangka pendek yang aktif.
+                    <div class="mt-2">
+                        <a href="{{ route('short-plans.create') }}" class="text-forest font-bold hover:underline">
+                            + Buat Short Plan Pertama
+                        </a>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </div>
 </x-layouts.app>

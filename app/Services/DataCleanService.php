@@ -13,6 +13,8 @@ use App\Models\InstallmentPlan;
 use App\Models\Member;
 use App\Models\RecurringOccurrence;
 use App\Models\RecurringSchedule;
+use App\Models\ShortPlan;
+use App\Models\ShortPlanItem;
 use App\Models\Space;
 use App\Models\TransactionEntry;
 use App\Models\TransactionRevision;
@@ -61,6 +63,7 @@ class DataCleanService
 
         DB::transaction(function () use (
             $space,
+            $isAll,
             $cleanTransactions,
             $cleanBudgets,
             $cleanRecurring,
@@ -86,6 +89,10 @@ class DataCleanService
                         'confirmed_by' => null,
                     ]);
 
+                ShortPlan::where('space_id', $space->id)
+                    ->whereNotNull('financial_transaction_id')
+                    ->update(['financial_transaction_id' => null]);
+
                 $deletedTxCount = FinancialTransaction::where('space_id', $space->id)->delete();
                 $summary['transactions'] = $deletedTxCount;
             }
@@ -104,6 +111,7 @@ class DataCleanService
             if ($cleanMembers) {
                 FinancialTransaction::where('space_id', $space->id)->update(['member_id' => null]);
                 RecurringSchedule::where('space_id', $space->id)->update(['member_id' => null]);
+                ShortPlan::where('space_id', $space->id)->update(['member_id' => null]);
                 $deletedMembers = Member::where('space_id', $space->id)->delete();
                 $summary['members'] = $deletedMembers;
             }
@@ -120,6 +128,7 @@ class DataCleanService
 
             if ($cleanAccounts) {
                 RecurringSchedule::where('space_id', $space->id)->delete();
+                ShortPlan::where('space_id', $space->id)->update(['account_id' => null]);
                 DB::table('account_opening_balance_logs')
                     ->whereIn('account_id', Account::where('space_id', $space->id)->pluck('id'))
                     ->delete();
@@ -131,9 +140,15 @@ class DataCleanService
             }
 
             if ($resetCategories) {
+                ShortPlan::where('space_id', $space->id)->update(['category_id' => null]);
                 Category::where('space_id', $space->id)->delete();
                 $space->createDefaultCategories();
                 $summary['categories_reset'] = true;
+            }
+
+            if ($isAll) {
+                ShortPlanItem::where('space_id', $space->id)->delete();
+                $summary['short_plans'] = ShortPlan::where('space_id', $space->id)->delete();
             }
         });
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Installment;
+use App\Models\ShortPlan;
 use App\Services\RecurringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -115,6 +116,23 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
+        $allPlannedShortPlans = $currentSpace
+            ? $currentSpace->shortPlans()
+                ->planned()
+                ->with(['account', 'category', 'items'])
+                ->orderByRaw('CASE WHEN target_date IS NULL THEN 1 ELSE 0 END ASC, target_date ASC')
+                ->orderByRaw("CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END ASC")
+                ->orderByDesc('id')
+                ->get()
+            : collect();
+
+        $shortPlanActiveCount = $allPlannedShortPlans->count();
+        $shortPlanActiveTotal = round((float) $allPlannedShortPlans->sum('planned_amount'), 2);
+        $shortPlanUrgentCount = $allPlannedShortPlans->filter(function (ShortPlan $plan) use ($now): bool {
+            return $plan->priority === 'high' || in_array($plan->dueStatus($now), ['overdue', 'due_today', 'soon'], true);
+        })->count();
+        $activeShortPlans = $allPlannedShortPlans->take(4);
+
         return view('dashboard', [
             'space' => $currentSpace,
             'user' => $request->user(),
@@ -137,6 +155,11 @@ class DashboardController extends Controller
             'totalAvailableCredit' => $totalAvailableCredit,
             'upcomingInstallments' => $upcomingInstallments,
             'activeGoals' => $activeGoals,
+            'activeShortPlans' => $activeShortPlans,
+            'shortPlanActiveCount' => $shortPlanActiveCount,
+            'shortPlanActiveTotal' => $shortPlanActiveTotal,
+            'shortPlanUrgentCount' => $shortPlanUrgentCount,
+            'now' => $now,
         ]);
     }
 }
