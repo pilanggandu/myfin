@@ -43,7 +43,7 @@
                     autocomplete="one-time-code"
                     value="{{ old('otp') }}" 
                     placeholder="------" 
-                    class="w-full text-center py-3 px-4 text-3xl font-mono font-extrabold tracking-[10px] sm:tracking-[14px] bg-panel text-charcoal border @error('otp') border-red @else border-line @enderror rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-forest focus:border-forest uppercase"
+                    class="w-full text-center py-3 px-3 sm:px-4 text-2xl sm:text-3xl font-mono font-extrabold tracking-[6px] sm:tracking-[14px] bg-panel text-charcoal border @error('otp') border-red @else border-line @enderror rounded-xl shadow-xs focus:ring-2 focus:ring-forest focus:border-forest uppercase"
                 >
             </div>
             @error('otp')
@@ -94,7 +94,7 @@
                 type="submit" 
                 id="btnResend" 
                 @if($cooldownSeconds > 0) disabled @endif
-                class="text-xs font-bold text-forest hover:text-forest-hover disabled:text-muted disabled:cursor-not-allowed transition cursor-pointer"
+                class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-0 inline-flex items-center justify-center text-xs font-bold text-forest hover:text-forest-hover disabled:text-muted disabled:cursor-not-allowed transition cursor-pointer"
             >
                 <span id="resendText">
                     @if($cooldownSeconds > 0)
@@ -107,7 +107,7 @@
         </form>
 
         <div>
-            <a href="{{ route('password.request') }}" class="text-[11px] text-muted hover:text-charcoal underline">
+            <a href="{{ route('password.request') }}" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 px-2 py-1 sm:py-0 text-[11px] text-muted hover:text-charcoal underline">
                 Ganti alamat email / Ajukan ulang
             </a>
         </div>

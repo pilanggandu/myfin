@@ -134,7 +134,7 @@
                             <label class="block text-[11px] font-bold tracking-wider text-muted uppercase mb-2">
                                 1. Jenis Transaksi
                             </label>
-                            <div class="grid grid-cols-3 gap-2 p-1.5 rounded-xl bg-sidebar border border-line" id="typeSwitcher">
+                            <div class="grid grid-cols-3 gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-xl bg-sidebar border border-line" id="typeSwitcher">
                                 <label class="cursor-pointer">
                                     <input 
                                         type="radio" 
@@ -144,8 +144,8 @@
                                         {{ old('type', $defaultType) === 'expense' ? 'checked' : '' }} 
                                         onchange="onTypeChanged('expense')"
                                     >
-                                    <div class="py-2.5 px-3 rounded-lg text-xs font-bold text-muted text-center flex items-center justify-center gap-1.5 transition border border-transparent peer-checked:bg-panel peer-checked:border-rose-500/30 peer-checked:text-rose-500 dark:peer-checked:text-rose-400 peer-checked:shadow-xs">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                    <div class="min-h-[48px] sm:min-h-0 py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold text-muted text-center flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 transition border border-transparent peer-checked:bg-panel peer-checked:border-rose-500/30 peer-checked:text-rose-500 dark:peer-checked:text-rose-400 peer-checked:shadow-xs">
+                                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
                                         </svg>
                                         <span>Pengeluaran</span>
@@ -161,8 +161,8 @@
                                         {{ old('type', $defaultType) === 'income' ? 'checked' : '' }} 
                                         onchange="onTypeChanged('income')"
                                     >
-                                    <div class="py-2.5 px-3 rounded-lg text-xs font-bold text-muted text-center flex items-center justify-center gap-1.5 transition border border-transparent peer-checked:bg-panel peer-checked:border-emerald-500/30 peer-checked:text-emerald-700 dark:peer-checked:text-emerald-400 peer-checked:shadow-xs">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                    <div class="min-h-[48px] sm:min-h-0 py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold text-muted text-center flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 transition border border-transparent peer-checked:bg-panel peer-checked:border-emerald-500/30 peer-checked:text-emerald-700 dark:peer-checked:text-emerald-400 peer-checked:shadow-xs">
+                                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 4.5-15 15m0 0h11.25m-11.25 0V8.25" />
                                         </svg>
                                         <span>Pemasukan</span>
@@ -178,8 +178,8 @@
                                         {{ old('type', $defaultType) === 'transfer' ? 'checked' : '' }} 
                                         onchange="onTypeChanged('transfer')"
                                     >
-                                    <div class="py-2.5 px-3 rounded-lg text-xs font-bold text-muted text-center flex items-center justify-center gap-1.5 transition border border-transparent peer-checked:bg-panel peer-checked:border-line peer-checked:text-charcoal peer-checked:shadow-xs">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                    <div class="min-h-[48px] sm:min-h-0 py-2 sm:py-2.5 px-1.5 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold text-muted text-center flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 transition border border-transparent peer-checked:bg-panel peer-checked:border-line peer-checked:text-charcoal peer-checked:shadow-xs">
+                                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                                         </svg>
                                         <span>Transfer</span>
@@ -236,22 +236,22 @@
                             <!-- Quick Amount Chips -->
                             <div class="flex items-center gap-1.5 flex-wrap pt-3 mt-1 border-t border-line/40">
                                 <span class="text-[10px] font-bold text-muted uppercase mr-1 select-none">Cepat:</span>
-                                <button type="button" onclick="addAmount(10000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                                <button type="button" onclick="addAmount(10000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                     +10rb
                                 </button>
-                                <button type="button" onclick="addAmount(50000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                                <button type="button" onclick="addAmount(50000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                     +50rb
                                 </button>
-                                <button type="button" onclick="addAmount(100000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                                <button type="button" onclick="addAmount(100000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                     +100rb
                                 </button>
-                                <button type="button" onclick="addAmount(500000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                                <button type="button" onclick="addAmount(500000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                     +500rb
                                 </button>
-                                <button type="button" onclick="addAmount(1000000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                                <button type="button" onclick="addAmount(1000000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                     +1jt
                                 </button>
-                                <button type="button" onclick="clearAmount()" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-muted hover:text-red hover:border-red/40 transition cursor-pointer ml-auto" title="Kosongkan Nominal">
+                                <button type="button" onclick="clearAmount()" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-muted hover:text-red hover:border-red/40 transition cursor-pointer ml-auto" title="Kosongkan Nominal">
                                     Reset
                                 </button>
                             </div>
@@ -398,8 +398,8 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <!-- Tanggal & Jam Transaksi -->
                             <div>
-                                <div class="grid grid-cols-5 gap-2">
-                                    <div class="col-span-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-2">
+                                    <div class="sm:col-span-3">
                                         <label for="transaction_date" class="block text-xs font-bold text-charcoal mb-1.5">
                                             Tanggal Transaksi
                                         </label>
@@ -413,7 +413,7 @@
                                             onchange="updateReceipt()"
                                         >
                                     </div>
-                                    <div class="col-span-2">
+                                    <div class="sm:col-span-2">
                                         <label for="transaction_time" class="block text-xs font-bold text-charcoal mb-1.5 flex items-center justify-between">
                                             <span>Jam</span>
                                             <span class="text-[10px] text-muted font-normal">Opsional</span>
@@ -428,17 +428,17 @@
                                         >
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between mt-1.5">
+                                <div class="flex flex-wrap items-center justify-between gap-2 mt-1.5">
                                     <div class="flex items-center gap-2">
-                                        <button type="button" onclick="setDatePreset(0)" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                                        <button type="button" onclick="setDatePreset(0)" class="min-h-[40px] sm:min-h-0 px-1 text-[11px] text-muted hover:text-forest underline transition cursor-pointer inline-flex items-center">
                                             Hari ini
                                         </button>
                                         <span class="text-line">&bull;</span>
-                                        <button type="button" onclick="setDatePreset(-1)" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                                        <button type="button" onclick="setDatePreset(-1)" class="min-h-[40px] sm:min-h-0 px-1 text-[11px] text-muted hover:text-forest underline transition cursor-pointer inline-flex items-center">
                                             Kemarin
                                         </button>
                                     </div>
-                                    <button type="button" onclick="setCurrentHour()" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                                    <button type="button" onclick="setCurrentHour()" class="min-h-[40px] sm:min-h-0 px-1 text-[11px] text-muted hover:text-forest underline transition cursor-pointer inline-flex items-center">
                                         Jam sekarang
                                     </button>
                                 </div>
@@ -500,7 +500,7 @@
                     </div>
 
                     <!-- TOMBOL AKSI -->
-                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                         <input type="hidden" name="action" id="transactionFormAction" value="save_and_close">
                         <button 
                             type="submit" 

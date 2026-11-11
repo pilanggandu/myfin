@@ -10,11 +10,11 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <button 
                 type="button" 
                 onclick="openSettingsModal()" 
-                class="btn-arus-secondary inline-flex items-center gap-1.5 min-h-[42px] px-4 text-xs font-bold cursor-pointer shadow-xs"
+                class="btn-arus-secondary inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold cursor-pointer shadow-xs"
                 title="Atur nomor WhatsApp, email, dan preferensi saluran"
             >
                 <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -27,7 +27,7 @@
             <button 
                 type="button" 
                 onclick="openTestModal()" 
-                class="btn-arus-secondary inline-flex items-center gap-1.5 min-h-[42px] px-4 text-xs font-bold text-forest border-forest/30 hover:bg-forest-light cursor-pointer shadow-xs"
+                class="btn-arus-secondary inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold text-forest border-forest/30 hover:bg-forest-light cursor-pointer shadow-xs"
                 title="Kirim notifikasi uji coba langsung ke Email atau WhatsApp"
             >
                 <span>⚡ Tes Kirim</span>
@@ -36,7 +36,7 @@
             <button 
                 type="button" 
                 onclick="openAddReminderModal()" 
-                class="btn-arus-primary min-h-[42px] px-4 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -141,7 +141,84 @@
                 </div>
             </div>
         @else
-            <div class="overflow-x-auto">
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($reminders as $rem)
+                    <div class="p-4 space-y-2.5 text-xs {{ ! $rem->is_active ? 'opacity-60' : '' }}">
+                        <div class="flex items-start justify-between gap-2.5">
+                            <div class="min-w-0 flex-1">
+                                <div class="font-bold text-sm text-charcoal">{{ $rem->title }}</div>
+                                <div class="text-[11px] text-muted mt-1 flex items-center flex-wrap gap-1.5">
+                                    <span class="px-1.5 py-0.5 rounded bg-cream border border-line text-[10px] font-semibold">{{ $rem->typeLabel() }}</span>
+                                    <span>&bull;</span>
+                                    @if ($rem->channel === 'both')
+                                        <span class="font-semibold text-charcoal">📧 + 💬 Email & WA</span>
+                                    @elseif ($rem->channel === 'whatsapp')
+                                        <span class="font-semibold text-emerald-700 dark:text-emerald-400">💬 WhatsApp</span>
+                                    @else
+                                        <span class="font-semibold text-forest">📧 Email</span>
+                                    @endif
+                                    <span>&bull;</span>
+                                    <span>{{ $rem->frequencyLabel() }}</span>
+                                </div>
+                                @if ($rem->notes)
+                                    <div class="text-[11px] italic text-charcoal/80 mt-1 line-clamp-2">"{{ $rem->notes }}"</div>
+                                @endif
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                @if ($rem->amount && $rem->amount > 0)
+                                    <div class="font-mono font-bold text-sm text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($rem->amount, 0, ',', '.') }}">
+                                        Rp {{ number_format($rem->amount, 0, ',', '.') }}
+                                    </div>
+                                @endif
+                                <div class="mt-1">
+                                    @if ($rem->is_active)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-forest-light text-forest border border-forest/20">Aktif</span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">Nonaktif</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
+                            <span>
+                                @if ($rem->due_date)
+                                    Tempo: <strong class="{{ $rem->due_date->isPast() ? 'text-red' : 'text-charcoal' }}">{{ $rem->due_date->format('d M Y') }}</strong> &bull;
+                                @endif
+                                Jam <span class="font-mono">{{ $rem->reminder_time ?? '09:00' }} WIB</span>
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-line/60">
+                            <form method="POST" action="{{ route('reminders.sendNow', $rem) }}" class="flex-1 min-w-[100px]">
+                                @csrf
+                                <button type="submit" class="w-full min-h-[44px] px-3 py-2 rounded-lg border border-line bg-panel hover:bg-forest-light text-forest font-bold text-xs inline-flex items-center justify-center gap-1 transition cursor-pointer shadow-xs">
+                                    🚀 Kirim Sekarang
+                                </button>
+                            </form>
+                            <button type="button" onclick="openEditReminderModal({{ json_encode($rem) }})" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer" title="Ubah Pengingat" aria-label="Ubah Pengingat">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
+                            </button>
+                            <form method="POST" action="{{ route('reminders.toggleActive', $rem) }}" class="inline">
+                                @csrf
+                                <button type="submit" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-charcoal transition inline-flex items-center justify-center cursor-pointer text-sm" title="{{ $rem->is_active ? 'Nonaktifkan Pengingat' : 'Aktifkan Pengingat' }}" aria-label="Ubah status pengingat">
+                                    {{ $rem->is_active ? '⏸' : '▶' }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('reminders.destroy', $rem) }}" class="inline" onsubmit="return confirm('Hapus pengingat ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-red transition inline-flex items-center justify-center cursor-pointer" title="Hapus Pengingat" aria-label="Hapus Pengingat">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
@@ -231,7 +308,7 @@
                                             @csrf
                                             <button 
                                                 type="submit" 
-                                                class="px-2.5 py-1.5 rounded-lg border border-line bg-panel hover:bg-forest-light text-forest font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
+                                                class="min-h-[44px] lg:min-h-0 px-2.5 py-1.5 rounded-lg border border-line bg-panel hover:bg-forest-light text-forest font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer shadow-xs"
                                                 title="Kirimkan notifikasi pengingat ini sekarang juga"
                                             >
                                                 <span>🚀 Kirim</span>
@@ -242,7 +319,7 @@
                                         <button 
                                             type="button" 
                                             onclick="openEditReminderModal({{ json_encode($rem) }})" 
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
                                             title="Ubah Pengingat"
                                             aria-label="Ubah Pengingat"
                                         >
@@ -256,7 +333,7 @@
                                             @csrf
                                             <button 
                                                 type="submit" 
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer text-xs"
+                                                class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer text-xs"
                                                 title="{{ $rem->is_active ? 'Nonaktifkan Pengingat' : 'Aktifkan Pengingat' }}"
                                                 aria-label="Ubah status pengingat"
                                             >
@@ -270,7 +347,7 @@
                                             @method('DELETE')
                                             <button 
                                                 type="submit" 
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                                class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                                 title="Hapus Pengingat"
                                                 aria-label="Hapus Pengingat"
                                             >
@@ -334,14 +411,14 @@
     @endif
 
     <!-- Modal Tambah Pengingat -->
-    <div id="addReminderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div id="addReminderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         +
                     </span>
-                    <div>
+                    <div class="min-w-0">
                         <h3 id="addModalTitle" class="font-serif text-lg text-forest font-normal">
                             Buat Pengingat Baru
                         </h3>
@@ -350,7 +427,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAddReminderModal()" class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm">
+                <button type="button" onclick="closeAddReminderModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0" aria-label="Tutup modal">
                     ✕
                 </button>
             </div>
@@ -370,7 +447,7 @@
                     >
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="addType" class="block text-xs font-bold text-charcoal mb-1">Tipe Pengingat *</label>
                         <select name="type" id="addType" class="field-select w-full text-xs">
@@ -391,7 +468,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="addAmount" class="block text-xs font-bold text-charcoal mb-1">Nominal Tagihan (Opsional)</label>
                         <input 
@@ -415,7 +492,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="addDueDate" class="block text-xs font-bold text-charcoal mb-1">Tanggal Jatuh Tempo</label>
                         <input 
@@ -457,11 +534,11 @@
                     </label>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeAddReminderModal()" class="btn-arus-secondary px-4 text-xs font-bold">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeAddReminderModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary px-5 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer">
                         Simpan Pengingat
                     </button>
                 </div>
@@ -470,21 +547,21 @@
     </div>
 
     <!-- Modal Ubah Pengingat -->
-    <div id="editReminderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div id="editReminderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         ✏️
                     </span>
-                    <div>
+                    <div class="min-w-0">
                         <h3 id="editModalTitle" class="font-serif text-lg text-forest font-normal">
                             Ubah Jadwal Pengingat
                         </h3>
                         <p class="text-[11px] text-muted">Perbarui parameter judul, saluran, dan waktu jatuh tempo.</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeEditReminderModal()" class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm">
+                <button type="button" onclick="closeEditReminderModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0" aria-label="Tutup modal">
                     ✕
                 </button>
             </div>
@@ -504,7 +581,7 @@
                     >
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="editType" class="block text-xs font-bold text-charcoal mb-1">Tipe Pengingat *</label>
                         <select name="type" id="editType" class="field-select w-full text-xs">
@@ -525,7 +602,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="editAmount" class="block text-xs font-bold text-charcoal mb-1">Nominal Tagihan (Opsional)</label>
                         <input 
@@ -548,7 +625,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="editDueDate" class="block text-xs font-bold text-charcoal mb-1">Tanggal Jatuh Tempo</label>
                         <input 
@@ -587,11 +664,11 @@
                     </label>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeEditReminderModal()" class="btn-arus-secondary px-4 text-xs font-bold">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeEditReminderModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary px-5 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer">
                         Perbarui Pengingat
                     </button>
                 </div>
@@ -600,14 +677,14 @@
     </div>
 
     <!-- Modal Pengaturan Saluran Notifikasi (Email & WhatsApp Gratis) -->
-    <div id="settingsModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         ⚙️
                     </span>
-                    <div>
+                    <div class="min-w-0">
                         <h3 id="settingsModalTitle" class="font-serif text-lg text-forest font-normal">
                             Pengaturan Saluran Notifikasi
                         </h3>
@@ -616,7 +693,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeSettingsModal()" class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm">
+                <button type="button" onclick="closeSettingsModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0" aria-label="Tutup modal">
                     ✕
                 </button>
             </div>
@@ -693,7 +770,7 @@
                             <span>Izinkan pengiriman pengingat via WhatsApp</span>
                         </label>
 
-                        <div class="p-3 rounded-xl bg-sidebar/50 border border-line flex items-center justify-between gap-3">
+                        <div class="p-3 rounded-xl bg-sidebar/50 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <label class="flex items-center gap-2 cursor-pointer text-xs text-charcoal">
                                 <input type="checkbox" name="daily_reminder_enabled" value="1" {{ $user->daily_reminder_enabled ? 'checked' : '' }} class="rounded border-line text-forest focus:ring-forest">
                                 <div>
@@ -705,17 +782,17 @@
                                 type="time" 
                                 name="daily_reminder_time" 
                                 value="{{ old('daily_reminder_time', $user->daily_reminder_time ?? '20:00') }}" 
-                                class="field-input w-24 text-xs font-mono text-center"
+                                class="field-input w-full sm:w-28 text-xs font-mono text-center"
                             >
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeSettingsModal()" class="btn-arus-secondary px-4 text-xs font-bold">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeSettingsModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary px-5 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer">
                         Simpan Pengaturan
                     </button>
                 </div>
@@ -724,14 +801,14 @@
     </div>
 
     <!-- Modal Uji Coba Pengiriman Notifikasi (Test Dispatch) -->
-    <div id="testModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div id="testModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         ⚡
                     </span>
-                    <div>
+                    <div class="min-w-0">
                         <h3 id="testModalTitle" class="font-serif text-lg text-forest font-normal">
                             Tes Kirim Notifikasi
                         </h3>
@@ -740,7 +817,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeTestModal()" class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm">
+                <button type="button" onclick="closeTestModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0" aria-label="Tutup modal">
                     ✕
                 </button>
             </div>
@@ -771,11 +848,11 @@
                     <span class="text-[10px] text-muted block mt-0.5">Jika kosong, akan menggunakan nomor pada profil akun Anda.</span>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeTestModal()" class="btn-arus-secondary px-4 text-xs font-bold">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeTestModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary px-5 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer">
                         🚀 Jalankan Tes Sekarang
                     </button>
                 </div>

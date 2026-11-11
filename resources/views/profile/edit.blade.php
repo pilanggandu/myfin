@@ -124,7 +124,7 @@
                             @if ($user->has_password)
                                 <form method="POST" action="{{ route('profile.google.unlink') }}" onsubmit="return confirm('Apakah Anda yakin ingin memutuskan tautan akun Google ini?');">
                                     @csrf
-                                    <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-semibold border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-charcoal transition cursor-pointer">
+                                    <button type="submit" class="min-h-[44px] sm:min-h-[36px] w-full sm:w-auto inline-flex items-center justify-center px-3.5 py-2 rounded-xl text-xs font-semibold border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-charcoal transition cursor-pointer">
                                         Putuskan Tautan
                                     </button>
                                 </form>
@@ -134,7 +134,7 @@
                                 </span>
                             @endif
                         @else
-                            <a href="{{ route('auth.google.redirect', ['action' => 'bind']) }}" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                            <a href="{{ route('auth.google.redirect', ['action' => 'bind']) }}" class="min-h-[44px] sm:min-h-[36px] w-full sm:w-auto justify-center px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
                                 <span>Hubungkan Akun Google</span>
                             </a>
                         @endif
@@ -147,7 +147,7 @@
         <div class="lg:col-span-2">
             <x-panel title="Preferensi Tema Tampilan" subtitle="Pilih nuansa tampilan antarmuka yang paling nyaman untuk Anda.">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <button type="button" onclick="setArusTheme('light')" data-theme-value="light" class="p-4 rounded-xl border border-line bg-panel hover:bg-cream transition text-left cursor-pointer group focus-visible:outline-none">
+                    <button type="button" onclick="setArusTheme('light')" data-theme-value="light" class="p-4 rounded-xl border border-line bg-panel hover:bg-cream transition text-left cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xl">☀️</span>
                             <span class="text-[11px] font-bold uppercase tracking-wider text-muted bg-cream px-2 py-0.5 rounded">TERANG</span>
@@ -156,7 +156,7 @@
                         <p class="text-xs text-muted mt-1 m-0">Latar hangat ivory dengan panel putih bersih dan teks charcoal.</p>
                     </button>
 
-                    <button type="button" onclick="setArusTheme('dark')" data-theme-value="dark" class="p-4 rounded-xl border border-line bg-panel hover:bg-cream transition text-left cursor-pointer group focus-visible:outline-none">
+                    <button type="button" onclick="setArusTheme('dark')" data-theme-value="dark" class="p-4 rounded-xl border border-line bg-panel hover:bg-cream transition text-left cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xl">🌙</span>
                             <span class="text-[11px] font-bold uppercase tracking-wider text-muted bg-cream px-2 py-0.5 rounded">GELAP</span>
@@ -165,7 +165,7 @@
                         <p class="text-xs text-muted mt-1 m-0">Latar gelap forest-charcoal tenang dan nyaman untuk mata di malam hari.</p>
                     </button>
 
-                    <button type="button" onclick="setArusTheme('system')" data-theme-value="system" class="p-4 rounded-xl border border-line bg-panel hover:bg-cream transition text-left cursor-pointer group focus-visible:outline-none">
+                    <button type="button" onclick="setArusTheme('system')" data-theme-value="system" class="p-4 rounded-xl border border-line bg-panel hover:bg-cream transition text-left cursor-pointer group">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xl">💻</span>
                             <span class="text-[11px] font-bold uppercase tracking-wider text-muted bg-cream px-2 py-0.5 rounded">OTOMATIS</span>
@@ -192,18 +192,18 @@
                             Hapus transaksi uji coba, bersihkan data per modul, atau reset penuh seluruh data keuangan ruang kerja Anda.
                         </p>
                     </div>
-                    <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                         <button 
                             type="button" 
                             onclick="openCleanDataModal('custom')" 
-                            class="px-4 py-2 rounded-xl text-xs font-bold border border-rose-500/40 bg-panel text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+                            class="min-h-[44px] sm:min-h-[38px] w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold border border-rose-500/40 bg-panel text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
                         >
                             Pilih Per Modul...
                         </button>
                         <button 
                             type="button" 
                             onclick="openCleanDataModal('all')" 
-                            class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                            class="min-h-[44px] sm:min-h-[38px] w-full sm:w-auto justify-center px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
                         >
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -242,8 +242,8 @@
     </div>
 
     <!-- Modal Konfirmasi Bersihkan Data -->
-    <div id="cleanDataModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div id="cleanDataModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
             <div class="flex items-start justify-between gap-3 border-b border-line pb-3">
                 <div class="flex items-center gap-2.5">
                     <span class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
@@ -258,7 +258,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeCleanDataModal()" class="p-1 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer" aria-label="Tutup">
+                <button type="button" onclick="closeCleanDataModal()" class="w-11 h-11 sm:w-8 sm:h-8 -mr-2 sm:mr-0 inline-flex items-center justify-center rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer" aria-label="Tutup">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -388,11 +388,11 @@
                 </div>
 
                 <!-- Tombol Aksi Modal -->
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeCleanDataModal()" class="btn-arus-secondary px-4 py-2 text-xs font-bold cursor-pointer">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeCleanDataModal()" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] w-full sm:w-auto justify-center px-4 py-2 text-xs font-bold cursor-pointer">
                         Batal
                     </button>
-                    <button type="submit" id="btnSubmitCleanData" class="btn-arus-primary bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5">
+                    <button type="submit" id="btnSubmitCleanData" class="btn-arus-primary bg-rose-600 hover:bg-rose-700 text-white min-h-[44px] sm:min-h-[38px] w-full sm:w-auto justify-center px-5 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5">
                         <svg id="cleanSpinner" class="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white shrink-0 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

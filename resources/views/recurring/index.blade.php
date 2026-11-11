@@ -9,8 +9,8 @@
                 Kelola tagihan rutin (Kas, Bank, E-Wallet, atau Kartu Kredit/PayLater), transfer berkala, dan jadwal pelunasan tagihan kredit. Untuk belanja cicilan ber-tenor, gunakan <a href="{{ route('credit.index') }}" class="text-forest font-semibold hover:underline">Kredit &amp; Cicilan</a>.
             </p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('recurring.create') }}" class="btn-arus-primary text-xs font-bold px-4 py-2 inline-flex items-center gap-1.5 shadow-xs">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <a href="{{ route('recurring.create') }}" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] text-xs font-bold px-4 py-2 inline-flex items-center justify-center gap-1.5 shadow-xs">
                 <span>+ Buat Jadwal Baru</span>
             </a>
         </div>
@@ -68,23 +68,23 @@
     <!-- Filter & Tabs -->
     <div class="panel-card rounded-2xl border border-line bg-panel shadow-xs overflow-hidden">
         <div class="p-4 border-b border-line flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs font-bold">
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'all' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+            <div class="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0 text-xs font-bold">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'all'])) }}" class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg transition inline-flex items-center shrink-0 {{ $status === 'active' && $type === 'all' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Semua Aktif ({{ $activeCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'expense'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'expense' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'expense'])) }}" class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg transition inline-flex items-center shrink-0 {{ $status === 'active' && $type === 'expense' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Tagihan ({{ $expenseCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'transfer'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'transfer' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'transfer'])) }}" class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg transition inline-flex items-center shrink-0 {{ $status === 'active' && $type === 'transfer' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Transfer ({{ $transferCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'credit_payment'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'active' && $type === 'credit_payment' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'active', 'type' => 'credit_payment'])) }}" class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg transition inline-flex items-center shrink-0 {{ $status === 'active' && $type === 'credit_payment' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Bayar Kredit ({{ $creditPaymentCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'paused', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'paused' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'paused', 'type' => 'all'])) }}" class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg transition inline-flex items-center shrink-0 {{ $status === 'paused' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Dijeda ({{ $pausedCount }})
                 </a>
-                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'archived', 'type' => 'all'])) }}" class="px-3 py-1.5 rounded-lg transition {{ $status === 'archived' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
+                <a href="{{ route('recurring.index', array_merge(request()->query(), ['status' => 'archived', 'type' => 'all'])) }}" class="min-h-[44px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg transition inline-flex items-center shrink-0 {{ $status === 'archived' ? 'bg-forest text-white' : 'text-muted hover:text-charcoal bg-sidebar' }}">
                     Arsip & Batal ({{ $archivedCount }})
                 </a>
             </div>
@@ -93,10 +93,10 @@
             @if ($members->isNotEmpty())
                 <div class="flex items-center gap-2">
                     <span class="text-[11px] text-muted whitespace-nowrap">Filter Member:</span>
-                    <form method="GET" action="{{ route('recurring.index') }}">
+                    <form method="GET" action="{{ route('recurring.index') }}" class="flex-1 sm:flex-initial">
                         <input type="hidden" name="status" value="{{ $status }}">
                         <input type="hidden" name="type" value="{{ $type }}">
-                        <select name="member_id" onchange="this.form.submit()" class="field-select text-xs py-1 px-2.5 h-8">
+                        <select name="member_id" onchange="this.form.submit()" class="field-select text-xs py-1.5 sm:py-1 px-2.5 h-11 sm:h-8 w-full sm:w-auto">
                             <option value="">Semua Member</option>
                             @foreach ($members as $m)
                                 <option value="{{ $m->id }}" {{ (string)$memberId === (string)$m->id ? 'selected' : '' }}>
@@ -129,7 +129,122 @@
                 @endif
             </div>
         @else
-            <div class="overflow-x-auto">
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($schedules as $item)
+                    @php
+                        $dueStatus = $item->dueStatus($tz);
+                        $suggestedAmt = $item->isCreditPayment() && $item->is_variable_amount
+                            ? ($creditSuggestions[$item->credit_account_id]['suggested'] ?? 0)
+                            : 0;
+                    @endphp
+                    <div class="p-4 space-y-3 text-xs {{ $item->isArchived() ? 'opacity-65' : '' }}">
+                        <div class="flex items-start justify-between gap-2.5">
+                            <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 {{ $item->isCreditPayment() ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : ($item->isExpense() ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-slate-500/10 text-charcoal') }}">
+                                    {{ $item->isCreditPayment() ? '💳' : ($item->isExpense() ? '🏷️' : '⇄') }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <a href="{{ route('recurring.show', $item) }}" class="font-bold text-sm text-charcoal hover:text-forest truncate">
+                                            {{ $item->name }}
+                                        </a>
+                                        @if ($item->isPaused())
+                                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 uppercase">Dijeda</span>
+                                        @elseif ($item->isCancelled())
+                                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 uppercase">Dibatalkan</span>
+                                        @elseif ($item->isCompleted())
+                                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-forest/15 text-forest border border-forest/30 uppercase">Selesai</span>
+                                        @elseif ($item->isArchived())
+                                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-muted/15 text-muted border border-line uppercase">Diarsipkan</span>
+                                        @endif
+                                        @if ($item->member)
+                                            <span class="inline-flex items-center px-2 py-0.2 rounded-full text-[9.5px] font-bold text-white" style="background-color: {{ $item->member->color ?: '#0f4c3a' }};">
+                                                {{ $item->member->name }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="text-[11px] text-muted mt-0.5">
+                                        @if ($item->frequency === 'weekly') Mingguan
+                                        @elseif ($item->frequency === 'yearly') Tahunan
+                                        @else Bulanan (Tgl {{ $item->anchor_day }})
+                                        @endif
+                                        &bull; Tempo: <strong class="font-mono text-charcoal">{{ $item->next_due_date->format('d M Y') }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-right shrink-0">
+                                @if ($item->is_variable_amount)
+                                    <span class="text-xs text-muted italic">Fleksibel</span>
+                                @else
+                                    <span class="font-mono font-bold text-sm text-charcoal privacy-balance block">
+                                        Rp {{ number_format($item->amount, 0, ',', '.') }}
+                                    </span>
+                                @endif
+                                @if ($dueStatus === 'overdue')
+                                    <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 uppercase mt-1">Terlambat</span>
+                                @elseif ($dueStatus === 'due')
+                                    <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 uppercase mt-1">Hari Ini</span>
+                                @else
+                                    <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-sidebar text-muted border border-line uppercase mt-1">Mendatang</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 rounded-lg bg-sidebar/50 border border-line text-[11px] flex flex-wrap items-center justify-between gap-1.5">
+                            @if ($item->isExpense())
+                                <span class="font-medium text-charcoal">
+                                    {{ $item->creditAccount ? '💳 ' . $item->creditAccount->name : ($item->sourceAccount?->name ?? 'Rekening Fleksibel') }}
+                                </span>
+                                <span class="text-muted">Pos: <strong class="text-charcoal">{{ $item->category?->name }}</strong></span>
+                            @elseif ($item->isCreditPayment())
+                                <span class="font-medium text-charcoal">
+                                    {{ $item->sourceAccount?->name ?: 'Rekening Fleksibel' }} &rarr; 💳 {{ $item->creditAccount?->name }}
+                                </span>
+                                <span class="text-muted">Bayar Kredit</span>
+                            @else
+                                <span class="font-medium text-charcoal">
+                                    {{ $item->sourceAccount?->name }} &rarr; {{ $item->destinationAccount?->name }}
+                                </span>
+                                <span class="text-muted">Transfer</span>
+                            @endif
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-line/60">
+                            @if ($item->isActive())
+                                <button
+                                    type="button"
+                                    onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}', {{ $item->source_account_id ?: 'null' }}, {{ $suggestedAmt }})"
+                                    class="flex-1 min-w-[100px] min-h-[44px] px-3 py-2 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest/90 transition inline-flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    ✓ Catat
+                                </button>
+                            @endif
+                            <a href="{{ route('recurring.show', $item) }}" class="min-w-[44px] min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-semibold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center">
+                                Detail
+                            </a>
+                            <a href="{{ route('recurring.edit', $item) }}" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center" title="Ubah Jadwal" aria-label="Ubah Jadwal">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                </svg>
+                            </a>
+                            <form method="POST" action="{{ route('recurring.destroy', $item) }}" class="inline" onsubmit="return confirm('{{ $item->isArchived() ? 'Pulihkan jadwal ini?' : 'Arsipkan jadwal ini?' }}')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-rose-600 transition inline-flex items-center justify-center cursor-pointer" title="{{ $item->isArchived() ? 'Pulihkan Jadwal' : 'Arsipkan Jadwal' }}" aria-label="{{ $item->isArchived() ? 'Pulihkan Jadwal' : 'Arsipkan Jadwal' }}">
+                                    @if ($item->isArchived())
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                                    @else
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>
+                                    @endif
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-line bg-sidebar/50 text-[10px] uppercase font-bold text-muted tracking-wider">
@@ -281,7 +396,7 @@
                                             <button 
                                                 type="button" 
                                                 onclick="openConfirmModal({{ $item->id }}, '{{ addslashes($item->name) }}', '{{ $item->next_due_date->toDateString() }}', {{ $item->amount ?: 0 }}, {{ $item->is_variable_amount ? 'true' : 'false' }}, '{{ $item->type }}', {{ $item->source_account_id ?: 'null' }}, {{ $suggestedAmt }})"
-                                                class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest/90 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+                                                class="min-h-[44px] lg:min-h-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest/90 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer"
                                                 title="Konfirmasi & Catat Transaksi"
                                             >
                                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -293,7 +408,7 @@
 
                                         <a 
                                             href="{{ route('recurring.show', $item) }}" 
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                             title="Rincian Jadwal & Riwayat"
                                             aria-label="Rincian Jadwal & Riwayat"
                                         >
@@ -305,7 +420,7 @@
 
                                         <a 
                                             href="{{ route('recurring.edit', $item) }}" 
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                             title="Ubah Jadwal"
                                             aria-label="Ubah Jadwal"
                                         >
@@ -319,7 +434,7 @@
                                             @method('DELETE')
                                             <button 
                                                 type="submit" 
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-rose-600 hover:border-rose-500/40 hover:bg-rose-500/10 transition inline-flex items-center justify-center cursor-pointer"
+                                                class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-rose-600 hover:border-rose-500/40 hover:bg-rose-500/10 transition inline-flex items-center justify-center cursor-pointer"
                                                 title="{{ $item->isArchived() ? 'Pulihkan Jadwal' : 'Arsipkan Jadwal' }}"
                                                 aria-label="{{ $item->isArchived() ? 'Pulihkan Jadwal' : 'Arsipkan Jadwal' }}"
                                             >
@@ -345,14 +460,14 @@
     </div>
 
     <!-- Modal Konfirmasi Occurrence -->
-    <div id="confirmOccurrenceModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4">
-        <div class="panel-card w-full max-w-md p-6 rounded-2xl border border-line bg-panel shadow-xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center text-xs font-bold">✓</span>
-                    <h3 class="text-sm font-bold text-charcoal">Konfirmasi & Catat Transaksi</h3>
+    <div id="confirmOccurrenceModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-start sm:items-center justify-center p-3 sm:p-4">
+        <div class="panel-card w-full max-w-md p-4 sm:p-6 rounded-2xl border border-line bg-panel shadow-xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center text-xs font-bold shrink-0">✓</span>
+                    <h3 class="text-sm font-bold text-charcoal truncate">Konfirmasi & Catat Transaksi</h3>
                 </div>
-                <button type="button" onclick="closeConfirmModal()" class="text-muted hover:text-charcoal font-bold text-base cursor-pointer">&times;</button>
+                <button type="button" onclick="closeConfirmModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg inline-flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream font-bold text-base cursor-pointer shrink-0" aria-label="Tutup modal">&times;</button>
             </div>
 
             <form method="POST" id="confirmOccurrenceForm" action="" class="space-y-4" novalidate>
@@ -420,7 +535,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="modalTxDate" class="block text-xs font-bold text-charcoal mb-1">
                             Tanggal Catat
@@ -461,11 +576,11 @@
                     />
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-line">
-                    <button type="button" onclick="closeConfirmModal()" class="btn-arus-secondary px-4 py-2 text-xs font-bold cursor-pointer">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-2 border-t border-line">
+                    <button type="button" onclick="closeConfirmModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 py-2 text-xs font-bold cursor-pointer">
                         Batal
                     </button>
-                    <button type="submit" id="btnConfirmSubmit" class="btn-arus-primary px-5 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5">
+                    <button type="submit" id="btnConfirmSubmit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 py-2 text-xs font-bold cursor-pointer inline-flex items-center justify-center gap-1.5">
                         <svg id="confirmIcon" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                         </svg>

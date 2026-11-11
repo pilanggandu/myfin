@@ -61,7 +61,7 @@ export function enhanceDateInput(el) {
     visibleInput.maxLength = 10;
 
     let baseClasses = el.className || 'field-input';
-    visibleInput.className = baseClasses + ' pr-10 cursor-pointer';
+    visibleInput.className = baseClasses + ' pr-11 sm:pr-10 cursor-pointer';
     if (isRequired) {
         visibleInput.required = true;
     }
@@ -72,7 +72,8 @@ export function enhanceDateInput(el) {
 
     const calendarBtn = document.createElement('button');
     calendarBtn.type = 'button';
-    calendarBtn.className = 'absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-forest transition-colors p-1 cursor-pointer focus:outline-none';
+    calendarBtn.className = 'absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-7 sm:h-7 rounded-lg inline-flex items-center justify-center text-muted hover:text-forest transition-colors cursor-pointer';
+    calendarBtn.setAttribute('aria-label', 'Pilih tanggal (tgl/bln/thn)');
     calendarBtn.title = 'Pilih Tanggal (tgl/bln/thn)';
     calendarBtn.innerHTML = `
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -84,7 +85,7 @@ export function enhanceDateInput(el) {
     wrapper.appendChild(calendarBtn);
 
     const popup = document.createElement('div');
-    popup.className = 'arus-calendar-popup fixed z-50 bg-panel border border-line rounded-2xl shadow-2xl p-3.5 w-[280px] hidden text-charcoal select-none';
+    popup.className = 'arus-calendar-popup fixed z-[75] bg-panel border border-line rounded-2xl shadow-2xl p-3.5 w-[min(308px,calc(100vw-16px))] sm:w-[280px] max-h-[calc(100dvh-16px)] overflow-y-auto hidden text-charcoal select-none';
     popup.style.display = 'none';
     document.body.appendChild(popup);
 
@@ -130,17 +131,31 @@ export function enhanceDateInput(el) {
 
     function positionPopup() {
         const rect = visibleInput.getBoundingClientRect();
-        const popupWidth = 280;
-        const popupHeight = 320;
+        const vv = window.visualViewport;
+        const viewportW = vv ? vv.width : window.innerWidth;
+        const viewportH = vv ? vv.height : window.innerHeight;
+        const vvTop = vv ? vv.offsetTop : 0;
+        const vvLeft = vv ? vv.offsetLeft : 0;
+
+        const popupWidth = popup.offsetWidth || Math.min(308, viewportW - 16);
+        const popupHeight = popup.offsetHeight || 340;
+
+        const spaceBelow = (vvTop + viewportH) - rect.bottom - 10;
+        const spaceAbove = rect.top - vvTop - 10;
 
         let top = rect.bottom + 6;
-        let left = rect.left;
-
-        if (top + popupHeight > window.innerHeight) {
-            top = Math.max(10, rect.top - popupHeight - 6);
+        if (spaceBelow < popupHeight && spaceAbove > spaceBelow) {
+            top = Math.max(vvTop + 8, rect.top - popupHeight - 6);
+        } else if (top + popupHeight > vvTop + viewportH - 8) {
+            top = Math.max(vvTop + 8, (vvTop + viewportH) - popupHeight - 8);
         }
-        if (left + popupWidth > window.innerWidth) {
-            left = Math.max(10, window.innerWidth - popupWidth - 10);
+
+        let left = rect.left;
+        if (left + popupWidth > vvLeft + viewportW - 8) {
+            left = Math.max(vvLeft + 8, (vvLeft + viewportW) - popupWidth - 8);
+        }
+        if (left < vvLeft + 8) {
+            left = vvLeft + 8;
         }
 
         popup.style.top = `${top}px`;
@@ -155,7 +170,8 @@ export function enhanceDateInput(el) {
 
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
-        prevBtn.className = 'w-7 h-7 rounded-lg flex items-center justify-center hover:bg-cream transition cursor-pointer text-muted hover:text-charcoal';
+        prevBtn.className = 'w-10 h-10 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center hover:bg-cream transition cursor-pointer text-muted hover:text-charcoal text-base sm:text-sm';
+        prevBtn.setAttribute('aria-label', 'Bulan sebelumnya');
         prevBtn.innerHTML = '‹';
         prevBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -165,6 +181,7 @@ export function enhanceDateInput(el) {
                 viewYear--;
             }
             renderCalendar();
+            positionPopup();
         });
 
         const title = document.createElement('div');
@@ -173,7 +190,8 @@ export function enhanceDateInput(el) {
 
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.className = 'w-7 h-7 rounded-lg flex items-center justify-center hover:bg-cream transition cursor-pointer text-muted hover:text-charcoal';
+        nextBtn.className = 'w-10 h-10 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center hover:bg-cream transition cursor-pointer text-muted hover:text-charcoal text-base sm:text-sm';
+        nextBtn.setAttribute('aria-label', 'Bulan berikutnya');
         nextBtn.innerHTML = '›';
         nextBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -183,6 +201,7 @@ export function enhanceDateInput(el) {
                 viewYear++;
             }
             renderCalendar();
+            positionPopup();
         });
 
         header.appendChild(prevBtn);
@@ -212,7 +231,7 @@ export function enhanceDateInput(el) {
 
         for (let i = firstDayIndex - 1; i >= 0; i--) {
             const cell = document.createElement('div');
-            cell.className = 'h-7 flex items-center justify-center text-[11px] text-muted opacity-30 select-none';
+            cell.className = 'h-10 sm:h-7 flex items-center justify-center text-[11px] text-muted opacity-30 select-none';
             cell.textContent = prevMonthTotalDays - i;
             grid.appendChild(cell);
         }
@@ -224,7 +243,7 @@ export function enhanceDateInput(el) {
             const isSelected = cellIso === currentIso;
             const isToday = cellIso === todayIso;
 
-            cell.className = 'h-7 rounded-lg flex items-center justify-center text-xs font-semibold cursor-pointer transition-colors';
+            cell.className = 'h-10 sm:h-7 rounded-lg flex items-center justify-center text-xs font-semibold cursor-pointer transition-colors';
             if (isSelected) {
                 cell.className += ' bg-forest text-white font-bold shadow-xs';
             } else if (isToday) {
@@ -247,7 +266,7 @@ export function enhanceDateInput(el) {
         if (remainingCells < 7) {
             for (let i = 1; i <= remainingCells; i++) {
                 const cell = document.createElement('div');
-                cell.className = 'h-7 flex items-center justify-center text-[11px] text-muted opacity-30 select-none';
+                cell.className = 'h-10 sm:h-7 flex items-center justify-center text-[11px] text-muted opacity-30 select-none';
                 cell.textContent = i;
                 grid.appendChild(cell);
             }
@@ -256,11 +275,11 @@ export function enhanceDateInput(el) {
         popup.appendChild(grid);
 
         const footer = document.createElement('div');
-        footer.className = 'flex items-center justify-between pt-2.5 mt-2.5 border-t border-line text-xs';
+        footer.className = 'flex items-center justify-between pt-2.5 mt-2.5 border-t border-line text-xs gap-2';
 
         const todayBtn = document.createElement('button');
         todayBtn.type = 'button';
-        todayBtn.className = 'btn-arus-secondary text-[11px] py-1 px-2.5 font-bold';
+        todayBtn.className = 'btn-arus-secondary min-h-[44px] sm:min-h-[30px] text-[11px] py-1.5 sm:py-1 px-3 sm:px-2.5 font-bold cursor-pointer';
         todayBtn.textContent = 'Hari Ini';
         todayBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -272,7 +291,7 @@ export function enhanceDateInput(el) {
 
         const clearBtn = document.createElement('button');
         clearBtn.type = 'button';
-        clearBtn.className = 'text-[11px] text-muted hover:text-charcoal px-2 py-1';
+        clearBtn.className = 'min-h-[44px] sm:min-h-[30px] text-[11px] text-muted hover:text-charcoal px-3 sm:px-2 py-1.5 sm:py-1 cursor-pointer';
         clearBtn.textContent = 'Batal';
         clearBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -301,12 +320,14 @@ export function enhanceDateInput(el) {
             }
         }
         renderCalendar();
-        positionPopup();
+        popup.classList.remove('hidden');
         popup.style.display = 'block';
+        positionPopup();
     }
 
     function closePopup() {
         popup.style.display = 'none';
+        popup.classList.add('hidden');
     }
 
     calendarBtn.addEventListener('click', (ev) => {
@@ -366,6 +387,18 @@ export function enhanceDateInput(el) {
     });
 
     window.addEventListener('resize', () => {
+        if (popup.style.display === 'block') {
+            positionPopup();
+        }
+    });
+
+    window.visualViewport?.addEventListener('resize', () => {
+        if (popup.style.display === 'block') {
+            positionPopup();
+        }
+    });
+
+    window.visualViewport?.addEventListener('scroll', () => {
         if (popup.style.display === 'block') {
             positionPopup();
         }

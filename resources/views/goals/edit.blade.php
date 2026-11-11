@@ -133,7 +133,7 @@
                                     <button 
                                         type="button" 
                                         onclick="selectIcon('{{ $ic }}')" 
-                                        class="w-8 h-8 rounded-lg bg-cream dark:bg-line/40 hover:bg-forest/20 text-lg flex items-center justify-center transition cursor-pointer select-icon-btn border {{ $currentIcon === $ic ? 'border-forest ring-2 ring-forest/30' : 'border-transparent' }}"
+                                        class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-cream dark:bg-line/40 hover:bg-forest/20 text-lg flex items-center justify-center transition cursor-pointer select-icon-btn border {{ $currentIcon === $ic ? 'border-forest ring-2 ring-forest/30' : 'border-transparent' }}"
                                         data-icon="{{ $ic }}"
                                     >
                                         {{ $ic }}
@@ -154,7 +154,7 @@
                                     <button 
                                         type="button" 
                                         onclick="selectColor('{{ $col }}')" 
-                                        class="w-7 h-7 rounded-full border-2 transition cursor-pointer select-color-btn"
+                                        class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border-2 transition cursor-pointer select-color-btn"
                                         style="background-color: {{ $col }}; border-color: {{ $currentColor === $col ? '#ffffff' : 'transparent' }}; box-shadow: {{ $currentColor === $col ? '0 0 0 2px ' . $col : 'none' }};"
                                         data-color="{{ $col }}"
                                     ></button>
@@ -218,20 +218,20 @@
                 </div>
 
                 <!-- Submit & Delete Actions -->
-                <div class="flex items-center justify-between pt-2">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-2">
                     <button 
                         type="button" 
                         onclick="if(confirm('Apakah Anda yakin ingin menghapus target ini beserta seluruh riwayat setorannya? Tindakan ini tidak dapat dibatalkan.')) { document.getElementById('deleteGoalForm').submit(); }" 
-                        class="text-xs text-red hover:underline font-semibold"
+                        class="text-xs text-red hover:underline font-semibold min-h-[44px] sm:min-h-0 px-2 -mx-2 sm:mx-0 inline-flex items-center justify-center sm:justify-start cursor-pointer"
                     >
                         Hapus Target Ini
                     </button>
 
-                    <div class="flex items-center gap-3">
-                        <a href="{{ route('goals.show', $goal) }}" class="btn-arus-secondary text-xs h-10 px-5">
+                    <div class="flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+                        <a href="{{ route('goals.show', $goal) }}" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[40px] px-5 w-full sm:w-auto justify-center">
                             Batal
                         </a>
-                        <button type="submit" class="btn-arus-primary text-xs h-10 px-6">
+                        <button type="submit" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[40px] px-6 w-full sm:w-auto justify-center">
                             Simpan Perubahan
                         </button>
                     </div>

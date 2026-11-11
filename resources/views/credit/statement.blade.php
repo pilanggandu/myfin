@@ -18,14 +18,14 @@
         </div>
 
         <!-- Month Switcher Dropdown -->
-        <div class="flex items-center gap-2">
-            <form method="GET" action="{{ route('credit.accounts.statement', $creditAccount) }}" class="flex items-center gap-2">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <form method="GET" action="{{ route('credit.accounts.statement', $creditAccount) }}" class="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                 <label for="month" class="text-xs text-muted whitespace-nowrap font-semibold">Periode Tagihan:</label>
                 <select 
                     name="month" 
                     id="month" 
                     onchange="this.form.submit()" 
-                    class="px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal font-semibold focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer shadow-xs"
+                    class="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal font-semibold focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer shadow-xs"
                 >
                     @foreach ($availableMonths as $m)
                         <option value="{{ $m['key'] }}" {{ $month === $m['key'] ? 'selected' : '' }}>
@@ -244,7 +244,48 @@
                 <p class="text-xs">Tidak ada tagihan cicilan yang jatuh tempo pada periode {{ $statement['month_name'] }}.</p>
             </div>
         @else
-            <div class="overflow-x-auto">
+            <div class="md:hidden space-y-3">
+                @foreach ($statement['installments'] as $idx => $inst)
+                    @php
+                        $extra = (float) $inst->interest_amount + (float) $inst->fee_amount;
+                        $extraDec = fmod($extra, 1.0) == 0.0 ? 0 : 2;
+                        $formattedExtra = 'Rp ' . number_format($extra, $extraDec, ',', '.');
+                    @endphp
+                    <div class="p-3.5 rounded-xl border border-line bg-sidebar/30 space-y-2.5 text-xs {{ $inst->isPaid() ? 'opacity-80' : '' }}">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="font-bold text-charcoal truncate">{{ $inst->installmentPlan->name }}</div>
+                                <div class="text-[11px] text-muted mt-0.5">
+                                    #{{ $idx + 1 }} &bull; Cicilan {{ $inst->installment_number }}/{{ $inst->installmentPlan->tenor }} &bull; {{ $inst->installmentPlan->category->name ?? '-' }}
+                                </div>
+                                <div class="text-[11px] font-mono mt-0.5 {{ $inst->isOverdue() && $inst->isPending() ? 'text-red font-bold' : 'text-muted' }}">
+                                    Jatuh Tempo: {{ $inst->due_date->format('d M Y') }} {{ $inst->isOverdue() && $inst->isPending() ? '(Terlambat)' : '' }}
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="font-mono font-bold text-sm text-charcoal">
+                                    <span class="privacy-balance" data-raw-value="{{ $inst->formatted_total }}">{{ $inst->formatted_total }}</span>
+                                </div>
+                                <div class="mt-1">
+                                    @if ($inst->isPaid())
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">✓ Lunas</span>
+                                    @elseif ($inst->isOverdue())
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red/10 text-red">⚠ Terlambat</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">⏳ Pending</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line/60 text-[11px]">
+                            <span class="text-muted">Pokok: <strong class="font-mono text-charcoal privacy-balance" data-raw-value="{{ $inst->formatted_principal }}">{{ $inst->formatted_principal }}</strong> &bull; Bunga/Admin: <strong class="font-mono text-charcoal privacy-balance" data-raw-value="{{ $formattedExtra }}">{{ $formattedExtra }}</strong></span>
+                            <a href="{{ route('credit.plans.show', $inst->installmentPlan) }}" class="min-h-[36px] inline-flex items-center font-bold text-forest hover:underline">Detail Rencana &rarr;</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-xs text-left border-collapse">
                     <thead>
                         <tr class="border-b border-line text-muted">

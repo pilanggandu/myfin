@@ -133,7 +133,7 @@ export function enhanceSearchableSelect(selectEl) {
     triggerBtn.className = [
         'arus-category-trigger',
         'w-full flex items-center justify-between gap-2 text-left transition cursor-pointer',
-        isCompact ? 'h-9 px-3 text-xs' : 'min-h-[38px] px-3 py-1.5 text-[13px]',
+        isCompact ? 'min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-xs' : 'min-h-[44px] sm:min-h-[38px] px-3 py-1.5 text-[13px]',
         selectEl.classList.contains('text-xs') ? 'text-xs' : '',
         selectEl.classList.contains('has-error') ? 'has-error' : '',
     ].filter(Boolean).join(' ');
@@ -148,7 +148,7 @@ export function enhanceSearchableSelect(selectEl) {
 
     const clearValueBtn = document.createElement('button');
     clearValueBtn.type = 'button';
-    clearValueBtn.className = 'hidden w-5 h-5 rounded items-center justify-center text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer';
+    clearValueBtn.className = 'hidden w-8 h-8 sm:w-5 sm:h-5 rounded items-center justify-center text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer';
     clearValueBtn.setAttribute('aria-label', `Hapus pilihan ${itemNoun}`);
     clearValueBtn.title = `Hapus pilihan ${itemNoun}`;
     clearValueBtn.innerHTML = '&times;';
@@ -198,11 +198,11 @@ export function enhanceSearchableSelect(selectEl) {
     searchInput.placeholder = searchPlaceholder;
     searchInput.autocomplete = 'off';
     searchInput.setAttribute('aria-label', searchPlaceholder);
-    searchInput.className = 'field-input h-8.5 w-full text-xs !pl-8 !pr-7 bg-panel';
+    searchInput.className = 'field-input h-10 sm:h-8.5 w-full text-xs !pl-8 !pr-9 sm:!pr-7 bg-panel';
 
     const clearSearchBtn = document.createElement('button');
     clearSearchBtn.type = 'button';
-    clearSearchBtn.className = 'hidden absolute right-1.5 w-6 h-6 rounded flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer text-sm leading-none';
+    clearSearchBtn.className = 'hidden absolute right-1 w-8 h-8 sm:w-6 sm:h-6 rounded flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer text-sm leading-none';
     clearSearchBtn.setAttribute('aria-label', `Hapus kata kunci ${itemNoun}`);
     clearSearchBtn.innerHTML = '&times;';
 
@@ -343,7 +343,7 @@ export function enhanceSearchableSelect(selectEl) {
             chip.dataset.recentCategoryId = item.value;
             chip.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
             chip.className = [
-                'min-h-[34px] sm:min-h-[28px] px-2.5 py-1 rounded-lg text-xs border transition cursor-pointer inline-flex items-center gap-1',
+                'min-h-[44px] sm:min-h-[28px] px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs border transition cursor-pointer inline-flex items-center gap-1',
                 isSelected
                     ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold'
                     : 'bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage',
@@ -381,7 +381,8 @@ export function enhanceSearchableSelect(selectEl) {
             const hasSelection = currentValue !== '';
             clearValueBtn.classList.toggle('hidden', !hasSelection);
             clearValueBtn.classList.toggle('inline-flex', hasSelection);
-            triggerBtn.classList.toggle('!pr-14', hasSelection);
+            triggerBtn.classList.toggle('!pr-16', hasSelection);
+            triggerBtn.classList.toggle('sm:!pr-14', hasSelection);
         }
 
         renderChips();
@@ -405,7 +406,7 @@ export function enhanceSearchableSelect(selectEl) {
 
         const isHighlighted = index === activeIndex;
         btn.className = [
-            'w-full px-2.5 py-2 sm:py-1.5 rounded-lg text-xs text-left flex items-center justify-between gap-2 transition cursor-pointer',
+            'w-full min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2.5 sm:py-1.5 rounded-lg text-xs text-left flex items-center justify-between gap-2 transition cursor-pointer',
             item.disabled ? 'opacity-45 cursor-not-allowed' : '',
             isSelected
                 ? 'bg-forest-light text-forest dark:text-blue-300 font-bold'
@@ -533,7 +534,7 @@ export function enhanceSearchableSelect(selectEl) {
 
                 const resetBtn = document.createElement('button');
                 resetBtn.type = 'button';
-                resetBtn.className = 'btn-arus-secondary min-h-[32px] py-1 px-3 text-xs font-semibold cursor-pointer';
+                resetBtn.className = 'btn-arus-secondary min-h-[44px] sm:min-h-[32px] py-1 px-3 text-xs font-semibold cursor-pointer';
                 resetBtn.textContent = 'Reset pencarian';
                 resetBtn.addEventListener('click', ev => {
                     ev.stopPropagation();
@@ -622,27 +623,33 @@ export function enhanceSearchableSelect(selectEl) {
 
     function positionPopover() {
         const rect = triggerBtn.getBoundingClientRect();
-        const viewportW = window.innerWidth;
-        const viewportH = window.innerHeight;
+        const vv = window.visualViewport;
+        const viewportW = vv ? vv.width : window.innerWidth;
+        const viewportH = vv ? vv.height : window.innerHeight;
+        const vvTop = vv ? vv.offsetTop : 0;
+        const vvLeft = vv ? vv.offsetLeft : 0;
         const width = Math.min(Math.max(rect.width, 240), viewportW - 16);
 
         popover.style.width = `${width}px`;
 
-        const popHeight = Math.min(popover.offsetHeight || 310, 320);
-        const spaceBelow = viewportH - rect.bottom - 10;
-        const spaceAbove = rect.top - 10;
+        const spaceBelow = (vvTop + viewportH) - rect.bottom - 10;
+        const spaceAbove = rect.top - vvTop - 10;
+        const openUpwards = spaceBelow < 180 && spaceAbove > spaceBelow;
+        const availableSpace = Math.max(120, (openUpwards ? spaceAbove : spaceBelow) - 62);
+        listEl.style.maxHeight = `${Math.min(248, availableSpace)}px`;
 
+        const popHeight = popover.offsetHeight || 280;
         let top = rect.bottom + 6;
-        if (spaceBelow < popHeight && spaceAbove > spaceBelow) {
-            top = Math.max(8, rect.top - popHeight - 6);
+        if (openUpwards) {
+            top = Math.max(vvTop + 8, rect.top - popHeight - 6);
         }
 
         let left = rect.left;
-        if (left + width > viewportW - 8) {
-            left = Math.max(8, viewportW - width - 8);
+        if (left + width > vvLeft + viewportW - 8) {
+            left = Math.max(vvLeft + 8, vvLeft + viewportW - width - 8);
         }
-        if (left < 8) {
-            left = 8;
+        if (left < vvLeft + 8) {
+            left = vvLeft + 8;
         }
 
         popover.style.top = `${top}px`;
@@ -833,6 +840,18 @@ export function enhanceSearchableSelect(selectEl) {
     }, true);
 
     window.addEventListener('resize', () => {
+        if (isOpen) {
+            positionPopover();
+        }
+    });
+
+    window.visualViewport?.addEventListener('resize', () => {
+        if (isOpen) {
+            positionPopover();
+        }
+    });
+
+    window.visualViewport?.addEventListener('scroll', () => {
         if (isOpen) {
             positionPopover();
         }

@@ -15,14 +15,14 @@
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'goals-metrics\']')" 
-                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] sm:min-h-[38px] rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
                 title="Sembunyikan / Tampilkan Nominal Ringkasan Target"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
                 <span class="privacy-toggle-text">Nominal Ringkasan</span>
             </button>
 
-            <a href="{{ route('goals.create') }}" class="btn-arus-primary text-xs">
+            <a href="{{ route('goals.create') }}" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[38px]">
                 + Buat Target Baru
             </a>
         </div>
@@ -57,28 +57,28 @@
     </div>
 
     <!-- Filter Status Tabs -->
-    <div class="flex items-center gap-1.5 mb-6 overflow-x-auto pb-1">
+    <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
         <a 
             href="{{ route('goals.index', ['status' => 'active']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'active' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="whitespace-nowrap inline-flex items-center min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'active' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Aktif ({{ $activeCount }})
         </a>
         <a 
             href="{{ route('goals.index', ['status' => 'achieved']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'achieved' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="whitespace-nowrap inline-flex items-center min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'achieved' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Tercapai 🎉 ({{ $achievedCount }})
         </a>
         <a 
             href="{{ route('goals.index', ['status' => 'paused']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'paused' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="whitespace-nowrap inline-flex items-center min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'paused' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Dijeda
         </a>
         <a 
             href="{{ route('goals.index', ['status' => 'all']) }}" 
-            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'all' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
+            class="whitespace-nowrap inline-flex items-center min-h-[44px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition {{ $status === 'all' ? 'bg-forest text-white' : 'bg-panel border border-line text-muted hover:text-charcoal' }}"
         >
             Semua
         </a>
@@ -155,7 +155,7 @@
                                     <button 
                                         type="button" 
                                         onclick="toggleCardPrivacy(this)" 
-                                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
                                         title="Sembunyikan / Tampilkan Saldo Target Ini"
                                     >
                                         <span class="privacy-toggle-icon"></span>
@@ -171,7 +171,7 @@
 
                             <!-- Nominal Progress -->
                             <div class="mt-4 pt-3 border-t border-line/60">
-                                <div class="flex items-baseline justify-between gap-2 mb-1.5">
+                                <div class="flex items-baseline justify-between flex-wrap gap-x-2 gap-y-1 mb-1.5">
                                     <div class="text-xs text-muted">
                                         Terkumpul:
                                     </div>
@@ -257,14 +257,14 @@
     @endif
 
     <!-- Modal Setor Tabungan Cepat -->
-    <div id="contributeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 hidden">
-        <div class="panel-card w-full max-w-md p-6 bg-panel rounded-2xl shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-line">
+    <div id="contributeModal" class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/60 hidden">
+        <div class="panel-card w-full max-w-md p-4 sm:p-6 bg-panel rounded-2xl shadow-xl space-y-4 my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line">
                 <div>
                     <h3 class="font-bold text-base text-forest">Setor Tabungan</h3>
                     <p class="text-xs text-muted" id="modalGoalNameSubtitle">Target Tabungan</p>
                 </div>
-                <button type="button" onclick="closeContributeModal()" class="text-muted hover:text-charcoal p-1 rounded">
+                <button type="button" onclick="closeContributeModal()" class="text-muted hover:text-charcoal w-11 h-11 sm:w-8 sm:h-8 -mr-2 sm:mr-0 inline-flex items-center justify-center rounded-lg hover:bg-cream dark:hover:bg-line/40 transition cursor-pointer" aria-label="Tutup">
                     &times;
                 </button>
             </div>
@@ -323,11 +323,11 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-line">
-                    <button type="button" onclick="closeContributeModal()" class="btn-arus-secondary text-xs h-9 px-4">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-4 mt-4 border-t border-line">
+                    <button type="button" onclick="closeContributeModal()" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[36px] px-4 w-full sm:w-auto justify-center">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary text-xs h-9 px-4">
+                    <button type="submit" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[36px] px-4 w-full sm:w-auto justify-center">
                         Simpan Setoran
                     </button>
                 </div>

@@ -41,8 +41,8 @@
                     <span class="text-base font-bold text-forest tracking-tight block leading-tight">ARUS</span>
                     <span class="block text-[9.5px] font-bold tracking-[1.2px] text-muted uppercase">MANAJEMEN KEUANGAN</span>
                 </div>
-                <button type="button" class="lg:hidden ml-auto w-8 h-8 inline-flex items-center justify-center rounded-lg text-muted hover:text-charcoal hover:bg-forest-light transition-colors text-base" onclick="toggleSidebar()" aria-label="Tutup navigasi">
-                    <span class="text-lg leading-none" aria-hidden="true">&times;</span>
+                <button type="button" class="lg:hidden ml-auto w-11 h-11 inline-flex items-center justify-center rounded-lg text-muted hover:text-charcoal hover:bg-forest-light transition-colors text-base shrink-0" onclick="toggleSidebar()" aria-label="Tutup navigasi">
+                    <span class="text-xl leading-none" aria-hidden="true">&times;</span>
                 </button>
             </div>
 
@@ -57,7 +57,7 @@
 
             <div class="nav-section-label">RUANG AKTIF</div>
             <div class="relative flex-shrink-0" id="workspaceDropdownContainer">
-                <button type="button" onclick="toggleDropdown('workspaceDropdown')" class="w-full workspace-card text-left cursor-pointer focus-visible:outline-none min-h-[38px]">
+                <button type="button" onclick="toggleDropdown('workspaceDropdown')" class="w-full workspace-card text-left cursor-pointer min-h-[44px] lg:min-h-[38px]">
                     <span class="avatar-circle w-6 h-6 text-[10px]">
                         {{ strtoupper(substr($currentSpace?->name ?? 'A', 0, 1)) }}
                     </span>
@@ -74,13 +74,13 @@
                     <div class="px-3 py-1 text-[10px] font-bold text-muted uppercase tracking-wider">
                         Ganti Ruang Aktif
                     </div>
-                    <div class="max-h-44 overflow-y-auto py-1">
+                    <div class="max-h-48 overflow-y-auto py-1">
                         @foreach ($userSpaces ?? [] as $spaceItem)
                             <form method="POST" action="{{ route('spaces.switch', $spaceItem) }}">
                                 @csrf
-                                <button type="submit" class="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-forest-light transition cursor-pointer {{ (int)$currentSpace?->id === (int)$spaceItem->id ? 'bg-forest-light font-bold text-forest' : 'text-charcoal' }}">
+                                <button type="submit" class="w-full text-left px-3 min-h-[44px] lg:min-h-0 py-2 lg:py-1.5 text-xs flex items-center justify-between hover:bg-forest-light transition cursor-pointer {{ (int)$currentSpace?->id === (int)$spaceItem->id ? 'bg-forest-light font-bold text-forest' : 'text-charcoal' }}">
                                     <span class="truncate max-w-[130px]">{{ $spaceItem->name }}</span>
-                                    <span class="text-[9.5px] px-1.5 py-0.5 rounded {{ $spaceItem->isPersonal() ? 'bg-cream text-charcoal' : 'bg-forest-light text-forest' }}">
+                                    <span class="text-[9.5px] px-1.5 py-0.5 rounded shrink-0 {{ $spaceItem->isPersonal() ? 'bg-cream text-charcoal' : 'bg-forest-light text-forest' }}">
                                         {{ $spaceItem->isPersonal() ? 'Personal' : 'Bersama' }}
                                     </span>
                                 </button>
@@ -206,15 +206,15 @@
             </nav>
 
             <div class="mt-auto pt-3 border-t border-line flex-shrink-0">
-                <div class="flex items-center justify-between p-2 rounded-lg bg-panel border border-line mb-2.5">
-                    <div class="flex items-center gap-2">
+                <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-panel border border-line mb-2.5">
+                    <div class="flex items-center gap-2 min-w-0">
                         <span id="currentThemeIcon" class="text-sm">💻</span>
-                        <span class="text-xs font-semibold text-charcoal" id="currentThemeLabel">Sistem</span>
+                        <span class="text-xs font-semibold text-charcoal truncate" id="currentThemeLabel">Sistem</span>
                     </div>
-                    <div class="inline-flex rounded-md p-0.5 bg-cream/70 border border-line text-[11px]">
-                        <button type="button" onclick="setArusTheme('light')" class="px-2 py-0.5 rounded cursor-pointer hover:bg-white text-charcoal" data-theme-value="light" title="Mode Terang">☀️</button>
-                        <button type="button" onclick="setArusTheme('dark')" class="px-2 py-0.5 rounded cursor-pointer hover:bg-white text-charcoal" data-theme-value="dark" title="Mode Gelap">🌙</button>
-                        <button type="button" onclick="setArusTheme('system')" class="px-2 py-0.5 rounded cursor-pointer hover:bg-white text-charcoal" data-theme-value="system" title="Ikuti Sistem">💻</button>
+                    <div class="inline-flex rounded-md p-0.5 bg-cream/70 border border-line text-[11px] shrink-0">
+                        <button type="button" onclick="setArusTheme('light')" class="min-w-[36px] min-h-[36px] lg:min-w-0 lg:min-h-0 px-2 py-1 lg:py-0.5 rounded cursor-pointer hover:bg-white text-charcoal inline-flex items-center justify-center" data-theme-value="light" title="Mode Terang" aria-label="Mode Terang">☀️</button>
+                        <button type="button" onclick="setArusTheme('dark')" class="min-w-[36px] min-h-[36px] lg:min-w-0 lg:min-h-0 px-2 py-1 lg:py-0.5 rounded cursor-pointer hover:bg-white text-charcoal inline-flex items-center justify-center" data-theme-value="dark" title="Mode Gelap" aria-label="Mode Gelap">🌙</button>
+                        <button type="button" onclick="setArusTheme('system')" class="min-w-[36px] min-h-[36px] lg:min-w-0 lg:min-h-0 px-2 py-1 lg:py-0.5 rounded cursor-pointer hover:bg-white text-charcoal inline-flex items-center justify-center" data-theme-value="system" title="Ikuti Sistem" aria-label="Ikuti Sistem">💻</button>
                     </div>
                 </div>
 
@@ -230,7 +230,7 @@
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="w-full text-center py-2 text-xs font-bold text-red hover:bg-red/10 rounded-lg transition cursor-pointer inline-flex items-center justify-center">
+                    <button type="submit" class="w-full text-center min-h-[44px] lg:min-h-0 py-2.5 lg:py-2 text-xs font-bold text-red hover:bg-red/10 rounded-lg transition cursor-pointer inline-flex items-center justify-center">
                         Keluar Akun
                     </button>
                 </form>
@@ -238,12 +238,13 @@
         </aside>
 
         <div class="flex-1 flex flex-col min-w-0">
-            <header class="app-topbar px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
-                <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <button type="button" class="lg:hidden w-9 h-9 inline-flex items-center justify-center rounded-lg text-charcoal hover:bg-forest-light focus:outline-none transition-colors flex-shrink-0" onclick="toggleSidebar()" aria-label="Buka menu navigasi">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <header class="app-topbar px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sticky top-0 z-20">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <button type="button" class="lg:hidden min-w-[44px] min-h-[44px] px-2.5 inline-flex items-center justify-center gap-1.5 rounded-lg text-charcoal hover:bg-forest-light transition-colors shrink-0 cursor-pointer" onclick="toggleSidebar()" aria-label="Buka menu navigasi">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
+                        <span class="hidden min-[420px]:inline text-xs font-bold">Menu</span>
                     </button>
 
                     <div class="relative max-w-xs sm:max-w-md w-full hidden md:block">
@@ -266,16 +267,31 @@
                         </div>
                     </div>
 
-                    <div class="text-xs text-muted truncate md:hidden">
+                    <div class="text-xs text-muted truncate md:hidden min-w-0">
                         <strong class="text-charcoal font-semibold">{{ $title ?? 'Dashboard' }}</strong>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 ml-3">
+                <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                    <button
+                        type="button"
+                        id="mobileSearchToggle"
+                        onclick="toggleMobileSearchBar()"
+                        class="md:hidden min-w-[44px] min-h-[44px] rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
+                        title="Cari Transaksi"
+                        aria-label="Buka pencarian transaksi"
+                        aria-expanded="false"
+                        aria-controls="mobileSearchBar"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                        </svg>
+                    </button>
+
                     <button 
                         type="button" 
                         onclick="window.location.reload()" 
-                        class="w-8.5 h-8.5 rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
+                        class="hidden sm:inline-flex min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 lg:w-8.5 lg:h-8.5 rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition items-center justify-center cursor-pointer"
                         title="Segarkan Halaman"
                         aria-label="Segarkan halaman"
                     >
@@ -288,12 +304,12 @@
                         type="button" 
                         id="masterPrivacyToggle"
                         onclick="toggleMasterPrivacy()" 
-                        class="master-privacy-toggle h-8.5 inline-flex items-center gap-1.5 px-2.5 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition cursor-pointer" 
+                        class="master-privacy-toggle min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 lg:h-8.5 inline-flex items-center justify-center gap-1.5 px-2.5 border border-line rounded-lg text-xs font-semibold text-charcoal bg-panel hover:bg-cream transition cursor-pointer" 
                         title="Sembunyikan / Tampilkan Semua Saldo (Master, Tekan 'H')"
                         aria-label="Sembunyikan atau Tampilkan Semua Saldo"
                     >
                         <span class="privacy-toggle-icon text-muted flex items-center justify-center">
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg class="w-4 h-4 lg:w-3.5 lg:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                             </svg>
@@ -305,31 +321,59 @@
                     <button 
                         type="button" 
                         onclick="openQuickTransactionModal()" 
-                        class="h-8.5 inline-flex items-center gap-1.5 px-3 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs" 
+                        class="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 lg:h-8.5 inline-flex items-center justify-center gap-1.5 px-3 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs" 
                         title="Catat Cepat Transaksi (Tekan 'C' untuk membuka kapan saja)"
+                        aria-label="Catat Cepat Transaksi"
                     >
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <svg class="w-4 h-4 lg:w-3.5 lg:h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                         <span class="hidden sm:inline">Catat Cepat</span>
-                        <kbd class="hidden md:inline-block text-[9.5px] font-mono px-1 py-0.2 rounded bg-white/20 text-white/90">C</kbd>
+                        <kbd class="hidden lg:inline-block text-[9.5px] font-mono px-1 py-0.2 rounded bg-white/20 text-white/90">C</kbd>
                     </button>
 
                     <a 
                         href="{{ route('transactions.create') }}" 
-                        class="h-8.5 inline-flex items-center gap-1 px-3 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-semibold transition hidden sm:inline-flex"
+                        class="min-h-[44px] lg:min-h-0 lg:h-8.5 items-center gap-1 px-3 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-semibold transition hidden lg:inline-flex"
                         title="Form Transaksi Lengkap"
                     >
                         + Transaksi
                     </a>
 
-                    <a href="{{ route('profile.edit') }}" class="avatar-circle w-8.5 h-8.5 text-xs hover:ring-2 hover:ring-forest transition focus-visible:outline-none inline-flex items-center justify-center ml-1" title="Pengaturan Profil">
+                    <a href="{{ route('profile.edit') }}" class="avatar-circle w-11 h-11 lg:w-8.5 lg:h-8.5 text-xs hover:ring-2 hover:ring-forest transition inline-flex items-center justify-center shrink-0" title="Pengaturan Profil" aria-label="Pengaturan Profil">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                     </a>
                 </div>
             </header>
 
-            <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full space-y-5">
+            <div id="mobileSearchBar" class="md:hidden hidden sticky top-[60px] z-19 px-3.5 py-2.5 bg-sidebar/95 backdrop-blur-sm border-b border-line">
+                <div class="relative flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                        </span>
+                        <input
+                            type="search"
+                            id="mobileGlobalSearchInput"
+                            value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
+                            placeholder="Cari transaksi, rekening, atau catatan..."
+                            class="field-input w-full text-xs !pl-9 bg-panel"
+                            onkeydown="if(event.key==='Enter'){ window.location.href='{{ route('transactions.index') }}?search=' + encodeURIComponent(this.value); }"
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onclick="window.location.href='{{ route('transactions.index') }}?search=' + encodeURIComponent(document.getElementById('mobileGlobalSearchInput')?.value || '');"
+                        class="btn-arus-primary text-xs px-3.5 shrink-0"
+                    >
+                        Cari
+                    </button>
+                </div>
+            </div>
+
+            <main class="flex-1 p-3.5 sm:p-6 lg:p-8 w-full space-y-5">
                 @if (session('success') || session('status'))
                     <div class="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between" role="alert">
                         <div>{{ session('success') ?? session('status') }}</div>
@@ -361,6 +405,20 @@
     </div>
 
     <script>
+        function toggleMobileSearchBar() {
+            const bar = document.getElementById('mobileSearchBar');
+            const toggle = document.getElementById('mobileSearchToggle');
+            const input = document.getElementById('mobileGlobalSearchInput');
+            if (!bar || !toggle) return;
+
+            const isHidden = bar.classList.contains('hidden');
+            bar.classList.toggle('hidden', !isHidden);
+            toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+            if (isHidden && input) {
+                setTimeout(() => input.focus(), 40);
+            }
+        }
+
         function toggleSidebar() {
             const sidebar = document.getElementById('appSidebar');
             const backdrop = document.getElementById('sidebarBackdrop');
@@ -696,10 +754,22 @@
         document.addEventListener('keydown', function(e) {
             if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
                 e.preventDefault();
-                const searchEl = document.getElementById('globalSearchInput');
-                if (searchEl) {
-                    searchEl.focus();
-                    searchEl.select();
+                const desktopSearch = document.getElementById('globalSearchInput');
+                if (desktopSearch && desktopSearch.offsetParent !== null) {
+                    desktopSearch.focus();
+                    desktopSearch.select();
+                } else {
+                    const mobileBar = document.getElementById('mobileSearchBar');
+                    const mobileSearch = document.getElementById('mobileGlobalSearchInput');
+                    const toggle = document.getElementById('mobileSearchToggle');
+                    if (mobileBar && mobileBar.classList.contains('hidden')) {
+                        mobileBar.classList.remove('hidden');
+                        toggle?.setAttribute('aria-expanded', 'true');
+                    }
+                    if (mobileSearch) {
+                        mobileSearch.focus();
+                        mobileSearch.select();
+                    }
                 }
             }
             if ((e.key === 'h' || e.key === 'H') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
@@ -709,6 +779,8 @@
             if (e.key === 'Escape') {
                 document.getElementById('workspaceDropdown')?.classList.add('hidden');
                 document.getElementById('themeMenu')?.classList.add('hidden');
+                document.getElementById('mobileSearchBar')?.classList.add('hidden');
+                document.getElementById('mobileSearchToggle')?.setAttribute('aria-expanded', 'false');
                 const sidebar = document.getElementById('appSidebar');
                 const backdrop = document.getElementById('sidebarBackdrop');
                 if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {

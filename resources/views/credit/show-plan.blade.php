@@ -6,7 +6,7 @@
                 <span>←</span>
                 <span>Kembali ke Daftar Kredit & Cicilan</span>
             </a>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <span class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {{ $plan->isCompleted() ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : ($plan->isActive() ? 'bg-forest/10 text-forest' : 'bg-red/10 text-red') }}">
                     {{ $plan->isCompleted() ? 'Lunas Selesai' : ($plan->isActive() ? 'Cicilan Berjalan' : 'Dibatalkan') }}
                 </span>
@@ -17,7 +17,7 @@
             </h1>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             @if ($plan->isActive())
                 <button 
                     type="button" 
@@ -65,7 +65,7 @@
     <!-- Alert Status Feedback -->
     @if (session('status'))
         <div class="mb-6 p-4 rounded-xl border border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <span>✓</span>
                 <span>{{ session('status') }}</span>
             </div>
@@ -199,7 +199,115 @@
             </div>
         @endif
 
-        <div class="overflow-x-auto">
+        @php
+            $sortedInstallments = $plan->installments->sortBy(function ($inst) {
+                return [$inst->isPaid() ? 1 : 0, $inst->installment_number];
+            });
+            $hasPaid = $plan->installments->contains(fn($i) => $i->isPaid());
+            $shownPaidDivider = false;
+        @endphp
+
+        <div class="md:hidden space-y-3 mb-2">
+            @foreach ($sortedInstallments as $inst)
+                @if ($hasPaid && $inst->isPaid() && ! $shownPaidDivider)
+                    @php $shownPaidDivider = true; @endphp
+                    <div class="py-2 px-3 rounded-lg bg-cream/60 border border-line text-muted font-semibold text-[11px] uppercase tracking-wider flex items-center gap-2">
+                        <span>✓</span>
+                        <span>Cicilan Sudah Lunas ({{ $plan->installments->where('status', 'paid')->count() }})</span>
+                    </div>
+                @endif
+                <div class="p-3.5 rounded-xl border border-line {{ $inst->isPaid() ? 'bg-cream/20 opacity-85' : ($inst->isOverdue() ? 'bg-red/5 border-red/30' : 'bg-panel') }} space-y-2.5 text-xs">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-charcoal text-sm">#{{ $inst->installment_number }}</span>
+                                <span class="text-muted font-mono">{{ $inst->due_date->format('d M Y') }}</span>
+                            </div>
+                            @if ($inst->isOverdue())
+                                <span class="text-[10px] text-red font-bold block mt-0.5">Terlambat {{ $inst->daysOverdue() }} hari</span>
+                            @elseif ($inst->isDueToday())
+                                <span class="text-[10px] text-amber-600 font-bold block mt-0.5">Jatuh tempo hari ini</span>
+                            @endif
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="font-mono font-bold text-sm text-charcoal">
+                                <span class="privacy-balance" data-raw-value="{{ $inst->formatted_total_amount }}">{{ $inst->formatted_total_amount }}</span>
+                            </div>
+                            <div class="mt-1">
+                                @if ($inst->isPaid())
+                                    <span class="inline-flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
+                                        ✓ {{ $inst->isPaidWithoutCash() ? 'Lunas (Pra)' : 'Lunas' }}
+                                    </span>
+                                @elseif ($inst->isOverdue())
+                                    <span class="inline-flex items-center gap-1 text-[10px] bg-red/15 text-red font-bold px-2 py-0.5 rounded">⚠️ Terlambat</span>
+                                @elseif ($inst->isDueToday())
+                                    <span class="inline-flex items-center gap-1 text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded">⚡ Hari Ini</span>
+                                @elseif ($inst->isDueSoon())
+                                    <span class="inline-flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded">⏳ Segera</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-[10px] bg-muted/15 text-muted font-bold px-2 py-0.5 rounded">📅 Mendatang</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-sidebar/50 border border-line/70 text-[11px]">
+                        <div>
+                            <span class="text-[9.5px] uppercase text-muted font-bold block">Pokok</span>
+                            <span class="font-mono font-semibold text-charcoal privacy-balance" data-raw-value="{{ $inst->formatted_principal }}">{{ $inst->formatted_principal }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9.5px] uppercase text-muted font-bold block">Bunga</span>
+                            <span class="font-mono text-muted privacy-balance" data-raw-value="{{ $inst->formatted_interest }}">{{ $inst->formatted_interest }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[9.5px] uppercase text-muted font-bold block">Admin</span>
+                            <span class="font-mono text-muted privacy-balance" data-raw-value="{{ $inst->formatted_fee }}">{{ $inst->formatted_fee }}</span>
+                        </div>
+                    </div>
+
+                    @if ($inst->isPaid() && $inst->payments->isNotEmpty())
+                        @php $lastPay = $inst->payments->first(); @endphp
+                        <div class="text-[11px] text-muted">
+                            Dibayar: <strong class="text-charcoal">{{ $lastPay->payment_date->format('d M Y') }}</strong> &bull; Sumber: <strong class="text-charcoal">{{ $lastPay->sourceAccount->name }}</strong>
+                        </div>
+                    @elseif ($inst->isPaid())
+                        <div class="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                            Lunas di luar sistem (Pra-pencatatan ARUS)
+                        </div>
+                    @endif
+
+                    @if ($inst->isPending() && $plan->isActive())
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-line/60">
+                            <button type="button" onclick="openPaymentModal({{ json_encode($inst) }})" class="flex-1 min-w-[110px] min-h-[44px] px-3 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer inline-flex items-center justify-center">
+                                Bayar Cicilan
+                            </button>
+                            <button type="button" onclick="openMarkPaidModal({{ json_encode($inst) }})" class="min-h-[44px] px-3 py-2 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer inline-flex items-center justify-center">
+                                Tanpa Kas
+                            </button>
+                            <button type="button" onclick="openNoteModal({{ json_encode($inst) }})" class="min-h-[44px] px-3 py-2 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer inline-flex items-center justify-center">
+                                ± Nota
+                            </button>
+                            <a href="{{ $inst->whatsAppReminderUrl($plan->member?->phone) }}" target="_blank" class="min-h-[44px] px-3 py-2 border border-line text-muted hover:text-emerald-600 bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition inline-flex items-center justify-center">
+                                💬 WA
+                            </a>
+                        </div>
+                    @elseif ($inst->isPaidWithoutCash() && $plan->isActive())
+                        <div class="pt-1 border-t border-line/60 flex justify-end">
+                            <form method="POST" action="{{ route('credit.installments.resetToPending', $inst) }}" onsubmit="return confirm('Kembalikan status cicilan #{{ $inst->installment_number }} menjadi menunggu pembayaran?')">
+                                @csrf
+                                <button type="submit" class="min-h-[40px] px-2 text-[11px] text-muted hover:text-red underline cursor-pointer">
+                                    Reset ke Pending
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+
+        @php $shownPaidDivider = false; @endphp
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-xs text-left border-collapse">
                 <thead>
                     <tr class="border-b border-line text-muted">
@@ -215,20 +323,13 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line/60">
-                    @php
-                        $sortedInstallments = $plan->installments->sortBy(function ($inst) {
-                            return [$inst->isPaid() ? 1 : 0, $inst->installment_number];
-                        });
-                        $hasPaid = $plan->installments->contains(fn($i) => $i->isPaid());
-                        $shownPaidDivider = false;
-                    @endphp
 
                     @foreach ($sortedInstallments as $inst)
                         @if ($hasPaid && $inst->isPaid() && ! $shownPaidDivider)
                             @php $shownPaidDivider = true; @endphp
                             <tr class="bg-panel/80 border-y border-line">
                                 <td colspan="9" class="py-2.5 px-3 text-muted font-semibold text-[11px] uppercase tracking-wider">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                                         <span>✓</span>
                                         <span>Cicilan yang Sudah Lunas ({{ $plan->installments->where('status', 'paid')->count() }} cicilan)</span>
                                     </div>
@@ -312,21 +413,21 @@
                                             href="{{ $inst->whatsAppReminderUrl($plan->member?->phone) }}" 
                                             target="_blank" 
                                             title="Kirim Pengingat WhatsApp"
-                                            class="min-h-[36px] px-2.5 py-1.5 border border-line text-muted hover:text-emerald-600 rounded-lg text-xs font-semibold hover:bg-cream transition inline-flex items-center gap-1"
+                                            class="min-h-[44px] lg:min-h-[36px] px-2.5 py-1.5 border border-line text-muted hover:text-emerald-600 rounded-lg text-xs font-semibold hover:bg-cream transition inline-flex items-center gap-1"
                                         >
                                             <span>💬 WA</span>
                                         </a>
                                         <button 
                                             type="button" 
                                             onclick="openPaymentModal({{ json_encode($inst) }})" 
-                                            class="min-h-[36px] inline-flex items-center justify-center px-3 py-1.5 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs whitespace-nowrap"
+                                            class="min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center px-3 py-1.5 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs whitespace-nowrap"
                                         >
                                             Bayar Cicilan
                                         </button>
                                         <button 
                                             type="button" 
                                             onclick="openMarkPaidModal({{ json_encode($inst) }})" 
-                                            class="min-h-[36px] inline-flex items-center justify-center px-2.5 py-1.5 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer shadow-xs whitespace-nowrap"
+                                            class="min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center px-2.5 py-1.5 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer shadow-xs whitespace-nowrap"
                                             title="Tandai cicilan ini lunas di masa lampau tanpa memotong kas/bank"
                                         >
                                             <span>Tanpa Kas</span>
@@ -334,7 +435,7 @@
                                         <button 
                                             type="button" 
                                             onclick="openNoteModal({{ json_encode($inst) }})" 
-                                            class="min-h-[36px] inline-flex items-center justify-center px-2 py-1.5 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer shadow-xs whitespace-nowrap"
+                                            class="min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center px-2 py-1.5 border border-line text-muted hover:text-charcoal bg-panel rounded-lg text-xs font-semibold hover:bg-cream transition cursor-pointer shadow-xs whitespace-nowrap"
                                             title="Sesuaikan selisih pembulatan dengan Nota Kredit / Debit"
                                         >
                                             <span>± Nota</span>
@@ -345,7 +446,7 @@
                                             @if ($inst->isPaidWithoutCash() && $plan->isActive())
                                                 <form method="POST" action="{{ route('credit.installments.resetToPending', $inst) }}" onsubmit="return confirm('Kembalikan status cicilan #{{ $inst->installment_number }} menjadi menunggu pembayaran?')">
                                                     @csrf
-                                                    <button type="submit" class="text-[10px] text-muted hover:text-red underline cursor-pointer" title="Batalkan status lunas pra-pencatatan">
+                                                    <button type="submit" class="min-h-[44px] lg:min-h-0 px-2 lg:px-0 inline-flex items-center text-[10px] text-muted hover:text-red underline cursor-pointer" title="Batalkan status lunas pra-pencatatan">
                                                         Reset
                                                     </button>
                                                 </form>
@@ -363,8 +464,8 @@
 
     @if (\Illuminate\Support\Facades\Schema::hasTable('credit_debit_notes') && $plan->creditDebitNotes->isNotEmpty())
         <!-- Riwayat Nota Kredit & Debit -->
-        <div class="panel-card p-6">
-            <div class="flex items-center justify-between pb-4 border-b border-line mb-4">
+        <div class="panel-card p-4 sm:p-6">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-line mb-4">
                 <div>
                     <h3 class="font-serif text-lg text-charcoal font-medium">Riwayat Nota Kredit & Debit</h3>
                     <p class="text-xs text-muted">
@@ -374,13 +475,37 @@
                 <button 
                     type="button" 
                     onclick="openNoteModal()" 
-                    class="min-h-[36px] px-3 py-1.5 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-semibold cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                    class="min-h-[44px] sm:min-h-[36px] px-3 py-1.5 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-semibold cursor-pointer shadow-xs inline-flex items-center gap-1.5"
                 >
                     <span>+ Tambah Nota</span>
                 </button>
             </div>
 
-            <div class="overflow-x-auto">
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($plan->creditDebitNotes as $note)
+                    <div class="py-3 first:pt-0 last:pb-0 space-y-1.5 text-xs">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center flex-wrap gap-1.5">
+                                @if ($note->isCreditNote())
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">▼ Nota Kredit</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">▲ Nota Debit</span>
+                                @endif
+                                <span class="font-mono text-muted">{{ $note->note_date->format('d M Y') }}</span>
+                            </div>
+                            <span class="font-mono font-bold shrink-0 {{ $note->isCreditNote() ? 'text-forest' : 'text-amber-700 dark:text-amber-400' }}">
+                                <span class="privacy-balance" data-raw-value="{{ $note->isCreditNote() ? '-' : '+' }} {{ $note->formatted_amount }}">{{ $note->isCreditNote() ? '-' : '+' }} {{ $note->formatted_amount }}</span>
+                            </span>
+                        </div>
+                        <div class="text-charcoal font-medium">{{ $note->description }}</div>
+                        <div class="text-[11px] text-muted">
+                            Target: {{ $note->installment ? 'Cicilan #' . $note->installment->installment_number : 'Total Rencana' }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-xs text-left border-collapse">
                     <thead>
                         <tr class="border-b border-line text-muted">
@@ -430,14 +555,14 @@
     @endif
 
     <!-- Modal Pembayaran Cicilan -->
-    <div id="paymentModal" onclick="if (event.target === this) closePaymentModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
-        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
-            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
-                <div>
+    <div id="paymentModal" onclick="if (event.target === this) closePaymentModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
                     <h3 id="paymentModalTitle" class="font-serif text-lg text-charcoal font-medium">Bayar Cicilan</h3>
-                    <p id="paymentModalSubtitle" class="text-xs text-muted">{{ $plan->name }}</p>
+                    <p id="paymentModalSubtitle" class="text-xs text-muted truncate">{{ $plan->name }}</p>
                 </div>
-                <button type="button" onclick="closePaymentModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+                <button type="button" onclick="closePaymentModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
             </div>
 
             <form id="paymentForm" method="POST" action="" class="space-y-4">
@@ -525,18 +650,18 @@
                     >
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
                     <button 
                         type="button" 
                         onclick="closePaymentModal()" 
-                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
                     >
                         Batal
                     </button>
                     <button 
                         type="submit" 
                         id="btnSubmitPayment"
-                        class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2"
                     >
                         <span id="btnSubmitPaymentText">Konfirmasi Pembayaran</span>
                     </button>
@@ -546,14 +671,14 @@
     </div>
 
     <!-- Modal Tandai Lunas Tanpa Potong Kas -->
-    <div id="markPaidModal" onclick="if (event.target === this) closeMarkPaidModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
-        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
-            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
-                <div>
+    <div id="markPaidModal" onclick="if (event.target === this) closeMarkPaidModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
                     <h3 id="markPaidModalTitle" class="font-serif text-lg text-charcoal font-medium">Tandai Lunas Tanpa Kas</h3>
-                    <p id="markPaidModalSubtitle" class="text-xs text-muted">{{ $plan->name }}</p>
+                    <p id="markPaidModalSubtitle" class="text-xs text-muted truncate">{{ $plan->name }}</p>
                 </div>
-                <button type="button" onclick="closeMarkPaidModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+                <button type="button" onclick="closeMarkPaidModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
             </div>
 
             <div class="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
@@ -576,18 +701,18 @@
                     >
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
                     <button 
                         type="button" 
                         onclick="closeMarkPaidModal()" 
-                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
                     >
                         Batal
                     </button>
                     <button 
                         type="submit" 
                         id="btnSubmitMarkPaid"
-                        class="min-h-[44px] px-5 py-2 border border-emerald-600/30 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-2 shadow-xs"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-emerald-600/30 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                     >
                         <span id="btnSubmitMarkPaidText">Konfirmasi Lunas Tanpa Kas</span>
                     </button>
@@ -597,14 +722,14 @@
     </div>
 
     <!-- Modal Pelunasan Dipercepat Sekaligus -->
-    <div id="payoffModal" onclick="if (event.target === this) closePayoffModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
-        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
-            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
-                <div>
+    <div id="payoffModal" onclick="if (event.target === this) closePayoffModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
                     <h3 class="font-serif text-lg text-charcoal font-medium">⚡ Pelunasan Sekaligus</h3>
-                    <p class="text-xs text-muted">{{ $plan->name }} ({{ $plan->pendingInstallments->count() }} cicilan tersisa)</p>
+                    <p class="text-xs text-muted truncate">{{ $plan->name }} ({{ $plan->pendingInstallments->count() }} cicilan tersisa)</p>
                 </div>
-                <button type="button" onclick="closePayoffModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+                <button type="button" onclick="closePayoffModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
             </div>
 
             <div class="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/20 text-xs">
@@ -663,18 +788,18 @@
                     >
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
                     <button 
                         type="button" 
                         onclick="closePayoffModal()" 
-                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
                     >
                         Batal
                     </button>
                     <button 
                         type="submit" 
                         id="btnSubmitPayoff"
-                        class="min-h-[44px] px-5 py-2 border border-emerald-600/40 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-2 shadow-xs"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-emerald-600/40 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                     >
                         <span id="btnSubmitPayoffText">Konfirmasi Lunasi Sekaligus</span>
                     </button>
@@ -684,14 +809,14 @@
     </div>
 
     <!-- Modal Catat Nota Kredit / Debit -->
-    <div id="noteModal" onclick="if (event.target === this) closeNoteModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
-        <div class="panel-card bg-panel w-full max-w-lg rounded-2xl border border-line shadow-2xl p-6 relative">
-            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
-                <div>
+    <div id="noteModal" onclick="if (event.target === this) closeNoteModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-lg rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
                     <h3 id="noteModalTitle" class="font-serif text-lg text-charcoal font-medium">Nota Kredit / Debit</h3>
-                    <p id="noteModalSubtitle" class="text-xs text-muted">{{ $plan->name }}</p>
+                    <p id="noteModalSubtitle" class="text-xs text-muted truncate">{{ $plan->name }}</p>
                 </div>
-                <button type="button" onclick="closeNoteModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+                <button type="button" onclick="closeNoteModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
             </div>
 
             <form id="noteForm" method="POST" action="{{ route('credit.notes.store') }}" class="space-y-4">
@@ -720,7 +845,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-charcoal mb-2">Jenis Nota <span class="text-red">*</span></label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label class="relative flex flex-col p-3 border rounded-xl cursor-pointer hover:border-forest transition bg-forest-light/50 border-forest text-forest" id="labelNoteTypeCredit">
                             <div class="flex items-center gap-2 mb-1">
                                 <input type="radio" name="type" value="credit_note" checked onchange="onNoteTypeChange(this.value)" class="text-forest focus:ring-forest">
@@ -784,18 +909,18 @@
                     >
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
                     <button 
                         type="button" 
                         onclick="closeNoteModal()" 
-                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
                     >
                         Batal
                     </button>
                     <button 
                         type="submit" 
                         id="btnSubmitNote"
-                        class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2"
                     >
                         <span id="btnSubmitNoteText">Simpan Nota</span>
                     </button>

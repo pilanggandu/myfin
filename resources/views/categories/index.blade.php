@@ -19,17 +19,17 @@
                 @csrf
                 <input type="hidden" name="type" value="income">
                 <div class="text-xs font-bold text-forest mb-2">+ Tambah Kategori Pemasukan</div>
-                <div class="flex gap-2">
-                    <div class="flex-1">
+                <div class="flex flex-col min-[360px]:flex-row gap-2">
+                    <div class="flex-1 min-w-0">
                         <input 
                             type="text" 
                             name="name" 
                             placeholder="Contoh: Gaji Pokok, Freelance" 
-                            class="field-input h-10 py-1.5 text-xs" 
+                            class="field-input h-11 sm:h-10 py-1.5 text-xs" 
                             required 
                         />
                     </div>
-                    <button type="submit" class="btn-arus-primary h-10 min-h-[40px] px-4 text-xs font-bold whitespace-nowrap">
+                    <button type="submit" class="btn-arus-primary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-4 text-xs font-bold whitespace-nowrap">
                         Simpan
                     </button>
                 </div>
@@ -38,19 +38,19 @@
             <div class="divide-y divide-line">
                 @foreach ($incomeCategories as $category)
                     <div class="py-3 flex items-center justify-between gap-2 {{ $category->isArchived() ? 'opacity-50' : '' }}">
-                        <div>
-                            <span class="font-bold text-sm text-charcoal">{{ $category->name }}</span>
+                        <div class="min-w-0 flex-1">
+                            <span class="font-bold text-sm text-charcoal break-words">{{ $category->name }}</span>
                             @if ($category->isArchived())
                                 <span class="text-[10px] text-muted bg-cream px-1.5 py-0.5 rounded ml-2">Arsip</span>
                             @endif
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 shrink-0">
                             @if ($category->isArchived())
                                 <form method="POST" action="{{ route('categories.unarchive', $category) }}" class="inline">
                                     @csrf
                                     <button 
                                         type="submit" 
-                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                        class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                         title="Aktifkan Kembali Kategori"
                                         aria-label="Aktifkan Kembali Kategori"
                                     >
@@ -64,7 +64,7 @@
                                     @csrf
                                     <button 
                                         type="submit" 
-                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                        class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                         title="Arsipkan Kategori"
                                         aria-label="Arsipkan Kategori"
                                     >
@@ -89,17 +89,17 @@
                 @csrf
                 <input type="hidden" name="type" value="expense">
                 <div class="text-xs font-bold text-forest mb-2">+ Tambah Kategori Pengeluaran</div>
-                <div class="flex gap-2">
-                    <div class="flex-1">
+                <div class="flex flex-col min-[360px]:flex-row gap-2">
+                    <div class="flex-1 min-w-0">
                         <input 
                             type="text" 
                             name="name" 
                             placeholder="Contoh: Makanan, Transportasi" 
-                            class="field-input h-10 py-1.5 text-xs" 
+                            class="field-input h-11 sm:h-10 py-1.5 text-xs" 
                             required 
                         />
                     </div>
-                    <button type="submit" class="btn-arus-primary h-10 min-h-[40px] px-4 text-xs font-bold whitespace-nowrap">
+                    <button type="submit" class="btn-arus-primary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-4 text-xs font-bold whitespace-nowrap">
                         Simpan
                     </button>
                 </div>
@@ -108,19 +108,19 @@
             <div class="divide-y divide-line">
                 @foreach ($expenseCategories as $category)
                     <div class="py-3 flex items-center justify-between gap-2 {{ $category->isArchived() ? 'opacity-50' : '' }}">
-                        <div>
-                            <span class="font-bold text-sm text-charcoal">{{ $category->name }}</span>
+                        <div class="min-w-0 flex-1">
+                            <span class="font-bold text-sm text-charcoal break-words">{{ $category->name }}</span>
                             @if ($category->isArchived())
                                 <span class="text-[10px] text-muted bg-cream px-1.5 py-0.5 rounded ml-2">Arsip</span>
                             @endif
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 shrink-0">
                             @if ($category->isArchived())
                                 <form method="POST" action="{{ route('categories.unarchive', $category) }}" class="inline">
                                     @csrf
                                     <button 
                                         type="submit" 
-                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                        class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                         title="Aktifkan Kembali Kategori"
                                         aria-label="Aktifkan Kembali Kategori"
                                     >
@@ -134,7 +134,7 @@
                                     @csrf
                                     <button 
                                         type="submit" 
-                                        class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                        class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                         title="Arsipkan Kategori"
                                         aria-label="Arsipkan Kategori"
                                     >

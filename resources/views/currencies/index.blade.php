@@ -83,8 +83,8 @@
             </span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-            <div class="sm:col-span-3">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div class="md:col-span-3">
                 <label for="calcAmount" class="block text-xs font-bold text-charcoal mb-1">Nominal</label>
                 <input 
                     type="number" 
@@ -97,7 +97,7 @@
                 >
             </div>
 
-            <div class="sm:col-span-3">
+            <div class="md:col-span-3">
                 <label for="calcFrom" class="block text-xs font-bold text-charcoal mb-1">Dari Mata Uang</label>
                 <select id="calcFrom" class="field-select w-full text-xs font-bold" onchange="runCalculator()">
                     @foreach ($allCurrencies->where('is_active', true) as $c)
@@ -108,18 +108,19 @@
                 </select>
             </div>
 
-            <div class="sm:col-span-1 flex justify-center pb-1">
+            <div class="md:col-span-1 flex justify-center md:pb-1">
                 <button 
                     type="button" 
                     onclick="swapCalculatorCurrencies()" 
-                    class="w-9 h-9 rounded-lg border border-line bg-panel hover:bg-cream text-muted hover:text-forest transition flex items-center justify-center cursor-pointer shadow-xs"
+                    class="w-11 h-11 md:w-9 md:h-9 rounded-lg border border-line bg-panel hover:bg-cream text-muted hover:text-forest transition flex items-center justify-center cursor-pointer shadow-xs"
                     title="Tukar mata uang asal dan tujuan"
+                    aria-label="Tukar mata uang asal dan tujuan"
                 >
                     ⇄
                 </button>
             </div>
 
-            <div class="sm:col-span-3">
+            <div class="md:col-span-3">
                 <label for="calcTo" class="block text-xs font-bold text-charcoal mb-1">Ke Mata Uang</label>
                 <select id="calcTo" class="field-select w-full text-xs font-bold" onchange="runCalculator()">
                     @foreach ($allCurrencies->where('is_active', true) as $c)
@@ -130,11 +131,11 @@
                 </select>
             </div>
 
-            <div class="sm:col-span-2">
+            <div class="md:col-span-2">
                 <button 
                     type="button" 
                     onclick="runCalculator()" 
-                    class="btn-arus-primary w-full min-h-[40px] text-xs font-bold cursor-pointer"
+                    class="btn-arus-primary w-full min-h-[44px] md:min-h-[40px] text-xs font-bold cursor-pointer"
                 >
                     Hitung Kurs
                 </button>
@@ -211,8 +212,77 @@
                 </div>
             </div>
         @else
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($currencies as $curr)
+                    <div class="p-4 space-y-2.5 text-xs {{ ! $curr->is_active ? 'opacity-60' : '' }}">
+                        <div class="flex items-start justify-between gap-2.5">
+                            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                                <span class="w-10 h-10 rounded-lg bg-sidebar border border-line flex items-center justify-center font-mono font-bold text-sm text-charcoal shadow-xs shrink-0">
+                                    {{ $curr->symbol }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-bold text-sm text-charcoal font-mono flex items-center flex-wrap gap-1.5">
+                                        <span>{{ $curr->code }}</span>
+                                        @if ($curr->is_default)
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/40">★ DEFAULT</span>
+                                        @endif
+                                        @if ($curr->is_active)
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest-light text-forest border border-forest/20">Aktif</span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">Nonaktif</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs font-semibold text-charcoal mt-0.5 truncate">{{ $curr->name }}</div>
+                                </div>
+                            </div>
+
+                            <div class="text-right font-mono font-bold shrink-0">
+                                @if ($curr->code === 'IDR')
+                                    <span class="text-muted font-normal">1,00 (Basis)</span>
+                                @else
+                                    <span class="text-forest text-sm">Rp {{ number_format($curr->exchange_rate, 2, ',', '.') }}</span>
+                                @endif
+                                <div class="text-[10px] text-muted font-normal mt-0.5">{{ $curr->decimal_digits }} Digit</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 pt-2 border-t border-line/60">
+                            <span class="text-[11px] text-muted">
+                                @if ($curr->last_synced_at)
+                                    Sinkron: {{ $curr->last_synced_at->format('d M Y H:i') }} WIB
+                                @else
+                                    Kurs Manual
+                                @endif
+                            </span>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" onclick="openEditCurrencyModal({{ json_encode($curr) }})" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer" title="Ubah Mata Uang" aria-label="Ubah Mata Uang">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
+                                </button>
+                                @if (! $curr->is_default)
+                                    <form method="POST" action="{{ route('currencies.setDefault', $curr) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-amber-500 transition inline-flex items-center justify-center cursor-pointer text-sm font-bold" title="Tetapkan sebagai Default Utama" aria-label="Tetapkan sebagai Default Utama">★</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('currencies.toggleActive', $curr) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-charcoal transition inline-flex items-center justify-center cursor-pointer text-sm" title="{{ $curr->is_active ? 'Nonaktifkan Mata Uang' : 'Aktifkan Mata Uang' }}" aria-label="Ubah status aktif">{{ $curr->is_active ? '⏸' : '▶' }}</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('currencies.destroy', $curr) }}" class="inline" onsubmit="return confirm('Hapus mata uang {{ $curr->code }} dari master?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-red transition inline-flex items-center justify-center cursor-pointer" title="Hapus Mata Uang" aria-label="Hapus Mata Uang">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
             <!-- Tampilan Desktop (Table View) -->
-            <div class="overflow-x-auto">
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
@@ -292,7 +362,7 @@
                                         <button 
                                             type="button" 
                                             onclick="openEditCurrencyModal({{ json_encode($curr) }})" 
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
                                             title="Ubah Mata Uang"
                                             aria-label="Ubah Mata Uang"
                                         >
@@ -307,7 +377,7 @@
                                                 @csrf
                                                 <button 
                                                     type="submit" 
-                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-amber-500 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition inline-flex items-center justify-center cursor-pointer text-xs font-bold"
+                                                    class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-amber-500 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition inline-flex items-center justify-center cursor-pointer text-xs font-bold"
                                                     title="Tetapkan sebagai Default Utama"
                                                     aria-label="Tetapkan sebagai Default Utama"
                                                 >
@@ -322,7 +392,7 @@
                                                 @csrf
                                                 <button 
                                                     type="submit" 
-                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer text-xs"
+                                                    class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer text-xs"
                                                     title="{{ $curr->is_active ? 'Nonaktifkan Mata Uang' : 'Aktifkan Mata Uang' }}"
                                                     aria-label="Ubah status aktif"
                                                 >
@@ -336,7 +406,7 @@
                                                 @method('DELETE')
                                                 <button 
                                                     type="submit" 
-                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                                    class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                                     title="Hapus Mata Uang"
                                                     aria-label="Hapus Mata Uang"
                                                 >
@@ -357,14 +427,14 @@
     </div>
 
     <!-- Modal Tambah Mata Uang -->
-    <div id="addCurrencyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div id="addCurrencyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         +
                     </span>
-                    <div>
+                    <div class="min-w-0">
                         <h3 id="addModalTitle" class="font-serif text-lg text-forest font-normal">
                             Tambah Mata Uang Baru
                         </h3>
@@ -373,7 +443,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeAddCurrencyModal()" class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm">
+                <button type="button" onclick="closeAddCurrencyModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0" aria-label="Tutup modal">
                     ✕
                 </button>
             </div>
@@ -396,7 +466,7 @@
 
             <form method="POST" action="{{ route('currencies.store') }}" class="space-y-3" id="addCurrencyForm">
                 @csrf
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="addCode" class="block text-xs font-bold text-charcoal mb-1">Kode ISO (3 Huruf) *</label>
                         <input 
@@ -437,7 +507,7 @@
                     >
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="addRate" class="block text-xs font-bold text-charcoal mb-1">
                             Kurs ke Rupiah (Opsional)
@@ -476,11 +546,11 @@
                     </label>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeAddCurrencyModal()" class="btn-arus-secondary px-4 text-xs font-bold">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeAddCurrencyModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary px-5 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer">
                         Simpan Mata Uang
                     </button>
                 </div>
@@ -489,14 +559,14 @@
     </div>
 
     <!-- Modal Ubah Mata Uang -->
-    <div id="editCurrencyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+    <div id="editCurrencyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                         ✏️
                     </span>
-                    <div>
+                    <div class="min-w-0">
                         <h3 id="editModalTitle" class="font-serif text-lg text-forest font-normal">
                             Ubah Data Mata Uang
                         </h3>
@@ -505,7 +575,7 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="closeEditCurrencyModal()" class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm">
+                <button type="button" onclick="closeEditCurrencyModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0" aria-label="Tutup modal">
                     ✕
                 </button>
             </div>
@@ -513,7 +583,7 @@
             <form method="POST" id="editCurrencyForm" class="space-y-3">
                 @csrf
                 @method('PUT')
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="editCode" class="block text-xs font-bold text-charcoal mb-1">Kode ISO (3 Huruf) *</label>
                         <input 
@@ -551,7 +621,7 @@
                     >
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="editRate" class="block text-xs font-bold text-charcoal mb-1">
                             Kurs Nilai Tukar ke Rupiah *
@@ -589,11 +659,11 @@
                     </label>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="closeEditCurrencyModal()" class="btn-arus-secondary px-4 text-xs font-bold">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="closeEditCurrencyModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary px-5 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer">
                         Perbarui Mata Uang
                     </button>
                 </div>

@@ -114,7 +114,7 @@
                                     <button 
                                         type="button" 
                                         onclick="selectIcon('{{ $ic }}')" 
-                                        class="w-8 h-8 rounded-lg bg-cream dark:bg-line/40 hover:bg-forest/20 text-lg flex items-center justify-center transition cursor-pointer select-icon-btn border border-transparent"
+                                        class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-cream dark:bg-line/40 hover:bg-forest/20 text-lg flex items-center justify-center transition cursor-pointer select-icon-btn border border-transparent"
                                         data-icon="{{ $ic }}"
                                     >
                                         {{ $ic }}
@@ -134,7 +134,7 @@
                                     <button 
                                         type="button" 
                                         onclick="selectColor('{{ $col }}')" 
-                                        class="w-7 h-7 rounded-full border-2 transition cursor-pointer select-color-btn"
+                                        class="w-9 h-9 sm:w-7 sm:h-7 rounded-full border-2 transition cursor-pointer select-color-btn"
                                         style="background-color: {{ $col }}; border-color: {{ old('color', '#174C40') === $col ? '#ffffff' : 'transparent' }};"
                                         data-color="{{ $col }}"
                                     ></button>
@@ -206,11 +206,11 @@
                 </div>
 
                 <!-- Submit Buttons -->
-                <div class="flex items-center justify-end gap-3 pt-2">
-                    <a href="{{ route('goals.index') }}" class="btn-arus-secondary text-xs h-10 px-5">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-2">
+                    <a href="{{ route('goals.index') }}" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[40px] px-5 w-full sm:w-auto justify-center">
                         Batal
                     </a>
-                    <button type="submit" class="btn-arus-primary text-xs h-10 px-6">
+                    <button type="submit" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[40px] px-6 w-full sm:w-auto justify-center">
                         Simpan Target Tabungan
                     </button>
                 </div>

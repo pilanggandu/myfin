@@ -11,11 +11,11 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'reports-summary\']')" 
-                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-card-toggle inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
                 title="Sembunyikan / Tampilkan Nominal Ringkasan Laporan"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
@@ -23,7 +23,7 @@
             </button>
 
             <!-- Filter Periode Laporan (Bulan & Tahun) -->
-            <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="{{ route('reports.index') }}" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                 <input type="hidden" name="tab" value="{{ $activeTab }}">
                 @if (request()->filled('account_id'))
                     <input type="hidden" name="account_id" value="{{ request('account_id') }}">
@@ -32,7 +32,7 @@
                     <input type="hidden" name="sort_order" value="{{ request('sort_order') }}">
                 @endif
 
-                <select name="month" class="field-select text-xs h-10 py-1.5 min-w-[120px]" onchange="this.form.submit()">
+                <select name="month" class="field-select text-xs h-11 sm:h-10 py-1.5 min-w-[120px] flex-1 sm:flex-initial" onchange="this.form.submit()">
                     @for ($m = 1; $m <= 12; $m++)
                         <option value="{{ $m }}" {{ $month === $m ? 'selected' : '' }}>
                             {{ \Illuminate\Support\Carbon::createFromDate(null, $m, 1)->translatedFormat('F') }}
@@ -40,7 +40,7 @@
                     @endfor
                 </select>
 
-                <select name="year" class="field-select text-xs h-10 py-1.5 min-w-[90px]" onchange="this.form.submit()">
+                <select name="year" class="field-select text-xs h-11 sm:h-10 py-1.5 min-w-[90px] w-28 sm:w-auto" onchange="this.form.submit()">
                     @for ($y = now()->year - 2; $y <= now()->year + 2; $y++)
                         <option value="{{ $y }}" {{ $year === $y ? 'selected' : '' }}>
                             {{ $y }}
@@ -52,12 +52,12 @@
     </div>
 
     <!-- Tab Navigasi Utama Laporan -->
-    <div class="flex items-center gap-2 mb-6 border-b border-line">
+    <div class="flex items-center gap-2 mb-6 border-b border-line overflow-x-auto whitespace-nowrap">
         <a 
             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily'])) }}" 
-            class="px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 {{ $activeTab === 'daily' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="min-h-[44px] px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 shrink-0 {{ $activeTab === 'daily' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
             <span>Arus Kas Harian (Raw Data)</span>
@@ -70,9 +70,9 @@
 
         <a 
             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'analytics'])) }}" 
-            class="px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 {{ $activeTab === 'analytics' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="min-h-[44px] px-4 py-2.5 text-xs font-bold border-b-2 transition inline-flex items-center gap-2 shrink-0 {{ $activeTab === 'analytics' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
             </svg>
@@ -86,7 +86,7 @@
         <!-- ========================================== -->
 
         <!-- KPI Summary Bar Kas Periode -->
-        <div data-privacy-scope="reports-summary" class="privacy-scope grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-6">
+        <div data-privacy-scope="reports-summary" class="privacy-scope grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 mb-6">
             <!-- Saldo Awal -->
             <div class="panel-card p-4 flex flex-col justify-between">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">Saldo Kas Awal</span>
@@ -140,7 +140,7 @@
             </div>
 
             <!-- Saldo Akhir -->
-            <div class="panel-card p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
+            <div class="panel-card p-4 flex flex-col justify-between min-[420px]:col-span-2 sm:col-span-1">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">Saldo Kas Akhir</span>
                 <div class="mt-2">
                     <div class="text-base sm:text-lg font-mono font-bold text-forest">
@@ -189,11 +189,11 @@
                     @endif
                 </div>
 
-                <div class="flex items-center gap-2 self-end sm:self-auto pt-2 sm:pt-0 flex-wrap">
+                <div class="flex items-center gap-2 self-stretch sm:self-auto pt-2 sm:pt-0 flex-wrap">
                     <div class="inline-flex rounded-lg border border-line bg-panel p-0.5 shadow-2xs">
                         <a 
                             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily', 'view' => 'list'])) }}" 
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition {{ $viewMode === 'list' ? 'bg-cream dark:bg-line/60 text-charcoal font-bold shadow-2xs' : 'text-muted hover:text-charcoal' }}"
+                            class="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-semibold transition {{ $viewMode === 'list' ? 'bg-cream dark:bg-line/60 text-charcoal font-bold shadow-2xs' : 'text-muted hover:text-charcoal' }}"
                         >
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -202,7 +202,7 @@
                         </a>
                         <a 
                             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily', 'view' => 'calendar'])) }}" 
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition {{ $viewMode === 'calendar' ? 'bg-cream dark:bg-line/60 text-charcoal font-bold shadow-2xs' : 'text-muted hover:text-charcoal' }}"
+                            class="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-semibold transition {{ $viewMode === 'calendar' ? 'bg-cream dark:bg-line/60 text-charcoal font-bold shadow-2xs' : 'text-muted hover:text-charcoal' }}"
                         >
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
@@ -213,7 +213,7 @@
 
                     <a 
                         href="{{ route('reports.export-csv', array_merge(request()->query(), ['month' => $month, 'year' => $year, 'account_id' => $selectedAccountId, 'sort_order' => $sortOrder])) }}" 
-                        class="btn-arus-secondary h-9 px-3.5 text-xs font-bold inline-flex items-center gap-1.5"
+                        class="btn-arus-secondary min-h-[44px] sm:min-h-[36px] sm:h-9 px-3.5 text-xs font-bold inline-flex items-center gap-1.5"
                         title="Unduh data mentah arus kas harian format CSV untuk Excel"
                     >
                         <svg class="w-4 h-4 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -303,14 +303,15 @@
                                     <span class="privacy-balance" data-raw-value="{{ $day->net >= 0 ? '+' : '' }}Rp {{ number_format($day->net, 0, ',', '.') }}">{{ $day->net >= 0 ? '+' : '' }}Rp {{ number_format($day->net, 0, ',', '.') }}</span>
                                 </div>
 
-                                <div class="px-2 py-0.5 rounded bg-panel dark:bg-line/40 border border-line text-[11px] font-mono text-charcoal flex items-center gap-1.5">
+                                <div class="px-2 py-1 sm:py-0.5 rounded bg-panel dark:bg-line/40 border border-line text-[11px] font-mono text-charcoal flex items-center gap-1.5">
                                     <span class="text-muted">Saldo Kas:</span>
                                     <span class="font-bold privacy-balance" data-raw-value="Rp {{ number_format($day->closing_balance, 0, ',', '.') }}">Rp {{ number_format($day->closing_balance, 0, ',', '.') }}</span>
                                     <button 
                                         type="button" 
                                         onclick="toggleCardPrivacy(this)" 
-                                        class="privacy-card-toggle w-5 h-5 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10px]" 
+                                        class="privacy-card-toggle w-11 h-11 sm:w-5 sm:h-5 -my-2 -mr-1.5 sm:my-0 sm:mr-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10px] shrink-0" 
                                         title="Sembunyikan / Tampilkan Nominal Hari Ini"
+                                        aria-label="Sembunyikan atau tampilkan nominal hari ini"
                                     >
                                         <span class="privacy-toggle-icon"></span>
                                     </button>
@@ -318,8 +319,63 @@
                             </div>
                         </div>
 
+                        <div class="md:hidden divide-y divide-line">
+                            @foreach ($day->items as $item)
+                                @php
+                                    $tx = $item->transaction;
+                                    $src = $tx->sourceAccount();
+                                    $dst = $tx->destinationAccount();
+                                    $isInc = $tx->isIncome();
+                                    $isExp = $tx->isExpense();
+                                    $isTrans = $tx->isTransfer();
+                                @endphp
+                                <div class="p-3.5 space-y-1.5 text-xs">
+                                    <div class="flex items-start justify-between gap-2.5">
+                                        <div class="min-w-0 flex-1">
+                                            <a href="{{ route('transactions.show', $tx) }}" class="font-bold text-charcoal hover:text-forest hover:underline block truncate">
+                                                {{ $tx->description }}
+                                            </a>
+                                            <div class="text-[11px] text-muted flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
+                                                <span class="font-mono">{{ $tx->formattedTime() ?: '-' }}</span>
+                                                <span>&bull;</span>
+                                                <span class="font-mono">
+                                                    @if ($isTrans)
+                                                        {{ $src?->name }} &rarr; {{ $dst?->name }}
+                                                    @elseif ($isExp)
+                                                        {{ $src?->name ?? 'Kas' }}
+                                                    @else
+                                                        {{ $dst?->name ?? 'Kas' }}
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right font-mono font-bold shrink-0 {{ $isInc ? 'text-forest' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
+                                            <span class="privacy-balance" data-raw-value="{{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}">
+                                                {{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center flex-wrap gap-1.5 text-[10px]">
+                                        @if ($isInc)
+                                            <span class="px-1.5 py-0.5 rounded font-bold bg-forest/10 dark:bg-forest/20 text-forest">MASUK</span>
+                                        @elseif ($isExp)
+                                            <span class="px-1.5 py-0.5 rounded font-bold bg-red/10 dark:bg-red/20 text-red dark:text-rose-400">KELUAR</span>
+                                        @else
+                                            <span class="px-1.5 py-0.5 rounded font-bold bg-cream dark:bg-line/50 text-muted">TRANSFER</span>
+                                        @endif
+                                        @if ($tx->category)
+                                            <span class="px-2 py-0.5 rounded font-medium bg-cream dark:bg-line/40 text-charcoal">{{ $tx->category->name }}</span>
+                                        @endif
+                                        @if ($tx->member)
+                                            <span class="px-1.5 py-0.5 rounded-full font-bold text-white" style="background-color: {{ $tx->member->color ?: '#0f4c3a' }};">{{ $tx->member->name }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                         <!-- Item-item Transaksi Mentah Harian -->
-                        <div class="overflow-x-auto">
+                        <div class="hidden md:block overflow-x-auto">
                             <table class="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr class="border-b border-line bg-cream/20 text-muted uppercase font-bold text-[10px] tracking-wider">
@@ -421,8 +477,9 @@
                     <div class="flex items-center gap-2">
                         <a 
                             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily', 'view' => 'calendar', 'month' => $prevMonth, 'year' => $prevYear])) }}"
-                            class="w-8 h-8 rounded-lg border border-line bg-panel flex items-center justify-center text-charcoal hover:bg-cream dark:hover:bg-line/50 transition shadow-2xs cursor-pointer"
+                            class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line bg-panel flex items-center justify-center text-charcoal hover:bg-cream dark:hover:bg-line/50 transition shadow-2xs cursor-pointer"
                             title="Bulan Sebelumnya"
+                            aria-label="Bulan Sebelumnya"
                         >
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -435,8 +492,9 @@
 
                         <a 
                             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily', 'view' => 'calendar', 'month' => $nextMonth, 'year' => $nextYear])) }}"
-                            class="w-8 h-8 rounded-lg border border-line bg-panel flex items-center justify-center text-charcoal hover:bg-cream dark:hover:bg-line/50 transition shadow-2xs cursor-pointer"
+                            class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line bg-panel flex items-center justify-center text-charcoal hover:bg-cream dark:hover:bg-line/50 transition shadow-2xs cursor-pointer"
                             title="Bulan Berikutnya"
+                            aria-label="Bulan Berikutnya"
                         >
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -449,7 +507,7 @@
                             type="button" 
                             id="toggleBillsBtn"
                             onclick="toggleCalendarBills()" 
-                            class="px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                            class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
                             title="Tampilkan atau sembunyikan tagihan & cicilan jatuh tempo"
                         >
                             <span>🔔</span>
@@ -472,7 +530,54 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <!-- Kalender Ringkas Mobile (Tanpa Horizontal Scroll) -->
+                <div class="md:hidden">
+                    <div class="grid grid-cols-7 border-b border-line bg-cream/30 dark:bg-line/20 text-center text-[11px] font-bold text-muted py-2">
+                        <div>Sen</div>
+                        <div>Sel</div>
+                        <div>Rab</div>
+                        <div>Kam</div>
+                        <div>Jum</div>
+                        <div class="text-red/80 dark:text-rose-400/80">Sab</div>
+                        <div class="text-red/80 dark:text-rose-400/80">Min</div>
+                    </div>
+                    <div class="divide-y divide-line">
+                        @foreach ($calendarWeeks as $week)
+                            <div class="grid grid-cols-7 divide-x divide-line">
+                                @foreach ($week as $day)
+                                    <button
+                                        type="button"
+                                        @if ($day->is_current_month) onclick="openCalendarDayModal('{{ $day->date }}')" @else disabled @endif
+                                        class="min-h-[54px] p-1 flex flex-col items-center justify-between transition-colors {{ $day->is_current_month ? 'bg-panel cursor-pointer active:bg-cream' : 'bg-cream/20 dark:bg-line/10 opacity-35 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-inset ring-forest bg-forest/5' : '' }}"
+                                    >
+                                        <span class="inline-flex items-center justify-center text-xs font-bold {{ $day->is_today ? 'w-5 h-5 rounded-full bg-forest text-cream text-[11px]' : ($day->is_weekend ? 'text-red/90 dark:text-rose-400' : 'text-charcoal') }}">
+                                            {{ $day->day_number }}
+                                        </span>
+                                        <div class="flex items-center justify-center gap-1 min-h-[10px]">
+                                            @if ($day->inflow > 0)
+                                                <span class="w-1.5 h-1.5 rounded-full bg-forest" title="Kas masuk"></span>
+                                            @endif
+                                            @if ($day->outflow > 0)
+                                                <span class="w-1.5 h-1.5 rounded-full bg-red" title="Kas keluar"></span>
+                                            @endif
+                                            @if ($day->bills_count > 0)
+                                                <span class="calendar-bill-indicator w-1.5 h-1.5 rounded-full bg-amber-500" title="Tagihan jatuh tempo"></span>
+                                            @endif
+                                        </div>
+                                        <span class="text-[9px] font-mono text-muted leading-none">
+                                            {{ $day->count > 0 ? $day->count . ' tx' : '' }}
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="p-3 bg-sidebar/40 border-t border-line text-[11px] text-muted text-center">
+                        Ketuk tanggal untuk melihat rincian transaksi dan tagihan.
+                    </div>
+                </div>
+
+                <div class="hidden md:block overflow-x-auto">
                     <div class="min-w-[680px]">
                         <div class="grid grid-cols-7 calendar-grid-7 border-b border-line bg-cream/30 dark:bg-line/20 text-center text-xs font-bold text-muted py-2" style="display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)) !important;">
                             <div class="py-1">Sen</div>
@@ -490,8 +595,7 @@
                                     @foreach ($week as $day)
                                         <div 
                                             @if ($day->is_current_month) onclick="openCalendarDayModal('{{ $day->date }}')" @endif
-                                            class="calendar-day-cell h-[120px] p-2 flex flex-col justify-between transition-colors relative select-none overflow-hidden {{ $day->is_current_month ? 'bg-panel cursor-pointer hover:bg-cream/50 dark:hover:bg-line/30' : 'bg-cream/20 dark:bg-line/10 opacity-40 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-forest bg-forest/5 z-1' : '' }}"
-                                            style="height: 120px !important; min-height: 120px !important; max-height: 120px !important; box-sizing: border-box !important;"
+                                            class="calendar-day-cell p-2 flex flex-col justify-between transition-colors relative select-none {{ $day->is_current_month ? 'bg-panel cursor-pointer hover:bg-cream/50 dark:hover:bg-line/30' : 'bg-cream/20 dark:bg-line/10 opacity-40 cursor-default' }} {{ $day->is_today ? 'ring-2 ring-forest bg-forest/5 z-1' : '' }}"
                                         >
                                             <div class="flex items-center justify-between gap-1">
                                                 <span class="inline-flex items-center justify-center text-xs font-bold {{ $day->is_today ? 'w-5 h-5 rounded-full bg-forest text-cream text-[11px]' : ($day->is_weekend ? 'text-red/90 dark:text-rose-400' : 'text-charcoal') }}">
@@ -557,32 +661,32 @@
             <div id="calendarDayModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                 <div class="fixed inset-0 bg-charcoal/60 backdrop-blur-xs transition-opacity" onclick="closeCalendarDayModal()"></div>
 
-                <div class="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
-                    <div class="relative transform overflow-hidden rounded-2xl bg-panel border border-line text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl w-full">
-                        <div class="px-5 py-4 border-b border-line flex items-center justify-between bg-cream/30 dark:bg-line/20">
-                            <div>
+                <div class="flex min-h-full items-start sm:items-center justify-center p-2.5 sm:p-4 text-center">
+                    <div class="relative transform overflow-hidden rounded-2xl bg-panel border border-line text-left shadow-xl transition-all my-2 sm:my-8 sm:w-full sm:max-w-2xl w-full max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] flex flex-col">
+                        <div class="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-line flex items-center justify-between gap-2 bg-cream/30 dark:bg-line/20 shrink-0">
+                            <div class="min-w-0">
                                 <h3 id="calModalDateTitle" class="text-base font-bold text-charcoal"></h3>
                                 <p id="calModalSubTitle" class="text-xs text-muted mt-0.5"></p>
                             </div>
-                            <button type="button" onclick="closeCalendarDayModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream dark:hover:bg-line/50 transition">
+                            <button type="button" onclick="closeCalendarDayModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream dark:hover:bg-line/50 transition shrink-0" aria-label="Tutup modal">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
-                        <div class="p-5 space-y-5">
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Kas Masuk</span>
+                        <div class="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                                <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20 flex items-center justify-between sm:block">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-muted block sm:mb-1">Kas Masuk</span>
                                     <div id="calModalInflow" class="text-sm sm:text-base font-mono font-bold text-forest privacy-balance">Rp 0</div>
                                 </div>
-                                <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Kas Keluar</span>
+                                <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20 flex items-center justify-between sm:block">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-muted block sm:mb-1">Kas Keluar</span>
                                     <div id="calModalOutflow" class="text-sm sm:text-base font-mono font-bold text-red dark:text-rose-400 privacy-balance">Rp 0</div>
                                 </div>
-                                <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1">Arus Kas Bersih</span>
+                                <div class="p-3 rounded-xl border border-line bg-cream/30 dark:bg-line/20 flex items-center justify-between sm:block">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-muted block sm:mb-1">Arus Kas Bersih</span>
                                     <div id="calModalNet" class="text-sm sm:text-base font-mono font-bold privacy-balance">Rp 0</div>
                                 </div>
                             </div>
@@ -597,7 +701,9 @@
                                     <p class="text-xs text-muted">Tidak ada transaksi yang tercatat pada tanggal ini.</p>
                                 </div>
 
-                                <div id="calModalTableWrapper" class="overflow-x-auto max-h-[340px] overflow-y-auto border border-line rounded-xl">
+                                <div id="calModalMobileList" class="sm:hidden space-y-2"></div>
+
+                                <div id="calModalTableWrapper" class="hidden sm:block overflow-x-auto max-h-[340px] overflow-y-auto border border-line rounded-xl">
                                     <table class="w-full text-left text-xs">
                                         <thead class="bg-cream/40 dark:bg-line/30 border-b border-line text-[11px] font-bold text-muted uppercase sticky top-0 backdrop-blur-xs">
                                             <tr>
@@ -628,14 +734,14 @@
                             </div>
                         </div>
 
-                        <div class="px-5 py-3.5 border-t border-line bg-cream/20 dark:bg-line/10 flex items-center justify-between gap-3">
-                            <a id="calModalCreateTxBtn" href="#" class="btn-arus-primary text-xs h-9 px-3.5 font-bold inline-flex items-center gap-1.5">
+                        <div class="px-4 sm:px-5 py-3.5 border-t border-line bg-cream/20 dark:bg-line/10 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
+                            <a id="calModalCreateTxBtn" href="#" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[36px] text-xs px-3.5 font-bold inline-flex items-center justify-center gap-1.5">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
                                 <span>Catat Transaksi di Tanggal Ini</span>
                             </a>
-                            <button type="button" onclick="closeCalendarDayModal()" class="btn-arus-secondary text-xs h-9 px-4 font-semibold">
+                            <button type="button" onclick="closeCalendarDayModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[36px] text-xs px-4 font-semibold">
                                 Tutup
                             </button>
                         </div>
@@ -683,16 +789,22 @@
                     document.getElementById('calModalCreateTxBtn').href = createUrl;
 
                     const tbody = document.getElementById('calModalTbody');
+                    const mobileList = document.getElementById('calModalMobileList');
                     const emptyState = document.getElementById('calModalEmptyState');
                     const tableWrapper = document.getElementById('calModalTableWrapper');
                     tbody.innerHTML = '';
+                    if (mobileList) {
+                        mobileList.innerHTML = '';
+                    }
 
                     if (items.length === 0) {
                         emptyState.classList.remove('hidden');
                         tableWrapper.classList.add('hidden');
+                        mobileList?.classList.add('hidden');
                     } else {
                         emptyState.classList.add('hidden');
                         tableWrapper.classList.remove('hidden');
+                        mobileList?.classList.remove('hidden');
 
                         items.forEach(function(item) {
                             const tr = document.createElement('tr');
@@ -746,6 +858,36 @@
                                 </td>
                             `;
                             tbody.appendChild(tr);
+
+                            if (mobileList) {
+                                const card = document.createElement('div');
+                                card.className = 'p-3 rounded-xl border border-line bg-sidebar/30 space-y-1.5 text-xs';
+                                card.innerHTML = `
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="font-bold text-charcoal truncate">${item.description}</div>
+                                            <div class="text-[11px] text-muted mt-0.5 flex flex-wrap items-center gap-1.5">
+                                                <span class="font-mono">${item.time}</span>
+                                                <span>&bull;</span>
+                                                <span class="font-mono">${accountStr}</span>
+                                            </div>
+                                        </div>
+                                        <div class="font-mono font-bold shrink-0 ${amountClass}">
+                                            <span class="privacy-balance" data-raw-value="${formattedNominal}">${formattedNominal}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between gap-2 pt-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-cream dark:bg-line/40 text-charcoal">${item.category_name}</span>
+                                            ${typeBadge}
+                                        </div>
+                                        <a href="${item.url}" class="min-h-[36px] px-2 text-[11px] font-bold text-forest hover:underline inline-flex items-center">
+                                            Detail &rarr;
+                                        </a>
+                                    </div>
+                                `;
+                                mobileList.appendChild(card);
+                            }
                         });
                     }
 
@@ -833,10 +975,10 @@
                     const dot = document.getElementById('billsStatusDot');
                     if (btn && dot) {
                         if (calendarBillsVisible) {
-                            btn.className = 'px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+                            btn.className = 'min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
                             dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
                         } else {
-                            btn.className = 'px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-panel text-muted border-line hover:text-charcoal';
+                            btn.className = 'min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-panel text-muted border-line hover:text-charcoal';
                             dot.className = 'w-1.5 h-1.5 rounded-full bg-muted/40';
                         }
                     }
@@ -903,8 +1045,26 @@
                                 <canvas id="categoryChart" width="260" height="260"></canvas>
                             </div>
 
+                            <!-- Mobile Category Breakdown List -->
+                            <div class="sm:hidden divide-y divide-line border-t border-line">
+                                @foreach ($categoryBreakdown as $cat)
+                                    <div class="py-2.5 flex items-center justify-between gap-2 text-xs">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="font-semibold text-charcoal truncate">{{ $cat->name }}</div>
+                                            <div class="text-[11px] text-muted">{{ $cat->count }} transaksi</div>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <div class="font-mono font-bold text-charcoal">
+                                                <span class="privacy-balance" data-raw-value="Rp {{ number_format($cat->amount, 0, ',', '.') }}">Rp {{ number_format($cat->amount, 0, ',', '.') }}</span>
+                                            </div>
+                                            <div class="text-[11px] font-bold text-forest">{{ $cat->percentage }}%</div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
                             <!-- Accessible Alternative Table -->
-                            <div class="overflow-x-auto">
+                            <div class="hidden sm:block overflow-x-auto">
                                 <table class="w-full text-left text-xs border-collapse">
                                     <thead>
                                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
@@ -957,8 +1117,26 @@
                             <canvas id="trendChart"></canvas>
                         </div>
 
+                        <!-- Mobile Trend List -->
+                        <div class="sm:hidden divide-y divide-line border-t border-line">
+                            @foreach ($monthlyTrend as $m)
+                                <div class="py-2.5 space-y-1 text-xs">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="font-bold text-charcoal">{{ $m->label }}</span>
+                                        <span class="font-mono font-bold {{ $m->net >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
+                                            <span class="privacy-balance" data-raw-value="{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}">{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}</span>
+                                        </span>
+                                    </div>
+                                    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+                                        <span class="text-forest">+<span class="privacy-balance" data-raw-value="Rp {{ number_format($m->income, 0, ',', '.') }}">Rp {{ number_format($m->income, 0, ',', '.') }}</span></span>
+                                        <span class="text-red dark:text-rose-400">-<span class="privacy-balance" data-raw-value="Rp {{ number_format($m->expense, 0, ',', '.') }}">Rp {{ number_format($m->expense, 0, ',', '.') }}</span></span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
                         <!-- Accessible Alternative Table -->
-                        <div class="overflow-x-auto">
+                        <div class="hidden sm:block overflow-x-auto">
                             <table class="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">

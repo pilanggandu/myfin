@@ -6,8 +6,8 @@
 
 <div {{ $attributes->merge(['class' => 'panel-card']) }}>
     @if ($title || $eyebrow || isset($header))
-        <div class="pb-3 border-b border-line mb-4 flex items-center justify-between">
-            <div>
+        <div class="pb-3 border-b border-line mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
                 @if ($eyebrow)
                     <span class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase block mb-0.5">{{ $eyebrow }}</span>
                 @endif
@@ -19,7 +19,7 @@
                 @endif
             </div>
             @if (isset($header))
-                <div>{{ $header }}</div>
+                <div class="shrink-0">{{ $header }}</div>
             @endif
         </div>
     @endif

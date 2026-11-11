@@ -52,12 +52,12 @@
             </div>
 
             <!-- Header Action Buttons -->
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 @if ($recurring->isActive())
                     <button 
                         type="button" 
                         onclick="openConfirmModal('{{ $recurring->next_due_date->toDateString() }}', {{ $recurring->amount ?: 0 }})"
-                        class="btn-arus-primary text-xs font-bold px-4 py-2 inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        class="btn-arus-primary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-4 py-2 inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -68,20 +68,20 @@
                     <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline" onsubmit="return confirm('Lewati periode jatuh tempo {{ $recurring->next_due_date->format('d/m/Y') }} tanpa mencatat transaksi keuangan?')">
                         @csrf
                         <input type="hidden" name="due_date" value="{{ $recurring->next_due_date->toDateString() }}">
-                        <button type="submit" class="btn-arus-secondary text-xs font-bold px-3 py-2 text-muted hover:text-charcoal cursor-pointer" title="Lewati periode ini">
+                        <button type="submit" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-muted hover:text-charcoal cursor-pointer" title="Lewati periode ini">
                             Lewati
                         </button>
                     </form>
                 @endif
 
-                <a href="{{ route('recurring.edit', $recurring) }}" class="btn-arus-secondary text-xs font-bold px-3 py-2 text-forest border-forest/30 hover:bg-forest-light">
+                <a href="{{ route('recurring.edit', $recurring) }}" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-forest border-forest/30 hover:bg-forest-light">
                     Ubah
                 </a>
 
                 <form method="POST" action="{{ route('recurring.destroy', $recurring) }}" class="inline" onsubmit="return confirm('{{ $recurring->isArchived() ? 'Pulihkan jadwal ini?' : 'Arsipkan jadwal ini?' }}')">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn-arus-secondary text-xs font-bold px-3 py-2 text-rose-600 hover:bg-rose-500/10 border-rose-500/30 cursor-pointer">
+                    <button type="submit" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-rose-600 hover:bg-rose-500/10 border-rose-500/30 cursor-pointer">
                         {{ $recurring->isArchived() ? 'Pulihkan' : 'Arsipkan' }}
                     </button>
                 </form>
@@ -126,7 +126,7 @@
                     Parameter Jadwal
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
                         <span class="text-muted block text-[11px] mb-0.5">Frekuensi:</span>
                         <span class="font-bold text-charcoal">
@@ -276,7 +276,68 @@
                 Belum ada riwayat kejadian untuk jadwal ini.
             </div>
         @else
-            <div class="overflow-x-auto">
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($recurring->occurrences as $occ)
+                    <div class="p-4 space-y-2 text-xs">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="font-mono font-bold text-sm text-charcoal">{{ $occ->due_date->format('d M Y') }}</div>
+                                <div class="mt-1">
+                                    @if ($occ->isConfirmed())
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">✓ Tercatat</span>
+                                    @elseif ($occ->isSkipped())
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/15 text-muted border border-line">Dilewati</span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">Menunggu</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-right font-mono font-bold text-sm shrink-0">
+                                @if ($occ->amount)
+                                    <span class="privacy-balance">Rp {{ number_format($occ->amount, 0, ',', '.') }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if ($occ->confirmed_at || $occ->notes)
+                            <div class="text-[11px] text-muted space-y-0.5">
+                                @if ($occ->confirmed_at)
+                                    <div>Dikonfirmasi: {{ $occ->confirmed_at->format('d/m/Y H:i') }} {{ $occ->confirmedBy?->name ? '(' . $occ->confirmedBy->name . ')' : '' }}</div>
+                                @endif
+                                @if ($occ->notes)
+                                    <div>Catatan: {{ $occ->notes }}</div>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if ($occ->transaction || ($occ->isPending() && $recurring->isActive()))
+                            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line/60">
+                                @if ($occ->transaction)
+                                    <a href="{{ route('transactions.show', $occ->transaction) }}" class="min-h-[40px] inline-flex items-center gap-1 font-bold text-forest hover:underline">
+                                        <span>TX #{{ $occ->transaction->id }}</span>
+                                        @if ($occ->transaction->isVoid())
+                                            <span class="text-[9px] font-bold px-1 rounded bg-rose-500/15 text-rose-500">VOID</span>
+                                        @endif
+                                    </a>
+                                @endif
+                                @if ($occ->isPending() && $recurring->isActive())
+                                    <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline ml-auto" onsubmit="return confirm('Lewati periode {{ $occ->due_date->format('d/m/Y') }} tanpa mencatat transaksi?')">
+                                        @csrf
+                                        <input type="hidden" name="due_date" value="{{ $occ->due_date->toDateString() }}">
+                                        <button type="submit" class="min-h-[44px] px-3 py-1.5 rounded-lg border border-line text-xs font-semibold text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer">
+                                            Lewati
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-line bg-sidebar/50 text-[10px] uppercase font-bold text-muted tracking-wider">
@@ -373,14 +434,14 @@
     </div>
 
     <!-- Modal Konfirmasi Occurrence -->
-    <div id="confirmOccurrenceModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4">
-        <div class="panel-card w-full max-w-md p-6 rounded-2xl border border-line bg-panel shadow-xl space-y-4">
-            <div class="flex items-center justify-between border-b border-line pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center text-xs font-bold">✓</span>
-                    <h3 class="text-sm font-bold text-charcoal">Konfirmasi & Catat Transaksi</h3>
+    <div id="confirmOccurrenceModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-start sm:items-center justify-center p-3 sm:p-4">
+        <div class="panel-card w-full max-w-md p-4 sm:p-6 rounded-2xl border border-line bg-panel shadow-xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 border-b border-line pb-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center text-xs font-bold shrink-0">✓</span>
+                    <h3 class="text-sm font-bold text-charcoal truncate">Konfirmasi & Catat Transaksi</h3>
                 </div>
-                <button type="button" onclick="closeConfirmModal()" class="text-muted hover:text-charcoal font-bold text-base cursor-pointer">&times;</button>
+                <button type="button" onclick="closeConfirmModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg inline-flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream font-bold text-base cursor-pointer shrink-0" aria-label="Tutup modal">&times;</button>
             </div>
 
             <form method="POST" id="confirmOccurrenceForm" action="{{ route('recurring.confirm', $recurring) }}" class="space-y-4" novalidate>
@@ -459,7 +520,7 @@
                     @endif
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="modalTxDate" class="block text-xs font-bold text-charcoal mb-1">
                             Tanggal Catat
@@ -500,11 +561,11 @@
                     />
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-line">
-                    <button type="button" onclick="closeConfirmModal()" class="btn-arus-secondary px-4 py-2 text-xs font-bold cursor-pointer">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-2 border-t border-line">
+                    <button type="button" onclick="closeConfirmModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-4 py-2 text-xs font-bold cursor-pointer">
                         Batal
                     </button>
-                    <button type="submit" id="btnConfirmShowSubmit" class="btn-arus-primary px-5 py-2 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5">
+                    <button type="submit" id="btnConfirmShowSubmit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] px-5 py-2 text-xs font-bold cursor-pointer inline-flex items-center justify-center gap-1.5">
                         <svg id="confirmShowIcon" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                         </svg>

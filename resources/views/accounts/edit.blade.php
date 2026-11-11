@@ -53,7 +53,7 @@
                         <label class="block text-[11px] font-bold tracking-wider text-muted uppercase mb-2">
                             1. Tipe Rekening
                         </label>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-1.5 rounded-xl bg-sidebar border border-line" id="typeSwitcher">
+                        <div class="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-2.5 p-1.5 rounded-xl bg-sidebar border border-line" id="typeSwitcher">
                             
                             <label class="cursor-pointer">
                                 <input 
@@ -192,22 +192,22 @@
                         <!-- Quick Amount Chips -->
                         <div class="flex items-center gap-1.5 flex-wrap pt-3 mt-1 border-t border-line/40">
                             <span class="text-[10px] font-bold text-muted uppercase mr-1 select-none">Cepat:</span>
-                            <button type="button" onclick="setExactBalance(0)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="setExactBalance(0)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 Rp 0
                             </button>
-                            <button type="button" onclick="addBalance(500000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addBalance(500000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +500rb
                             </button>
-                            <button type="button" onclick="addBalance(1000000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addBalance(1000000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +1jt
                             </button>
-                            <button type="button" onclick="addBalance(5000000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addBalance(5000000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +5jt
                             </button>
-                            <button type="button" onclick="addBalance(10000000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addBalance(10000000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +10jt
                             </button>
-                            <button type="button" onclick="setExactBalance({{ $account->opening_balance }})" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-muted hover:text-forest hover:border-forest/40 transition cursor-pointer ml-auto" title="Kembalikan ke saldo awal tersimpan">
+                            <button type="button" onclick="setExactBalance({{ $account->opening_balance }})" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-muted hover:text-forest hover:border-forest/40 transition cursor-pointer ml-auto" title="Kembalikan ke saldo awal tersimpan">
                                 Reset Awal
                             </button>
                         </div>
@@ -285,7 +285,7 @@
                 </div>
 
                 <!-- TOMBOL AKSI -->
-                <div class="flex items-center gap-3 pt-2">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                     <button type="submit" class="btn-arus-primary min-h-[46px] px-6 text-sm font-bold flex-1 sm:flex-initial">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />

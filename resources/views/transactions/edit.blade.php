@@ -92,19 +92,19 @@
                         <!-- Quick Amount Chips -->
                         <div class="flex items-center gap-1.5 flex-wrap pt-3 mt-1 border-t border-line/40">
                             <span class="text-[10px] font-bold text-muted uppercase mr-1 select-none">Cepat:</span>
-                            <button type="button" onclick="addAmount(10000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addAmount(10000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +10rb
                             </button>
-                            <button type="button" onclick="addAmount(50000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addAmount(50000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +50rb
                             </button>
-                            <button type="button" onclick="addAmount(100000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addAmount(100000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +100rb
                             </button>
-                            <button type="button" onclick="addAmount(500000)" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="addAmount(500000)" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-charcoal hover:bg-cream hover:border-forest/40 transition cursor-pointer">
                                 +500rb
                             </button>
-                            <button type="button" onclick="clearAmount()" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-panel border border-line text-muted hover:text-red hover:border-red/40 transition cursor-pointer ml-auto" title="Kosongkan Nominal">
+                            <button type="button" onclick="clearAmount()" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-md text-xs font-semibold bg-panel border border-line text-muted hover:text-red hover:border-red/40 transition cursor-pointer ml-auto" title="Kosongkan Nominal">
                                 Reset
                             </button>
                         </div>
@@ -234,8 +234,8 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <!-- Tanggal & Jam Transaksi -->
                         <div>
-                            <div class="grid grid-cols-5 gap-2">
-                                <div class="col-span-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-2">
+                                <div class="sm:col-span-3">
                                     <label for="transaction_date" class="block text-xs font-bold text-charcoal mb-1.5">
                                         Tanggal Transaksi
                                     </label>
@@ -249,7 +249,7 @@
                                         onchange="updateReceipt()"
                                     >
                                 </div>
-                                <div class="col-span-2">
+                                <div class="sm:col-span-2">
                                     <label for="transaction_time" class="block text-xs font-bold text-charcoal mb-1.5 flex items-center justify-between">
                                         <span>Jam</span>
                                         <span class="text-[10px] text-muted font-normal">Opsional</span>
@@ -264,17 +264,17 @@
                                     >
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between mt-1.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mt-1.5">
                                 <div class="flex items-center gap-2">
-                                    <button type="button" onclick="setDatePreset(0)" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                                    <button type="button" onclick="setDatePreset(0)" class="min-h-[40px] sm:min-h-0 px-1 text-[11px] text-muted hover:text-forest underline transition cursor-pointer inline-flex items-center">
                                         Hari ini
                                     </button>
                                     <span class="text-line">&bull;</span>
-                                    <button type="button" onclick="setDatePreset(-1)" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                                    <button type="button" onclick="setDatePreset(-1)" class="min-h-[40px] sm:min-h-0 px-1 text-[11px] text-muted hover:text-forest underline transition cursor-pointer inline-flex items-center">
                                         Kemarin
                                     </button>
                                 </div>
-                                <button type="button" onclick="setCurrentHour()" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
+                                <button type="button" onclick="setCurrentHour()" class="min-h-[40px] sm:min-h-0 px-1 text-[11px] text-muted hover:text-forest underline transition cursor-pointer inline-flex items-center">
                                     Jam sekarang
                                 </button>
                             </div>
@@ -338,16 +338,16 @@
                         >
                         <div class="flex items-center gap-1.5 flex-wrap pt-2">
                             <span class="text-[10px] font-bold text-muted uppercase mr-1 select-none">Pilihan Alasan:</span>
-                            <button type="button" onclick="setReason('Salah input nominal transaksi')" class="px-2 py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="setReason('Salah input nominal transaksi')" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-2 sm:py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
                                 Salah nominal
                             </button>
-                            <button type="button" onclick="setReason('Revisi pengelompokan kategori faktur')" class="px-2 py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="setReason('Revisi pengelompokan kategori faktur')" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-2 sm:py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
                                 Revisi kategori
                             </button>
-                            <button type="button" onclick="setReason('Koreksi rekening pembayaran')" class="px-2 py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="setReason('Koreksi rekening pembayaran')" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-2 sm:py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
                                 Ganti rekening
                             </button>
-                            <button type="button" onclick="setReason('Koreksi tanggal buku nota')" class="px-2 py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
+                            <button type="button" onclick="setReason('Koreksi tanggal buku nota')" class="min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-2 sm:py-0.5 rounded text-[11px] bg-sidebar border border-line text-muted hover:text-charcoal hover:border-forest/40 transition cursor-pointer">
                                 Koreksi tanggal
                             </button>
                         </div>
@@ -358,7 +358,7 @@
                 </div>
 
                 <!-- TOMBOL AKSI -->
-                <div class="flex items-center gap-3 pt-2">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                     <button type="submit" id="btnSaveEdit" class="btn-arus-primary min-h-[46px] px-6 text-sm font-bold flex-1 sm:flex-initial inline-flex items-center gap-2 cursor-pointer">
                         <svg id="saveEditIcon" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />

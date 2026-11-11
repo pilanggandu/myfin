@@ -48,7 +48,7 @@
                 @enderror
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label for="editPlannedAmount" class="field-label">
                         Estimasi Biaya (Rp) <span class="text-red">*</span>

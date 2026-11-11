@@ -35,11 +35,11 @@
                     :selected="config('arus.default_timezone', 'Asia/Jakarta')"
                 />
 
-                <div class="flex items-center gap-3 pt-3">
-                    <x-button type="submit" variant="primary">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-3">
+                    <x-button type="submit" variant="primary" class="min-h-[44px] sm:min-h-[38px]">
                         Simpan Ruang Baru
                     </x-button>
-                    <a href="{{ route('spaces.index') }}" class="btn-arus-secondary">
+                    <a href="{{ route('spaces.index') }}" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px]">
                         Batal
                     </a>
                 </div>

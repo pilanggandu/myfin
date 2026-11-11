@@ -1,14 +1,14 @@
-<div id="quickTransactionModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="quickModalTitle">
-    <div class="panel-card bg-panel border border-line rounded-2xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl space-y-4 sm:space-y-5 my-8" onclick="event.stopPropagation()">
+<div id="quickTransactionModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-2.5 sm:p-4 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-labelledby="quickModalTitle">
+    <div class="panel-card bg-panel border border-line rounded-2xl max-w-3xl w-full p-4 sm:p-7 shadow-2xl space-y-4 sm:space-y-5 my-2 sm:my-8 max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] overflow-y-auto" onclick="event.stopPropagation()">
         
         <!-- Header Modal -->
-        <div class="flex items-center justify-between border-b border-line pb-3">
-            <div class="flex items-center gap-2">
-                <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs">
+        <div class="flex items-start sm:items-center justify-between gap-2 border-b border-line pb-3">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="w-7 h-7 rounded-lg bg-forest text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                     ⚡
                 </span>
-                <div>
-                    <h3 id="quickModalTitle" class="font-serif text-lg sm:text-xl text-forest font-normal">
+                <div class="min-w-0">
+                    <h3 id="quickModalTitle" class="font-serif text-lg sm:text-xl text-forest font-normal truncate">
                         Catat Cepat Transaksi
                     </h3>
                     <p class="text-[11px] text-muted">
@@ -19,7 +19,7 @@
             <button 
                 type="button" 
                 onclick="closeQuickTransactionModal()" 
-                class="w-8 h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm"
+                class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center cursor-pointer text-sm shrink-0"
                 aria-label="Tutup modal"
             >
                 ✕
@@ -34,7 +34,7 @@
             <label for="smartQuickInput" class="block text-[11px] font-bold tracking-wider text-muted uppercase">
                 Ketik Ekspres (Smart Parser)
             </label>
-            <div class="flex gap-2">
+            <div class="flex flex-col sm:flex-row gap-2">
                 <input 
                     type="text" 
                     id="smartQuickInput" 
@@ -45,7 +45,7 @@
                 <button 
                     type="button" 
                     onclick="applyQuickSmartText()" 
-                    class="px-3 py-2 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest-hover transition cursor-pointer"
+                    class="min-h-[44px] sm:min-h-[38px] px-4 py-2 rounded-lg text-xs font-bold bg-forest text-white hover:bg-forest-hover transition cursor-pointer shrink-0"
                 >
                     Terapkan
                 </button>
@@ -126,19 +126,19 @@
             <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-sidebar border border-line">
                 <label class="cursor-pointer">
                     <input type="radio" name="type" value="expense" class="sr-only peer" checked onchange="onQuickModalTypeChange('expense')">
-                    <div class="py-1.5 text-center text-xs font-bold text-muted rounded-lg peer-checked:bg-panel peer-checked:text-rose-500 peer-checked:border-rose-500/30 border border-transparent transition">
+                    <div class="min-h-[44px] sm:min-h-0 py-2 sm:py-1.5 px-1 flex items-center justify-center text-center text-[11.5px] sm:text-xs font-bold text-muted rounded-lg peer-checked:bg-panel peer-checked:text-rose-500 peer-checked:border-rose-500/30 border border-transparent transition">
                         Pengeluaran
                     </div>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="type" value="income" class="sr-only peer" onchange="onQuickModalTypeChange('income')">
-                    <div class="py-1.5 text-center text-xs font-bold text-muted rounded-lg peer-checked:bg-panel peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 peer-checked:border-emerald-500/30 border border-transparent transition">
+                    <div class="min-h-[44px] sm:min-h-0 py-2 sm:py-1.5 px-1 flex items-center justify-center text-center text-[11.5px] sm:text-xs font-bold text-muted rounded-lg peer-checked:bg-panel peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 peer-checked:border-emerald-500/30 border border-transparent transition">
                         Pemasukan
                     </div>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="type" value="transfer" class="sr-only peer" onchange="onQuickModalTypeChange('transfer')">
-                    <div class="py-1.5 text-center text-xs font-bold text-muted rounded-lg peer-checked:bg-panel peer-checked:text-charcoal peer-checked:border-line border border-transparent transition">
+                    <div class="min-h-[44px] sm:min-h-0 py-2 sm:py-1.5 px-1 flex items-center justify-center text-center text-[11.5px] sm:text-xs font-bold text-muted rounded-lg peer-checked:bg-panel peer-checked:text-charcoal peer-checked:border-line border border-transparent transition">
                         Transfer
                     </div>
                 </label>
@@ -364,8 +364,8 @@
                     >
                 </div>
                 <div>
-                    <div class="grid grid-cols-5 gap-1.5">
-                        <div class="col-span-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 sm:gap-1.5">
+                        <div class="sm:col-span-3">
                             <label for="quickModalDate" class="block text-xs font-bold text-charcoal mb-1">
                                 Tanggal
                             </label>
@@ -378,7 +378,7 @@
                                 required
                             >
                         </div>
-                        <div class="col-span-2">
+                        <div class="sm:col-span-2">
                             <label for="quickModalTime" class="block text-xs font-bold text-charcoal mb-1 flex items-center justify-between">
                                 <span>Jam</span>
                                 <span class="text-[9px] text-muted font-normal">Opsional</span>
@@ -402,7 +402,7 @@
                     id="quickModalBtnSaveClose"
                     name="action" 
                     value="save_and_close" 
-                    class="btn-arus-primary flex-1 min-h-[42px] text-xs font-bold cursor-pointer inline-flex items-center justify-center gap-1.5"
+                    class="btn-arus-primary flex-1 min-h-[44px] sm:min-h-[42px] text-xs font-bold cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
                     <svg id="quickSaveCloseSpinner" class="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white shrink-0 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -414,7 +414,7 @@
                     type="button" 
                     id="quickModalBtnSaveAndAgain"
                     onclick="submitQuickModalAndAgain()" 
-                    class="btn-arus-secondary min-h-[42px] px-4 text-xs font-bold inline-flex items-center justify-center gap-1.5 text-forest border-forest/30 hover:bg-forest-light cursor-pointer"
+                    class="btn-arus-secondary min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold inline-flex items-center justify-center gap-1.5 text-forest border-forest/30 hover:bg-forest-light cursor-pointer"
                     title="Simpan transaksi ini dan lanjut input transaksi baru langsung tanpa menutup modal"
                 >
                     <svg class="w-4 h-4 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -422,7 +422,7 @@
                     </svg>
                     <span>Simpan & Input Lagi</span>
                 </button>
-                <button type="button" onclick="closeQuickTransactionModal()" class="btn-arus-secondary min-h-[42px] px-4 text-xs font-bold cursor-pointer">
+                <button type="button" onclick="closeQuickTransactionModal()" class="btn-arus-secondary min-h-[44px] sm:min-h-[42px] px-4 text-xs font-bold cursor-pointer">
                     Batal
                 </button>
             </div>

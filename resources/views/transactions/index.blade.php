@@ -7,17 +7,17 @@
             </h1>
             <p class="text-xs text-muted">Seluruh pencatatan arus kas masuk, pengeluaran, dan mutasi transfer antar-rekening.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'transactions-table\']')" 
-                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-card-toggle inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer flex-1 sm:flex-initial"
                 title="Sembunyikan / Tampilkan Nominal Transaksi"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
                 <span class="privacy-toggle-text">Nominal Transaksi</span>
             </button>
-            <a href="{{ route('transactions.create') }}" class="btn-arus-primary w-full sm:w-auto">
+            <a href="{{ route('transactions.create') }}" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px]">
                 + Catat Transaksi Baru
             </a>
         </div>
@@ -72,7 +72,7 @@
                         type="button"
                         id="clearTransactionSearchBtn"
                         onclick="clearTransactionSearch()"
-                        class="{{ request()->filled('search') ? 'inline-flex' : 'hidden' }} absolute inset-y-0 right-1.5 my-auto w-7 h-7 rounded-md items-center justify-center text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer text-sm leading-none"
+                        class="{{ request()->filled('search') ? 'inline-flex' : 'hidden' }} absolute inset-y-0 right-1 my-auto w-9 h-9 sm:w-7 sm:h-7 rounded-md items-center justify-center text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer text-sm leading-none"
                         title="Hapus kata kunci pencarian"
                         aria-label="Hapus kata kunci pencarian"
                     >
@@ -85,7 +85,7 @@
                         type="button" 
                         id="toggleAdvancedBtn"
                         onclick="toggleAdvancedFilters()"
-                        class="btn-arus-secondary h-10 min-h-[40px] px-3.5 text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition select-none flex-1 sm:flex-initial justify-center {{ $isAdvancedOpen ? 'border-forest text-forest dark:text-blue-300 bg-forest-light/40' : '' }}"
+                        class="btn-arus-secondary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-3.5 text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition select-none flex-1 sm:flex-initial justify-center {{ $isAdvancedOpen ? 'border-forest text-forest dark:text-blue-300 bg-forest-light/40' : '' }}"
                         aria-expanded="{{ $isAdvancedOpen ? 'true' : 'false' }}"
                     >
                         <svg class="w-4 h-4 text-forest dark:text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -102,14 +102,14 @@
                         </svg>
                     </button>
 
-                    <button type="submit" class="btn-arus-primary h-10 min-h-[40px] px-4 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-4 text-xs font-bold cursor-pointer">
                         Terapkan
                     </button>
 
                     <a
                         href="{{ route('transactions.index') }}"
                         id="transactionResetLink"
-                        class="{{ $hasAnyFilter ? 'inline-flex' : 'hidden' }} btn-arus-secondary h-10 min-h-[40px] px-3 text-xs font-bold items-center justify-center text-muted hover:text-red transition cursor-pointer"
+                        class="{{ $hasAnyFilter ? 'inline-flex' : 'hidden' }} btn-arus-secondary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-3 text-xs font-bold items-center justify-center text-muted hover:text-red transition cursor-pointer"
                         title="Reset Semua Filter"
                     >
                         Reset
@@ -139,7 +139,7 @@
                         data-quick-filter-category=""
                         onclick="applyQuickCategoryFilter('')"
                         aria-pressed="{{ !request()->filled('category_id') ? 'true' : 'false' }}"
-                        class="min-h-[34px] sm:min-h-[28px] px-2.5 py-1 rounded-lg text-xs border transition cursor-pointer {{ !request()->filled('category_id') ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold' : 'bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage' }}"
+                        class="min-h-[44px] sm:min-h-[28px] px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs border transition cursor-pointer {{ !request()->filled('category_id') ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold' : 'bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage' }}"
                     >
                         Semua
                     </button>
@@ -152,7 +152,7 @@
                             data-quick-filter-category="{{ $recentCat->id }}"
                             onclick="applyQuickCategoryFilter('{{ $recentCat->id }}')"
                             aria-pressed="{{ $isCatActive ? 'true' : 'false' }}"
-                            class="min-h-[34px] sm:min-h-[28px] px-2.5 py-1 rounded-lg text-xs border transition cursor-pointer {{ $isCatActive ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold' : 'bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage' }}"
+                            class="min-h-[44px] sm:min-h-[28px] px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs border transition cursor-pointer {{ $isCatActive ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold' : 'bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage' }}"
                         >
                             {{ $recentCat->name }}
                         </button>
@@ -430,13 +430,13 @@
 
         <!-- Table & List Panel -->
         <div class="panel-card p-0 overflow-hidden" data-privacy-scope="transactions-table">
-            <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-                <div class="flex items-center gap-2">
+            <div class="px-4 sm:px-6 py-4 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
                     <span class="text-sm font-bold text-forest dark:text-blue-300 block">Daftar Transaksi ({{ $transactions->total() }})</span>
                     <button 
                         type="button" 
                         onclick="toggleCardPrivacy(this)" 
-                        class="privacy-card-toggle p-1 text-muted hover:text-charcoal transition-colors rounded cursor-pointer" 
+                        class="privacy-card-toggle w-11 h-11 sm:w-7 sm:h-7 -my-2 sm:my-0 inline-flex items-center justify-center text-muted hover:text-charcoal transition-colors rounded-lg cursor-pointer shrink-0" 
                         title="Sembunyikan / Tampilkan Nominal Transaksi"
                         aria-label="Sembunyikan / Tampilkan Nominal Transaksi"
                     >
@@ -545,22 +545,22 @@
                         </div>
 
                         <!-- Rekening Info -->
-                        <div class="p-2.5 rounded-lg bg-sidebar/50 border border-line text-xs flex items-center justify-between">
+                        <div class="p-2.5 rounded-lg bg-sidebar/50 border border-line text-xs flex flex-wrap items-center justify-between gap-1.5">
                             <span class="text-muted">Rekening:</span>
                             @if ($trx->isTransfer())
-                                <span class="font-bold text-charcoal">
+                                <span class="font-bold text-charcoal text-right">
                                     {{ $trx->sourceAccount()?->name }} &rarr; {{ $trx->destinationAccount()?->name }}
                                 </span>
                             @elseif ($trx->isExpense())
-                                <span class="font-bold text-charcoal">{{ $trx->sourceAccount()?->name }}</span>
+                                <span class="font-bold text-charcoal text-right">{{ $trx->sourceAccount()?->name }}</span>
                             @else
-                                <span class="font-bold text-charcoal">{{ $trx->destinationAccount()?->name }}</span>
+                                <span class="font-bold text-charcoal text-right">{{ $trx->destinationAccount()?->name }}</span>
                             @endif
                         </div>
 
                         <!-- Actions -->
-                        <div class="flex items-center gap-2 pt-2 border-t border-line/60">
-                            <a href="{{ route('transactions.show', $trx) }}" class="flex-1 min-h-[40px] px-3 py-2 rounded-lg text-xs font-semibold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center gap-1.5" title="Lihat Detail Transaksi">
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-line/60">
+                            <a href="{{ route('transactions.show', $trx) }}" class="flex-1 min-w-[96px] min-h-[44px] px-3 py-2 rounded-lg text-xs font-semibold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center gap-1.5" title="Lihat Detail Transaksi">
                                 <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -568,19 +568,19 @@
                                 <span>Detail</span>
                             </a>
                             @if (! $isVoid)
-                                <a href="{{ route('transactions.edit', $trx) }}" class="min-h-[40px] px-3.5 py-2 rounded-lg text-xs font-semibold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center gap-1.5" title="Koreksi Transaksi">
+                                <a href="{{ route('transactions.edit', $trx) }}" class="min-w-[44px] min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-semibold border border-line bg-panel text-charcoal hover:bg-cream transition inline-flex items-center justify-center gap-1.5" title="Koreksi Transaksi">
                                     <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                     </svg>
-                                    <span class="hidden sm:inline">Koreksi</span>
+                                    <span>Koreksi</span>
                                 </a>
                                 <form method="POST" action="{{ route('transactions.void', $trx) }}" onsubmit="return confirm('Batalkan transaksi ini (void)? Catatan entri akan dinonaktifkan dari saldo kas.')">
                                     @csrf
-                                    <button type="submit" class="min-h-[40px] px-3.5 py-2 rounded-lg text-xs font-semibold text-red hover:bg-red/10 border border-line hover:border-red/40 bg-panel transition cursor-pointer inline-flex items-center justify-center gap-1.5" title="Batalkan Transaksi (Void)">
+                                    <button type="submit" class="min-w-[44px] min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-semibold text-red hover:bg-red/10 border border-line hover:border-red/40 bg-panel transition cursor-pointer inline-flex items-center justify-center gap-1.5" title="Batalkan Transaksi (Void)">
                                         <svg class="w-4 h-4 text-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
                                         </svg>
-                                        <span class="hidden sm:inline">Void</span>
+                                        <span>Void</span>
                                     </button>
                                 </form>
                             @endif
@@ -690,7 +690,7 @@
                                     <div class="inline-flex items-center justify-end gap-1.5">
                                         <a 
                                             href="{{ route('transactions.show', $trx) }}" 
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center"
                                             title="Lihat Detail Transaksi"
                                             aria-label="Lihat Detail Transaksi"
                                         >
@@ -702,7 +702,7 @@
                                         @if (! $isVoid)
                                             <a 
                                                 href="{{ route('transactions.edit', $trx) }}" 
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center"
+                                                class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center"
                                                 title="Koreksi Transaksi"
                                                 aria-label="Koreksi Transaksi"
                                             >
@@ -714,7 +714,7 @@
                                                 @csrf
                                                 <button 
                                                     type="submit" 
-                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                                    class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                                     title="Batalkan Transaksi (Void)"
                                                     aria-label="Batalkan Transaksi (Void)"
                                                 >
@@ -770,9 +770,9 @@
                 const isActive = btnVal === String(activeCategoryId || '');
                 btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
                 if (isActive) {
-                    btn.className = 'min-h-[34px] sm:min-h-[28px] px-2.5 py-1 rounded-lg text-xs border transition cursor-pointer bg-forest-light border-forest text-forest dark:text-blue-300 font-bold';
+                    btn.className = 'min-h-[44px] sm:min-h-[28px] px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs border transition cursor-pointer bg-forest-light border-forest text-forest dark:text-blue-300 font-bold';
                 } else {
-                    btn.className = 'min-h-[34px] sm:min-h-[28px] px-2.5 py-1 rounded-lg text-xs border transition cursor-pointer bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage';
+                    btn.className = 'min-h-[44px] sm:min-h-[28px] px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs border transition cursor-pointer bg-panel border-line text-charcoal font-medium hover:bg-cream hover:border-sage';
                 }
             });
         }

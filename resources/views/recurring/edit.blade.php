@@ -281,7 +281,7 @@
 
                 <div class="space-y-4">
                     <div>
-                        <div class="flex items-center justify-between mb-1">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
                             <label for="editAmount" class="block text-xs font-bold text-charcoal">
                                 Nominal Transaksi (Rp)
                             </label>
@@ -386,7 +386,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 pt-2">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                 <button type="submit" class="btn-arus-primary min-h-[44px] px-6 text-xs font-bold cursor-pointer">
                     Simpan Perubahan
                 </button>

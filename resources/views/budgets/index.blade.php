@@ -10,10 +10,10 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <!-- Period Selector Form -->
-            <form method="GET" action="{{ route('budgets.index') }}" class="flex items-center gap-2">
-                <select name="month" class="field-select text-xs h-10 py-1.5 min-w-[120px]" onchange="this.form.submit()">
+            <form method="GET" action="{{ route('budgets.index') }}" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+                <select name="month" class="field-select text-xs h-11 sm:h-10 py-1.5 min-w-[120px] flex-1 sm:flex-initial" onchange="this.form.submit()">
                     @for ($m = 1; $m <= 12; $m++)
                         <option value="{{ $m }}" {{ $month === $m ? 'selected' : '' }}>
                             {{ \Illuminate\Support\Carbon::createFromDate(null, $m, 1)->translatedFormat('F') }}
@@ -21,7 +21,7 @@
                     @endfor
                 </select>
 
-                <select name="year" class="field-select text-xs h-10 py-1.5 min-w-[90px]" onchange="this.form.submit()">
+                <select name="year" class="field-select text-xs h-11 sm:h-10 py-1.5 min-w-[90px] w-28 sm:w-auto" onchange="this.form.submit()">
                     @for ($y = now()->year - 2; $y <= now()->year + 2; $y++)
                         <option value="{{ $y }}" {{ $year === $y ? 'selected' : '' }}>
                             {{ $y }}
@@ -33,7 +33,7 @@
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'budgets-metrics\']')" 
-                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-card-toggle inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer flex-1 sm:flex-initial"
                 title="Sembunyikan / Tampilkan Saldo Ringkasan Anggaran"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
@@ -41,7 +41,7 @@
             </button>
 
             @if ($availableCategories->isNotEmpty())
-                <button type="button" onclick="document.getElementById('add-budget-modal').classList.remove('hidden')" class="btn-arus-primary whitespace-nowrap text-xs">
+                <button type="button" onclick="document.getElementById('add-budget-modal').classList.remove('hidden')" class="btn-arus-primary min-h-[44px] sm:min-h-[38px] text-xs w-full sm:w-auto">
                     + Pasang Anggaran
                 </button>
             @endif
@@ -78,14 +78,15 @@
 
     <!-- Budgets List Panel -->
     <div class="panel-card p-0 overflow-hidden mb-6" data-privacy-scope="budgets-list">
-        <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
-            <div class="flex items-center gap-2">
+        <div class="px-4 sm:px-6 py-4 border-b border-line flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
                 <span class="text-sm font-bold text-forest">Rincian Anggaran Kategori ({{ $periodDate->translatedFormat('F Y') }})</span>
                 <button 
                     type="button" 
                     onclick="toggleCardPrivacy(this)" 
-                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                    class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs shrink-0" 
                     title="Sembunyikan / Tampilkan Nominal Anggaran Kategori"
+                    aria-label="Sembunyikan atau tampilkan nominal anggaran kategori"
                 >
                     <span class="privacy-toggle-icon"></span>
                 </button>
@@ -134,20 +135,20 @@
                             <div class="{{ $barColor }} h-2 rounded-full transition-all duration-300" style="width: {{ min(100, $percentage) }}%"></div>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-2 text-[11px] pt-1">
-                            <div>
+                        <div class="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2 text-[11px] pt-1">
+                            <div class="flex items-center justify-between min-[380px]:block">
                                 <span class="text-muted block text-[10px] uppercase font-bold">Limit</span>
                                 <span class="font-semibold text-charcoal">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->limit_amount, 0, ',', '.') }}">Rp {{ number_format($budget->limit_amount, 0, ',', '.') }}</span>
                                 </span>
                             </div>
-                            <div>
+                            <div class="flex items-center justify-between min-[380px]:block">
                                 <span class="text-muted block text-[10px] uppercase font-bold">Terpakai</span>
                                 <span class="font-semibold {{ $isOver ? 'text-red' : 'text-charcoal' }}">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->calculated_spent, 0, ',', '.') }}">Rp {{ number_format($budget->calculated_spent, 0, ',', '.') }}</span>
                                 </span>
                             </div>
-                            <div class="text-right">
+                            <div class="flex items-center justify-between min-[380px]:block min-[380px]:text-right">
                                 <span class="text-muted block text-[10px] uppercase font-bold">Sisa</span>
                                 <span class="font-semibold {{ $budget->calculated_remaining < 0 ? 'text-red' : 'text-forest' }}">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->calculated_remaining, 0, ',', '.') }}">Rp {{ number_format($budget->calculated_remaining, 0, ',', '.') }}</span>
@@ -155,11 +156,11 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-line/60">
+                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-line/60">
                             <button 
                                 type="button" 
                                 onclick="openEditBudgetModal({{ $budget->id }}, '{{ addslashes($budget->category->name) }}', {{ $budget->limit_amount }})"
-                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                 title="Ubah Limit Anggaran"
                                 aria-label="Ubah Limit Anggaran"
                             >
@@ -173,7 +174,7 @@
                                 @method('DELETE')
                                 <button 
                                     type="submit" 
-                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                    class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                     title="Hapus Anggaran"
                                     aria-label="Hapus Anggaran"
                                 >
@@ -235,7 +236,7 @@
                                         <button 
                                             type="button" 
                                             onclick="openEditBudgetModal({{ $budget->id }}, '{{ addslashes($budget->category->name) }}', {{ $budget->limit_amount }})"
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                             title="Ubah Limit Anggaran"
                                             aria-label="Ubah Limit Anggaran"
                                         >
@@ -249,7 +250,7 @@
                                             @method('DELETE')
                                             <button 
                                                 type="submit" 
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                                class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                                 title="Hapus Anggaran"
                                                 aria-label="Hapus Anggaran"
                                             >
@@ -270,8 +271,8 @@
 
     <!-- Modal Tambah Anggaran -->
     @if ($availableCategories->isNotEmpty())
-        <div id="add-budget-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-            <div class="panel-card bg-panel border border-line rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div id="add-budget-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+            <div class="panel-card bg-panel border border-line rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
                 <div class="flex items-start justify-between gap-3 mb-4">
                     <div>
                         <h3 class="font-serif text-xl text-forest font-normal mb-1">Tetapkan Anggaran Baru</h3>
@@ -279,7 +280,7 @@
                             Periode: <strong class="text-charcoal">{{ $periodDate->translatedFormat('F Y') }}</strong>
                         </p>
                     </div>
-                    <button type="button" onclick="document.getElementById('add-budget-modal').classList.add('hidden')" class="p-1 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer" aria-label="Tutup">
+                    <button type="button" onclick="document.getElementById('add-budget-modal').classList.add('hidden')" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer inline-flex items-center justify-center shrink-0" aria-label="Tutup">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -319,11 +320,11 @@
                         />
                     </div>
 
-                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                        <button type="button" onclick="document.getElementById('add-budget-modal').classList.add('hidden')" class="btn-arus-secondary cursor-pointer">
+                    <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                        <button type="button" onclick="document.getElementById('add-budget-modal').classList.add('hidden')" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] cursor-pointer">
                             Batal
                         </button>
-                        <button type="submit" class="btn-arus-primary cursor-pointer">
+                        <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] cursor-pointer">
                             Simpan Anggaran
                         </button>
                     </div>
@@ -333,14 +334,14 @@
     @endif
 
     <!-- Modal Edit Anggaran -->
-    <div id="edit-budget-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="panel-card bg-panel border border-line rounded-2xl max-w-md w-full p-6 shadow-2xl">
+    <div id="edit-budget-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
             <div class="flex items-start justify-between gap-3 mb-4">
                 <div>
                     <h3 class="font-serif text-xl text-forest font-normal mb-1">Ubah Limit Anggaran</h3>
                     <p class="text-xs text-muted" id="edit-budget-category-label"></p>
                 </div>
-                <button type="button" onclick="document.getElementById('edit-budget-modal').classList.add('hidden')" class="p-1 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer" aria-label="Tutup">
+                <button type="button" onclick="document.getElementById('edit-budget-modal').classList.add('hidden')" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer inline-flex items-center justify-center shrink-0" aria-label="Tutup">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -367,11 +368,11 @@
                     />
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-line">
-                    <button type="button" onclick="document.getElementById('edit-budget-modal').classList.add('hidden')" class="btn-arus-secondary cursor-pointer">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="document.getElementById('edit-budget-modal').classList.add('hidden')" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] cursor-pointer">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary cursor-pointer">
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] cursor-pointer">
                         Simpan Perubahan
                     </button>
                 </div>

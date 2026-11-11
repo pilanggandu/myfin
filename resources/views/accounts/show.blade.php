@@ -12,31 +12,31 @@
                 Riwayat seluruh pencatatan mutasi transaksi yang terhubung ke rekening ini.
             </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'account-detail-metrics\']')" 
-                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-card-toggle inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
                 title="Sembunyikan / Tampilkan Saldo Rekening Ini"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
                 <span class="privacy-toggle-text">Saldo Rekening</span>
             </button>
-            <a href="{{ route('transactions.create') }}" class="btn-arus-primary">
+            <a href="{{ route('transactions.create') }}" class="btn-arus-primary min-h-[44px] sm:min-h-[38px]">
                 + Catat Transaksi
             </a>
             @if (! $account->isArchived())
                 <button 
                     type="button" 
                     onclick="openAdjustModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $account->currentBalance() }})" 
-                    class="btn-arus-secondary inline-flex items-center gap-1.5 cursor-pointer"
+                    class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] inline-flex items-center gap-1.5 cursor-pointer"
                     title="Sesuaikan saldo rekening ini agar sesuai dengan saldo fisik riil"
                 >
                     <span>⚖️</span>
                     <span>Penyesuaian Saldo</span>
                 </button>
             @endif
-            <a href="{{ route('accounts.edit', $account) }}" class="btn-arus-secondary">
+            <a href="{{ route('accounts.edit', $account) }}" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px]">
                 Ubah
             </a>
         </div>
@@ -111,7 +111,50 @@
                 Belum ada catatan mutasi transaksi pada rekening ini.
             </div>
         @else
-            <div class="overflow-x-auto">
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($entries as $entry)
+                    @php
+                        $trx = $entry->transaction;
+                        $isPositive = $entry->amount_signed > 0;
+                    @endphp
+                    <div class="p-4 space-y-2 {{ $trx->isVoid() ? 'opacity-50 line-through' : '' }}">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <a href="{{ route('transactions.show', $trx) }}" class="font-bold text-sm text-charcoal hover:text-forest hover:underline block truncate">
+                                    {{ $trx->description }}
+                                </a>
+                                <div class="text-[11px] text-muted mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                    <span>{{ $trx->transaction_date->format('d M Y') }}</span>
+                                    @if ($trx->category)
+                                        <span>&bull;</span>
+                                        <span>{{ $trx->category->name }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-right font-bold text-sm font-mono shrink-0 {{ $isPositive ? 'text-forest' : 'text-red' }}">
+                                <span class="privacy-balance" data-raw-value="{{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}">
+                                    {{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}
+                                </span>
+                                @if ($trx->isTransfer() && (float)($trx->fee_amount ?? 0) > 0 && ! $isPositive)
+                                    <div class="text-[10px] text-muted font-normal mt-0.5">
+                                        Termasuk fee <span class="privacy-balance" data-raw-value="Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}">Rp {{ number_format($trx->fee_amount, 0, ',', '.') }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 text-[11px]">
+                            <x-badge variant="default">{{ strtoupper($trx->type) }}</x-badge>
+                            @if ($trx->isVoid())
+                                <x-badge variant="inactive">VOID</x-badge>
+                            @else
+                                <span class="text-forest font-bold">POSTED</span>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">

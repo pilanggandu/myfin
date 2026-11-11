@@ -12,12 +12,12 @@
     <!-- Top Action Bar & Breadcrumb -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-center gap-3">
-            <a href="{{ route('goals.index') }}" class="w-9 h-9 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 flex items-center justify-center text-muted hover:text-charcoal transition" title="Kembali ke Daftar Target">
+            <a href="{{ route('goals.index') }}" class="w-11 h-11 sm:w-9 sm:h-9 shrink-0 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 flex items-center justify-center text-muted hover:text-charcoal transition" title="Kembali ke Daftar Target">
                 &larr;
             </a>
             <div>
                 <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET FINANSIAL</div>
-                <div class="flex items-center gap-2 mt-0.5">
+                <div class="flex items-center flex-wrap gap-2 mt-0.5">
                     <h1 class="font-serif text-2xl sm:text-3xl text-forest font-normal tracking-tight">
                         {{ $goal->name }}
                     </h1>
@@ -42,7 +42,7 @@
             <button 
                 type="button" 
                 onclick="toggleBalanceVisibility()" 
-                class="privacy-toggle-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-toggle-btn inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] sm:min-h-[36px] rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
                 title="Sembunyikan / Tampilkan Nominal"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
@@ -52,12 +52,12 @@
             <!-- Toggle Pause/Active -->
             <form method="POST" action="{{ route('goals.toggle-status', $goal) }}">
                 @csrf
-                <button type="submit" class="btn-arus-secondary text-xs h-9 px-3">
+                <button type="submit" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[36px] px-3">
                     {{ $isPaused ? '▶️ Lanjutkan' : '⏸️ Jeda' }}
                 </button>
             </form>
 
-            <a href="{{ route('goals.edit', $goal) }}" class="btn-arus-secondary text-xs h-9 px-3">
+            <a href="{{ route('goals.edit', $goal) }}" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[36px] px-3">
                 Edit Target
             </a>
 
@@ -65,7 +65,7 @@
             <form method="POST" action="{{ route('goals.destroy', $goal) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus target tabungan ini? Riwayat setoran juga akan dihapus.')">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="h-9 px-3 rounded-lg border border-red/30 text-red hover:bg-red/10 text-xs font-bold transition cursor-pointer">
+                <button type="submit" class="min-h-[44px] sm:min-h-[36px] px-3 rounded-lg border border-red/30 text-red hover:bg-red/10 text-xs font-bold transition cursor-pointer">
                     Hapus
                 </button>
             </form>
@@ -90,7 +90,7 @@
                                 <button 
                                     type="button" 
                                     onclick="toggleCardPrivacy(this)" 
-                                    class="privacy-card-toggle w-5 h-5 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10px]" 
+                                    class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs sm:text-[10px]" 
                                     title="Sembunyikan / Tampilkan Saldo Target Ini"
                                 >
                                     <span class="privacy-toggle-icon"></span>
@@ -182,7 +182,7 @@
                         <button 
                             type="button" 
                             onclick="openDepositModal()" 
-                            class="w-full btn-arus-primary justify-center text-xs h-10 cursor-pointer"
+                            class="w-full btn-arus-primary justify-center text-xs min-h-[44px] sm:min-h-[40px] cursor-pointer"
                         >
                             + Setor Tabungan
                         </button>
@@ -191,7 +191,7 @@
                             <button 
                                 type="button" 
                                 onclick="openWithdrawModal()" 
-                                class="w-full btn-arus-secondary justify-center text-xs h-9 text-muted hover:text-charcoal cursor-pointer"
+                                class="w-full btn-arus-secondary justify-center text-xs min-h-[44px] sm:min-h-[36px] text-muted hover:text-charcoal cursor-pointer"
                             >
                                 Tarik / Cairkan Dana
                             </button>
@@ -205,7 +205,7 @@
     <!-- Kolaborasi Kontributor (Shared Space / Anggota) -->
     @if ($memberBreakdown->isNotEmpty() && ($memberBreakdown->count() > 1 || $space?->isShared()))
         <div class="panel-card p-5 sm:p-6 mb-6">
-            <div class="flex items-center justify-between mb-4 border-b border-line pb-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4 border-b border-line pb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-base">🤝</span>
                     <h2 class="text-sm font-bold text-forest">Kolaborasi Tabungan Bersama</h2>
@@ -243,7 +243,7 @@
 
     <!-- Riwayat Transaksi Mutasi Target (Setoran & Penarikan) -->
     <div class="panel-card p-0 overflow-hidden" data-privacy-scope="goal-history">
-        <div class="px-5 sm:px-6 py-4 border-b border-line flex items-center justify-between">
+        <div class="px-5 sm:px-6 py-4 border-b border-line flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 <h2 class="text-sm font-bold text-forest">
                     Riwayat Setoran & Pencairan ({{ $goal->contributions->count() }})
@@ -251,7 +251,7 @@
                 <button 
                     type="button" 
                     onclick="toggleCardPrivacy(this)" 
-                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                    class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-xs" 
                     title="Sembunyikan / Tampilkan Mutasi Target"
                 >
                     <span class="privacy-toggle-icon"></span>
@@ -265,7 +265,63 @@
                 Belum ada setoran tabungan untuk target ini. Klik tombol <strong>+ Setor Tabungan</strong> untuk mulai menabung.
             </div>
         @else
-            <div class="overflow-x-auto">
+            <div class="md:hidden divide-y divide-line">
+                @foreach ($goal->contributions as $item)
+                    @php
+                        $isDep = $item->isDeposit();
+                    @endphp
+                    <div class="p-4 space-y-2">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="flex items-center flex-wrap gap-1.5">
+                                    <span class="font-medium text-xs text-charcoal">{{ $item->contribution_date->translatedFormat('d M Y') }}</span>
+                                    @if ($isDep)
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-forest/10 text-forest">
+                                            SETORAN
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red/10 text-red dark:bg-red/25 dark:text-rose-400">
+                                            PENARIKAN
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="mt-1 text-xs">
+                                    @if ($item->member)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-2xs" style="background-color: {{ $item->member->color ?: '#0f4c3a' }};">
+                                            {{ $item->member->name }}
+                                        </span>
+                                    @elseif ($item->user)
+                                        <span class="font-semibold text-charcoal">{{ $item->user->name }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-right font-mono font-bold text-xs shrink-0 {{ $isDep ? 'text-forest' : 'text-red dark:text-rose-400' }}">
+                                <span class="privacy-balance" data-raw-value="{{ $isDep ? '+' : '-' }}Rp {{ number_format($item->amount, 0, ',', '.') }}">
+                                    {{ $isDep ? '+' : '-' }}Rp {{ number_format($item->amount, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        </div>
+
+                        @if ($item->notes || $item->financialTransaction)
+                            <div class="text-xs text-charcoal space-y-1">
+                                @if ($item->notes)
+                                    <div class="break-words">{{ $item->notes }}</div>
+                                @endif
+                                @if ($item->financialTransaction)
+                                    <div class="text-[11px] text-muted flex flex-wrap items-center gap-1.5">
+                                        <span>🔗 Terhubung mutasi kas:</span>
+                                        <a href="{{ route('transactions.show', $item->financialTransaction) }}" class="text-forest hover:underline font-medium inline-flex items-center min-h-[36px]">
+                                            Lihat Transaksi
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[10px] tracking-wider">
@@ -336,11 +392,11 @@
     </div>
 
     <!-- Modal Setor Tabungan -->
-    <div id="depositModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 hidden">
-        <div class="panel-card w-full max-w-md p-6 bg-panel rounded-2xl shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-line">
+    <div id="depositModal" class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/60 hidden">
+        <div class="panel-card w-full max-w-md p-4 sm:p-6 bg-panel rounded-2xl shadow-xl space-y-4 my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line">
                 <h3 class="font-bold text-base text-forest">Setor Tabungan</h3>
-                <button type="button" onclick="closeDepositModal()" class="text-muted hover:text-charcoal p-1 rounded">
+                <button type="button" onclick="closeDepositModal()" class="text-muted hover:text-charcoal w-11 h-11 sm:w-8 sm:h-8 -mr-2 sm:mr-0 inline-flex items-center justify-center rounded-lg hover:bg-cream dark:hover:bg-line/40 transition cursor-pointer" aria-label="Tutup">
                     &times;
                 </button>
             </div>
@@ -412,11 +468,11 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-line">
-                    <button type="button" onclick="closeDepositModal()" class="btn-arus-secondary text-xs h-9 px-4">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-4 mt-4 border-t border-line">
+                    <button type="button" onclick="closeDepositModal()" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[36px] px-4 w-full sm:w-auto justify-center">
                         Batal
                     </button>
-                    <button type="submit" class="btn-arus-primary text-xs h-9 px-4">
+                    <button type="submit" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[36px] px-4 w-full sm:w-auto justify-center">
                         Simpan Setoran
                     </button>
                 </div>
@@ -425,11 +481,11 @@
     </div>
 
     <!-- Modal Tarik / Cairkan Tabungan -->
-    <div id="withdrawModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 hidden">
-        <div class="panel-card w-full max-w-md p-6 bg-panel rounded-2xl shadow-xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-line">
+    <div id="withdrawModal" class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/60 hidden">
+        <div class="panel-card w-full max-w-md p-4 sm:p-6 bg-panel rounded-2xl shadow-xl space-y-4 my-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line">
                 <h3 class="font-bold text-base text-red dark:text-rose-400">Tarik / Cairkan Dana</h3>
-                <button type="button" onclick="closeWithdrawModal()" class="text-muted hover:text-charcoal p-1 rounded">
+                <button type="button" onclick="closeWithdrawModal()" class="text-muted hover:text-charcoal w-11 h-11 sm:w-8 sm:h-8 -mr-2 sm:mr-0 inline-flex items-center justify-center rounded-lg hover:bg-cream dark:hover:bg-line/40 transition cursor-pointer" aria-label="Tutup">
                     &times;
                 </button>
             </div>
@@ -489,11 +545,11 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-line">
-                    <button type="button" onclick="closeWithdrawModal()" class="btn-arus-secondary text-xs h-9 px-4">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-4 mt-4 border-t border-line">
+                    <button type="button" onclick="closeWithdrawModal()" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[36px] px-4 w-full sm:w-auto justify-center">
                         Batal
                     </button>
-                    <button type="submit" class="h-9 px-4 rounded-lg bg-red text-white hover:bg-red/90 text-xs font-bold transition cursor-pointer">
+                    <button type="submit" class="min-h-[44px] sm:min-h-[36px] px-4 w-full sm:w-auto rounded-lg bg-red text-white hover:bg-red/90 text-xs font-bold transition cursor-pointer">
                         Konfirmasi Penarikan
                     </button>
                 </div>

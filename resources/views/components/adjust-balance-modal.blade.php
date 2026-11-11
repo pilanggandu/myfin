@@ -1,31 +1,31 @@
 <div id="adjustBalanceModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="adjustModalTitle" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-charcoal/50 backdrop-blur-xs transition-opacity" onclick="closeAdjustModal()"></div>
 
-    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div class="relative transform overflow-hidden rounded-2xl bg-panel border border-line text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+    <div class="flex min-h-full items-start sm:items-center justify-center p-3 sm:p-4 text-center">
+        <div class="relative transform overflow-y-auto max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] rounded-2xl bg-panel border border-line text-left shadow-xl transition-all w-full my-2 sm:my-8 sm:max-w-lg">
             <form id="adjustBalanceForm" method="POST" action="">
                 @csrf
-                <div class="p-5 sm:p-6 space-y-4">
-                    <div class="flex items-center justify-between pb-3 border-b border-line">
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-8 h-8 rounded-lg bg-cream border border-line flex items-center justify-center text-base">
+                <div class="p-4 sm:p-6 space-y-4">
+                    <div class="flex items-start sm:items-center justify-between gap-2 pb-3 border-b border-line">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="w-8 h-8 rounded-lg bg-cream border border-line flex items-center justify-center text-base shrink-0">
                                 ⚖️
                             </span>
-                            <div>
+                            <div class="min-w-0">
                                 <h3 class="text-sm font-bold text-charcoal" id="adjustModalTitle">
                                     Penyesuaian Saldo Rekening
                                 </h3>
-                                <p class="text-[11px] text-muted truncate max-w-xs" id="adjustModalAccountName">
+                                <p class="text-[11px] text-muted truncate" id="adjustModalAccountName">
                                     Rekening
                                 </p>
                             </div>
                         </div>
-                        <button type="button" onclick="closeAdjustModal()" class="w-7 h-7 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center text-lg leading-none cursor-pointer">
+                        <button type="button" onclick="closeAdjustModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition flex items-center justify-center text-lg leading-none cursor-pointer shrink-0" aria-label="Tutup modal">
                             &times;
                         </button>
                     </div>
 
-                    <div class="p-3 rounded-xl bg-sidebar border border-line flex items-center justify-between">
+                    <div class="p-3 rounded-xl bg-sidebar border border-line flex flex-wrap items-center justify-between gap-2">
                         <span class="text-xs text-muted font-medium">Saldo Tercatat Saat Ini:</span>
                         <span id="adjustModalCurrentDisplay" class="font-mono font-bold text-charcoal text-sm">
                             Rp 0
@@ -109,11 +109,11 @@
                     </div>
                 </div>
 
-                <div class="p-4 bg-sidebar/50 border-t border-line flex items-center justify-end gap-2">
-                    <button type="button" onclick="closeAdjustModal()" class="btn-arus-secondary text-xs font-semibold py-1.5 px-3">
+                <div class="p-4 bg-sidebar/50 border-t border-line flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2">
+                    <button type="button" onclick="closeAdjustModal()" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] text-xs font-semibold py-2 sm:py-1.5 px-3">
                         Batal
                     </button>
-                    <button type="submit" id="adjustSubmitBtn" class="btn-arus-primary text-xs font-bold py-1.5 px-4 inline-flex items-center gap-1.5">
+                    <button type="submit" id="adjustSubmitBtn" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] text-xs font-bold py-2 sm:py-1.5 px-4 inline-flex items-center justify-center gap-1.5">
                         <span>⚖️</span>
                         <span>Terapkan Penyesuaian</span>
                     </button>

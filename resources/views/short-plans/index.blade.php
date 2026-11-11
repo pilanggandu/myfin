@@ -336,7 +336,7 @@
                 <button
                     type="button"
                     onclick="toggleCardPrivacy(this)"
-                    class="privacy-card-toggle min-h-[34px] px-2.5 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center gap-1.5 cursor-pointer text-[11px]"
+                    class="privacy-card-toggle min-h-[44px] sm:min-h-[34px] px-3 sm:px-2.5 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center gap-1.5 cursor-pointer text-[11px]"
                     title="Sembunyikan / Tampilkan Nominal Daftar Rencana"
                 >
                     <span class="privacy-toggle-icon"></span>

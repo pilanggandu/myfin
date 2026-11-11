@@ -10,11 +10,11 @@
                 Kelola seluruh belanja, cicilan, dan lembar tagihan <strong>Kartu Kredit / PayLater</strong> secara terisolasi dari saldo kas. Untuk langganan berulang otomatis atau pengingat bayar tagihan bulanan, gunakan <a href="{{ route('recurring.index') }}" class="text-forest font-semibold hover:underline">Jadwal Berulang</a>.
             </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'credit-metrics\']')" 
-                class="privacy-card-toggle inline-flex items-center gap-1.5 px-3 py-2 border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
+                class="privacy-card-toggle inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-xs font-semibold text-charcoal shadow-sm transition-colors cursor-pointer"
                 title="Sembunyikan / Tampilkan Nominal Ringkasan Kredit"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
@@ -23,13 +23,13 @@
             <button 
                 type="button" 
                 onclick="openCreditAccountModal()" 
-                class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
+                class="min-h-[44px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
             >
                 <span>+ Tambah Kartu / Kredit</span>
             </button>
             <a 
                 href="{{ route('credit.purchases.create') }}" 
-                class="min-h-[44px] inline-flex items-center gap-1.5 px-4 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
+                class="min-h-[44px] sm:min-h-[38px] w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -185,22 +185,22 @@
     @endif
 
     <!-- Navigation Tabs -->
-    <div class="flex items-center gap-2 border-b border-line mb-6">
+    <div class="flex items-center gap-2 border-b border-line mb-6 overflow-x-auto whitespace-nowrap">
         <a 
             href="{{ route('credit.index', ['tab' => 'accounts']) }}" 
-            class="px-4 py-3 text-xs font-bold border-b-2 transition {{ $tab === 'accounts' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="min-h-[44px] px-4 py-3 text-xs font-bold border-b-2 transition inline-flex items-center shrink-0 {{ $tab === 'accounts' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
             Akun Kredit & Kartu ({{ $creditAccounts->count() }})
         </a>
         <a 
             href="{{ route('credit.index', ['tab' => 'plans']) }}" 
-            class="px-4 py-3 text-xs font-bold border-b-2 transition {{ $tab === 'plans' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="min-h-[44px] px-4 py-3 text-xs font-bold border-b-2 transition inline-flex items-center shrink-0 {{ $tab === 'plans' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
             Cicilan Berjalan ({{ $activePlans->count() }})
         </a>
         <a 
             href="{{ route('credit.index', ['tab' => 'history']) }}" 
-            class="px-4 py-3 text-xs font-bold border-b-2 transition {{ $tab === 'history' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
+            class="min-h-[44px] px-4 py-3 text-xs font-bold border-b-2 transition inline-flex items-center shrink-0 {{ $tab === 'history' ? 'border-forest text-forest' : 'border-transparent text-muted hover:text-charcoal' }}"
         >
             Riwayat Selesai ({{ $completedPlans->count() }})
         </a>
@@ -568,11 +568,11 @@
     @endif
 
     <!-- Modal Tambah / Edit Akun Kredit -->
-    <div id="creditAccountModal" onclick="if (event.target === this) closeCreditAccountModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
-        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
-            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
+    <div id="creditAccountModal" onclick="if (event.target === this) closeCreditAccountModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
                 <h3 id="modalTitle" class="font-serif text-lg text-charcoal font-medium">Tambah Akun Kredit</h3>
-                <button type="button" onclick="closeCreditAccountModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+                <button type="button" onclick="closeCreditAccountModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
             </div>
 
             <form id="creditAccountForm" method="POST" action="{{ route('credit.accounts.store') }}" class="space-y-4">
@@ -629,7 +629,7 @@
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label for="credit_account_billing_cycle" class="block text-xs font-semibold text-charcoal mb-1">
                                 Tgl Cetak Tagihan (Terbit)
@@ -663,18 +663,18 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
                     <button 
                         type="button" 
                         onclick="closeCreditAccountModal()" 
-                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
                     >
                         Batal
                     </button>
                     <button 
                         type="submit" 
                         id="btnSaveCreditAccount"
-                        class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2"
                     >
                         <span id="btnSaveCreditAccountText">Simpan Akun Kredit</span>
                     </button>
@@ -684,14 +684,14 @@
     </div>
 
     <!-- Modal Bayar Tagihan Kartu Kredit -->
-    <div id="payBillModal" onclick="if (event.target === this) closePayBillModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-xs">
-        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-6 relative">
-            <div class="flex items-center justify-between pb-3 border-b border-line mb-4">
-                <div>
+    <div id="payBillModal" onclick="if (event.target === this) closePayBillModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
                     <h3 id="payBillModalTitle" class="font-serif text-lg text-charcoal font-medium">Bayar Tagihan Kartu Kredit</h3>
                     <p id="payBillModalSubtitle" class="text-xs text-muted">Pelunasan kewajiban / saldo hutang kartu</p>
                 </div>
-                <button type="button" onclick="closePayBillModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal cursor-pointer">✕</button>
+                <button type="button" onclick="closePayBillModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
             </div>
 
             <form id="payBillForm" method="POST" action="" class="space-y-4">
@@ -700,7 +700,7 @@
 
                 <div id="quickAmountOptions" class="p-2.5 rounded-lg border border-line bg-cream/30 space-y-1.5">
                     <span class="text-[10px] uppercase font-bold text-muted block">Pilihan Pembayaran:</span>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <button 
                             type="button" 
                             id="btnQuickStatement" 
@@ -784,18 +784,18 @@
                     >
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-line">
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
                     <button 
                         type="button" 
                         onclick="closePayBillModal()" 
-                        class="min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
                     >
                         Batal
                     </button>
                     <button 
                         type="submit" 
                         id="btnSubmitPayBill"
-                        class="min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2 shadow-xs"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                     >
                         <span id="btnSubmitPayBillText">Konfirmasi Bayar Tagihan</span>
                     </button>

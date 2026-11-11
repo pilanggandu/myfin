@@ -32,8 +32,8 @@
             </div>
         </div>
 
-        <div class="lg:col-span-5 grid grid-cols-2 gap-2.5">
-            <a href="{{ route('transactions.index') }}" class="panel-card p-3 flex items-center gap-2.5 hover:bg-cream hover:border-sage transition cursor-pointer text-decoration-none group">
+        <div class="lg:col-span-5 grid grid-cols-1 min-[360px]:grid-cols-2 gap-2.5">
+            <a href="{{ route('transactions.index') }}" class="panel-card p-3 min-h-[56px] flex items-center gap-2.5 hover:bg-cream hover:border-sage transition cursor-pointer text-decoration-none group">
                 <span class="w-8 h-8 rounded-lg bg-forest-light text-forest flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 17.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -108,7 +108,7 @@
             <button 
                 type="button" 
                 onclick="toggleCardPrivacy(this, '[data-privacy-scope=\'dashboard-metrics\']')" 
-                class="privacy-card-toggle btn-arus-secondary inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold h-8.5 py-1" 
+                class="privacy-card-toggle btn-arus-secondary inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold min-h-[44px] sm:min-h-0 sm:h-8.5 py-2 sm:py-1" 
                 title="Sembunyikan / Tampilkan Saldo Ringkasan"
             >
                 <span class="privacy-toggle-icon text-muted"></span>
@@ -118,14 +118,14 @@
             <button 
                 type="button" 
                 onclick="openQuickTransactionModal()" 
-                class="btn-arus-primary cursor-pointer text-xs font-bold h-8.5 py-1"
+                class="btn-arus-primary cursor-pointer text-xs font-bold min-h-[44px] sm:min-h-0 sm:h-8.5 py-2 sm:py-1"
             >
                 ⚡ Catat Cepat
             </button>
 
             <a 
                 href="{{ route('transactions.create') }}" 
-                class="btn-arus-secondary text-xs font-semibold h-8.5 py-1"
+                class="btn-arus-secondary text-xs font-semibold min-h-[44px] sm:min-h-0 sm:h-8.5 py-2 sm:py-1"
             >
                 + Transaksi Baru
             </a>
@@ -133,22 +133,22 @@
     </div>
 
     <div class="panel-card p-4 sm:p-5">
-        <div class="flex items-center justify-between pb-3.5 mb-4 border-b border-line">
-            <div class="flex items-center gap-2">
-                <span class="text-forest">
+        <div class="flex flex-wrap items-center justify-between gap-2.5 pb-3.5 mb-4 border-b border-line">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="text-forest shrink-0">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
                     </svg>
                 </span>
                 <h2 class="text-sm font-bold text-charcoal">Ringkasan Keuangan</h2>
             </div>
-            <div class="inline-flex rounded-lg p-0.5 bg-cream border border-line text-xs font-semibold">
-                <span class="px-2.5 py-1 rounded-md bg-forest text-white">Bulan Ini</span>
-                <a href="{{ route('reports.index') }}" class="px-2.5 py-1 text-muted hover:text-charcoal transition text-decoration-none">Semua Periode</a>
+            <div class="inline-flex rounded-lg p-0.5 bg-cream border border-line text-xs font-semibold shrink-0">
+                <span class="px-2.5 py-1.5 sm:py-1 rounded-md bg-forest text-white">Bulan Ini</span>
+                <a href="{{ route('reports.index') }}" class="px-2.5 py-1.5 sm:py-1 text-muted hover:text-charcoal transition text-decoration-none inline-flex items-center">Semua Periode</a>
             </div>
         </div>
 
-        <div data-privacy-scope="dashboard-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div data-privacy-scope="dashboard-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
             <x-metric-card 
                 notch="blue"
                 label="TOTAL SALDO" 
@@ -200,32 +200,32 @@
         <div class="lg:col-span-7">
             <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between" data-privacy-scope="dashboard-recent-tx">
                 <div>
-                    <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="text-forest">
+                    <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-forest shrink-0">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </span>
-                            <h2 class="text-xs font-bold text-charcoal">Transaksi Terkini</h2>
+                            <h2 class="text-xs font-bold text-charcoal truncate">Transaksi Terkini</h2>
                             @if ($recentTransactions->isNotEmpty())
-                                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line">
+                                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line shrink-0">
                                     {{ $recentTransactions->count() }}
                                 </span>
                             @endif
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 shrink-0">
                             <button 
                                 type="button" 
                                 onclick="toggleCardPrivacy(this)" 
-                                class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] flex-shrink-0" 
+                                class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
                                 title="Sembunyikan / Tampilkan Nominal Transaksi Terkini"
                                 aria-label="Sembunyikan atau tampilkan nominal transaksi terkini"
                             >
                                 <span class="privacy-toggle-icon"></span>
                             </button>
-                            <a href="{{ route('transactions.index') }}" class="text-xs font-semibold text-forest hover:underline">
+                            <a href="{{ route('transactions.index') }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
                                 Lihat semua &rarr;
                             </a>
                         </div>
@@ -238,19 +238,19 @@
                                 $accName = $accEntry?->account?->name ?? 'Kas Utama';
                                 $amount = $tx->totalAmount();
                             @endphp
-                            <div class="px-4 sm:px-5 py-3 flex items-center justify-between hover:bg-cream/40 transition gap-3">
+                            <div class="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-cream/40 transition gap-1.5 sm:gap-3">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2">
                                         <a href="{{ route('transactions.show', $tx) }}" class="text-xs font-bold text-charcoal hover:text-forest truncate">
                                             {{ $tx->description ?: ($tx->category?->name ?? 'Transaksi Kas') }}
                                         </a>
                                         @if ($tx->isVoid())
-                                            <span class="text-[9.5px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 font-semibold uppercase">
+                                            <span class="text-[9.5px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 font-semibold uppercase shrink-0">
                                                 Batal
                                             </span>
                                         @endif
                                     </div>
-                                    <div class="text-[11px] text-muted flex items-center gap-1.5 mt-0.5 truncate">
+                                    <div class="text-[11px] text-muted flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5">
                                         <span>{{ $tx->transaction_date->format('d M Y') }}</span>
                                         <span>&bull;</span>
                                         <span class="truncate">{{ $accName }}</span>
@@ -261,7 +261,7 @@
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2.5 flex-shrink-0">
+                                <div class="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border {{ $tx->type === 'income' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900' : ($tx->type === 'expense' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900' : 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900') }}">
                                         {{ $tx->type }}
                                     </span>
@@ -295,27 +295,27 @@
         <div class="lg:col-span-5">
             <div class="panel-card p-0 overflow-hidden h-full flex flex-col justify-between" data-privacy-scope="dashboard-accounts">
                 <div>
-                    <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="text-forest">
+                    <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-forest shrink-0">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-6.75 3h18a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
                                 </svg>
                             </span>
-                            <h2 class="text-xs font-bold text-charcoal">Rekening & Wallet</h2>
+                            <h2 class="text-xs font-bold text-charcoal truncate">Rekening & Wallet</h2>
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 shrink-0">
                             <button 
                                 type="button" 
                                 onclick="toggleCardPrivacy(this)" 
-                                class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] flex-shrink-0" 
+                                class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
                                 title="Sembunyikan / Tampilkan Saldo Rekening & Dompet"
                                 aria-label="Sembunyikan atau tampilkan saldo rekening"
                             >
                                 <span class="privacy-toggle-icon"></span>
                             </button>
-                            <a href="{{ route('accounts.create') }}" class="h-6 px-2 text-[10.5px] font-bold rounded bg-forest text-white hover:bg-forest-hover transition inline-flex items-center">
+                            <a href="{{ route('accounts.create') }}" class="min-h-[38px] sm:min-h-0 sm:h-6 px-3 sm:px-2 text-[11px] sm:text-[10.5px] font-bold rounded bg-forest text-white hover:bg-forest-hover transition inline-flex items-center">
                                 + Tambah
                             </a>
                         </div>
@@ -335,7 +335,7 @@
                                 };
                                 $availableLimit = $acc->availableLimit();
                             @endphp
-                            <div class="px-4 sm:px-5 py-3 flex items-center justify-between hover:bg-cream/40 transition gap-3">
+                            <div class="px-4 sm:px-5 py-3 flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between hover:bg-cream/40 transition gap-2 sm:gap-3">
                                 <div class="flex items-center gap-2.5 min-w-0">
                                     <span class="w-8 h-8 rounded-lg bg-cream border border-line flex items-center justify-center text-sm flex-shrink-0">
                                         {{ $typeIcon }}
@@ -367,7 +367,7 @@
                                     </div>
                                 </div>
 
-                                <div class="text-right flex-shrink-0">
+                                <div class="text-left min-[420px]:text-right pl-10.5 min-[420px]:pl-0 shrink-0">
                                     @if ($acc->isCreditCard() && $availableLimit !== null)
                                         <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($availableLimit, 0, ',', '.') }}">
                                             Rp {{ number_format($availableLimit, 0, ',', '.') }}
@@ -423,9 +423,9 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-recurring">
-            <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-forest">
+            <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center flex-wrap gap-2 min-w-0">
+                    <span class="text-forest shrink-0">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                         </svg>
@@ -434,16 +434,17 @@
                     <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase">Rutin &amp; Langganan</span>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 shrink-0">
                     <button 
                         type="button" 
                         onclick="toggleCardPrivacy(this)" 
-                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] flex-shrink-0" 
+                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
                         title="Sembunyikan / Tampilkan Nominal Tagihan Berulang"
+                        aria-label="Sembunyikan atau tampilkan nominal tagihan berulang"
                     >
                         <span class="privacy-toggle-icon"></span>
                     </button>
-                    <a href="{{ route('recurring.index') }}" class="text-xs font-semibold text-forest hover:underline">
+                    <a href="{{ route('recurring.index') }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
                         Kelola &rarr;
                     </a>
                 </div>
@@ -498,26 +499,27 @@
         </div>
 
         <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-budgets">
-            <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-forest">
+            <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-forest shrink-0">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
                     </span>
-                    <h2 class="text-xs font-bold text-charcoal">Kontrol Anggaran Bulan Ini</h2>
+                    <h2 class="text-xs font-bold text-charcoal truncate">Kontrol Anggaran Bulan Ini</h2>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 shrink-0">
                     <button 
                         type="button" 
                         onclick="toggleCardPrivacy(this)" 
-                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] flex-shrink-0" 
+                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
                         title="Sembunyikan / Tampilkan Nominal Anggaran"
+                        aria-label="Sembunyikan atau tampilkan nominal anggaran"
                     >
                         <span class="privacy-toggle-icon"></span>
                     </button>
-                    <a href="{{ route('budgets.index') }}" class="text-xs font-semibold text-forest hover:underline">
+                    <a href="{{ route('budgets.index') }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
                         Rincian &rarr;
                     </a>
                 </div>
@@ -530,7 +532,7 @@
                         $isOver = $b->calculated_is_over ?? false;
                     @endphp
                     <div class="pt-2 first:pt-0">
-                        <div class="flex items-center justify-between text-xs mb-1">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-xs mb-1">
                             <span class="font-bold text-charcoal truncate">{{ $b->category?->name ?? 'Umum' }}</span>
                             <div class="flex items-center gap-1.5 font-mono text-[11px]">
                                 <span class="privacy-balance font-bold {{ $isOver ? 'text-rose-600' : 'text-charcoal' }}" data-raw-value="{{ 'Rp ' . number_format($b->calculated_spent, 0, ',', '.') }}">
@@ -562,9 +564,9 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-credit">
-            <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-forest">
+            <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center flex-wrap gap-2 min-w-0">
+                    <span class="text-forest shrink-0">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                         </svg>
@@ -573,37 +575,38 @@
                     <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 uppercase">Kartu Kredit</span>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 shrink-0">
                     <button 
                         type="button" 
                         onclick="toggleCardPrivacy(this)" 
-                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] flex-shrink-0" 
+                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
                         title="Sembunyikan / Tampilkan Kewajiban Kredit"
+                        aria-label="Sembunyikan atau tampilkan kewajiban kredit"
                     >
                         <span class="privacy-toggle-icon"></span>
                     </button>
-                    <a href="{{ route('credit.index') }}" class="text-xs font-semibold text-forest hover:underline">
+                    <a href="{{ route('credit.index') }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
                         Kelola &rarr;
                     </a>
                 </div>
             </div>
 
-            <div class="p-4 grid grid-cols-3 gap-2 text-center border-b border-line bg-cream/40">
-                <div class="p-2 rounded bg-panel border border-line">
+            <div class="p-4 grid grid-cols-1 sm:grid-cols-3 gap-2 border-b border-line bg-cream/40">
+                <div class="p-2.5 sm:p-2 rounded-lg sm:rounded bg-panel border border-line flex items-center justify-between sm:block sm:text-center">
                     <span class="block text-[10px] uppercase font-bold text-muted">Limit Gabungan</span>
-                    <span class="text-xs font-bold font-mono text-charcoal block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalCreditLimit, 0, ',', '.') }}">
+                    <span class="text-xs font-bold font-mono text-charcoal block sm:mt-0.5 privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalCreditLimit, 0, ',', '.') }}">
                         Rp {{ number_format($totalCreditLimit, 0, ',', '.') }}
                     </span>
                 </div>
-                <div class="p-2 rounded bg-panel border border-line">
+                <div class="p-2.5 sm:p-2 rounded-lg sm:rounded bg-panel border border-line flex items-center justify-between sm:block sm:text-center">
                     <span class="block text-[10px] uppercase font-bold text-muted">Kewajiban Terpakai</span>
-                    <span class="text-xs font-bold font-mono text-amber-600 block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalCreditLiability, 0, ',', '.') }}">
+                    <span class="text-xs font-bold font-mono text-amber-600 block sm:mt-0.5 privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalCreditLiability, 0, ',', '.') }}">
                         Rp {{ number_format($totalCreditLiability, 0, ',', '.') }}
                     </span>
                 </div>
-                <div class="p-2 rounded bg-panel border border-line">
+                <div class="p-2.5 sm:p-2 rounded-lg sm:rounded bg-panel border border-line flex items-center justify-between sm:block sm:text-center">
                     <span class="block text-[10px] uppercase font-bold text-muted">Limit Tersedia</span>
-                    <span class="text-xs font-bold font-mono text-forest block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalAvailableCredit, 0, ',', '.') }}">
+                    <span class="text-xs font-bold font-mono text-forest block sm:mt-0.5 privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalAvailableCredit, 0, ',', '.') }}">
                         Rp {{ number_format($totalAvailableCredit, 0, ',', '.') }}
                     </span>
                 </div>
@@ -614,7 +617,7 @@
                     @php
                         $dueStatus = $inst->dueStatus();
                     @endphp
-                    <div class="px-4 sm:px-5 py-2.5 flex items-center justify-between text-xs hover:bg-cream/40 transition gap-3">
+                    <div class="px-4 sm:px-5 py-2.5 flex flex-wrap items-center justify-between text-xs hover:bg-cream/40 transition gap-2 sm:gap-3">
                         <div class="min-w-0 flex-1">
                             @if ($inst->installmentPlan)
                                 <a href="{{ route('credit.plans.show', $inst->installmentPlan) }}" class="font-bold text-charcoal hover:text-forest block truncate">
@@ -623,13 +626,13 @@
                             @else
                                 <span class="font-bold text-charcoal block truncate">Cicilan</span>
                             @endif
-                            <div class="text-[10.5px] text-muted flex items-center gap-1.5 mt-0.5 truncate">
-                                <span>{{ $inst->installmentPlan?->creditAccount?->name }}</span>
+                            <div class="text-[10.5px] text-muted flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5">
+                                <span class="truncate">{{ $inst->installmentPlan?->creditAccount?->name }}</span>
                                 <span>&bull;</span>
                                 <span>Jatuh Tempo: {{ $inst->due_date?->format('d M Y') }}</span>
                             </div>
                         </div>
-                        <div class="text-right flex-shrink-0">
+                        <div class="text-right shrink-0">
                             <span class="font-mono font-bold block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($inst->total_amount, 0, ',', '.') }}">
                                 Rp {{ number_format($inst->total_amount, 0, ',', '.') }}
                             </span>
@@ -647,26 +650,27 @@
         </div>
 
         <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-goals">
-            <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-forest">
+            <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-forest shrink-0">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.003 0H9.497m5.003 0a3 3 0 0 0 2.997-3.188l-.34-4.425a3 3 0 0 0-2.993-2.762H8.836a3 3 0 0 0-2.993 2.762l-.34 4.425A3 3 0 0 0 8.497 14.25" />
                         </svg>
                     </span>
-                    <h2 class="text-xs font-bold text-charcoal">Target Tabungan & Impian</h2>
+                    <h2 class="text-xs font-bold text-charcoal truncate">Target Tabungan & Impian</h2>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 shrink-0">
                     <button 
                         type="button" 
                         onclick="toggleCardPrivacy(this)" 
-                        class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] flex-shrink-0" 
+                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
                         title="Sembunyikan / Tampilkan Target Impian"
+                        aria-label="Sembunyikan atau tampilkan target impian"
                     >
                         <span class="privacy-toggle-icon"></span>
                     </button>
-                    <a href="{{ route('goals.index') }}" class="text-xs font-semibold text-forest hover:underline">
+                    <a href="{{ route('goals.index') }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
                         Lihat &rarr;
                     </a>
                 </div>
@@ -678,7 +682,7 @@
                         $prog = $goal->percentage();
                     @endphp
                     <div class="pt-2 first:pt-0">
-                        <div class="flex items-center justify-between text-xs mb-1">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-xs mb-1">
                             <a href="{{ route('goals.show', $goal) }}" class="font-bold text-charcoal hover:text-forest truncate">
                                 {{ $goal->name }}
                             </a>
@@ -711,39 +715,39 @@
     </div>
 
     <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-short-plans">
-        <div class="px-4 sm:px-5 py-3 border-b border-line flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="text-forest shrink-0">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
-                    </svg>
-                </span>
-                <h2 class="text-xs font-bold text-charcoal truncate">Short Plan</h2>
-                @if ($shortPlanActiveCount > 0)
-                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line">
-                        {{ $shortPlanActiveCount }}
+            <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-forest shrink-0">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+                        </svg>
                     </span>
-                @endif
-            </div>
+                    <h2 class="text-xs font-bold text-charcoal truncate">Short Plan</h2>
+                    @if ($shortPlanActiveCount > 0)
+                        <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line">
+                            {{ $shortPlanActiveCount }}
+                        </span>
+                    @endif
+                </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-                <button
-                    type="button"
-                    onclick="toggleCardPrivacy(this)"
-                    class="privacy-card-toggle w-6 h-6 rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0"
-                    title="Sembunyikan / Tampilkan Nominal Short Plan"
-                    aria-label="Sembunyikan atau tampilkan nominal short plan"
-                >
-                    <span class="privacy-toggle-icon"></span>
-                </button>
-                <a href="{{ route('short-plans.create') }}" class="h-6 px-2 text-[10.5px] font-bold rounded bg-forest text-white hover:bg-forest-hover transition inline-flex items-center">
-                    + Rencana
-                </a>
-                <a href="{{ route('short-plans.index') }}" class="text-xs font-semibold text-forest hover:underline">
-                    Kelola &rarr;
-                </a>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button
+                        type="button"
+                        onclick="toggleCardPrivacy(this)"
+                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0"
+                        title="Sembunyikan / Tampilkan Nominal Short Plan"
+                        aria-label="Sembunyikan atau tampilkan nominal short plan"
+                    >
+                        <span class="privacy-toggle-icon"></span>
+                    </button>
+                    <a href="{{ route('short-plans.create') }}" class="min-h-[38px] sm:min-h-0 sm:h-6 px-3 sm:px-2 text-[11px] sm:text-[10.5px] font-bold rounded bg-forest text-white hover:bg-forest-hover transition inline-flex items-center">
+                        + Rencana
+                    </a>
+                    <a href="{{ route('short-plans.index') }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
+                        Kelola &rarr;
+                    </a>
+                </div>
             </div>
-        </div>
 
         @php
             $shortPlanCoverage = $totalBalance - $shortPlanActiveTotal;

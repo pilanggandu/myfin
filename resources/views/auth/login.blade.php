@@ -65,17 +65,17 @@
             autocomplete="current-password" 
         />
 
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <x-checkbox 
                 name="remember" 
                 label="Ingat saya" 
             />
-            <a href="{{ route('password.request') }}" class="text-xs text-forest hover:text-forest-hover font-semibold">
+            <a href="{{ route('password.request') }}" class="text-xs text-forest hover:text-forest-hover font-semibold inline-flex items-center min-h-[44px] sm:min-h-0">
                 Lupa kata sandi?
             </a>
         </div>
 
-        <x-button type="submit" class="w-full mt-2">
+        <x-button type="submit" class="w-full mt-2 min-h-[44px] sm:min-h-[38px]">
             Masuk ke Aplikasi
         </x-button>
     </form>
@@ -84,7 +84,7 @@
         <div class="mt-6 pt-5 border-t border-line text-center">
             <p class="text-xs text-muted">
                 Belum memiliki akun? 
-                <a href="{{ route('register') }}" class="font-bold text-forest hover:underline">
+                <a href="{{ route('register') }}" class="font-bold text-forest hover:underline inline-flex items-center min-h-[44px] sm:min-h-0 px-1">
                     Daftar akun baru
                 </a>
             </p>

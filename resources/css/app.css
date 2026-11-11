@@ -41,7 +41,7 @@
   --color-sage: #9AB4CD;
   --color-charcoal: #17212D;
   --color-line: #C8D7E5;
-  --color-muted: #657484;
+  --color-muted: #526070;
   --color-cream: #E2EDF6;
   --color-red: #D14343;
   --color-card: #FFFFFF;
@@ -68,12 +68,18 @@ html.dark {
   --color-card: #172331;
 }
 
+html {
+  scroll-padding-top: 76px;
+  scroll-padding-bottom: 24px;
+}
+
 html, body {
   background-color: var(--color-ivory);
   color: var(--color-charcoal);
   font-family: var(--font-sans);
   font-size: 13.5px;
   min-height: 100vh;
+  overflow-x: clip;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -408,6 +414,13 @@ h1, h2, h3, .font-display {
   outline: none;
 }
 
+textarea.field-input {
+  height: auto;
+  min-height: 76px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 .field-input.has-prefix,
 .field-input.has-icon,
 .field-prefix-wrapper > .field-input,
@@ -665,10 +678,68 @@ input[type=number] {
 }
 
 .calendar-day-cell {
-  height: 120px !important;
-  min-height: 120px !important;
-  max-height: 120px !important;
+  min-height: 96px;
   box-sizing: border-box !important;
+}
+
+@media (min-width: 768px) {
+  .calendar-day-cell {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .sidebar-nav-item,
+  .sidebar-nav-parent,
+  .sidebar-nav-child {
+    min-height: 44px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+
+@media (max-width: 639px) {
+  .btn-arus-primary,
+  .btn-arus-secondary,
+  .btn-arus-danger,
+  .btn-arus-danger-solid,
+  input.field-input,
+  select.field-select,
+  .arus-category-trigger {
+    min-height: 44px;
+  }
+
+  .field-select {
+    height: auto;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 2px;
+}
+
+.dark :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline-color: #60A5FA;
+}
+
+.field-input:focus-visible,
+.field-select:focus-visible,
+.arus-category-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(11, 74, 139, 0.22);
+}
+
+.dark .field-input:focus-visible,
+.dark .field-select:focus-visible,
+.dark .arus-category-trigger:focus-visible {
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.28);
+}
+
+.table-scroll-touch {
+  -webkit-overflow-scrolling: touch;
 }
 
 .privacy-balance {

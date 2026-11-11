@@ -1,12 +1,12 @@
 <div
     id="realizePlanModal"
-    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto hidden"
+    class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden"
     role="dialog"
     aria-modal="true"
     aria-labelledby="realizeModalTitle"
     onclick="if (event.target === this) closeRealizeModal()"
 >
-    <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 my-8" onclick="event.stopPropagation()">
+    <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto sm:my-8 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto" onclick="event.stopPropagation()">
         <div class="flex items-start justify-between gap-3 border-b border-line pb-3">
             <div class="min-w-0">
                 <span class="text-[10.5px] font-bold tracking-[1.2px] text-muted uppercase block">Realisasi Rencana</span>

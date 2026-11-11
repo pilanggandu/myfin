@@ -162,7 +162,7 @@
                                             @csrf
                                             <button 
                                                 type="submit" 
-                                                class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                                class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
                                                 title="Gunakan Ruang Ini"
                                                 aria-label="Gunakan Ruang Ini"
                                             >
@@ -176,7 +176,7 @@
                                     @if ($isOwner)
                                         <a 
                                             href="{{ route('spaces.edit', $space) }}" 
-                                            class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center"
                                             title="Ubah Pengaturan Ruang"
                                             aria-label="Ubah Pengaturan Ruang"
                                         >
@@ -191,7 +191,7 @@
                                                 @method('DELETE')
                                                 <button 
                                                     type="submit" 
-                                                    class="w-8 h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
+                                                    class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-red hover:border-red/40 hover:bg-red/5 transition inline-flex items-center justify-center cursor-pointer"
                                                     title="Hapus Ruang Bersama"
                                                     aria-label="Hapus Ruang Bersama"
                                                 >

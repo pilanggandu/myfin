@@ -30,10 +30,10 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-full flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-ivory text-charcoal antialiased relative">
+<body class="min-h-full flex flex-col justify-center pt-16 pb-10 sm:py-12 px-4 sm:px-6 lg:px-8 bg-ivory text-charcoal antialiased relative">
     <!-- Guest Theme Toggle Button -->
-    <div class="absolute top-5 right-5">
-        <button type="button" onclick="toggleGuestTheme()" id="guestThemeBtn" class="p-2 rounded-lg border border-line bg-panel text-charcoal hover:bg-cream transition cursor-pointer text-xs flex items-center gap-1.5" aria-label="Ganti tema tampilan">
+    <div class="absolute top-3.5 right-3.5 sm:top-5 sm:right-5">
+        <button type="button" onclick="toggleGuestTheme()" id="guestThemeBtn" class="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-2 rounded-lg border border-line bg-panel text-charcoal hover:bg-cream transition cursor-pointer text-xs inline-flex items-center justify-center gap-1.5" aria-label="Ganti tema tampilan">
             <span id="guestThemeIcon">🌙</span>
         </button>
     </div>

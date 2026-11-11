@@ -169,12 +169,12 @@
                             <label class="block text-xs font-semibold text-charcoal mb-1">
                                 Pilihan Tenor (Bulan) <span class="text-red">*</span>
                             </label>
-                            <div class="flex items-center gap-1.5 mb-2">
+                            <div class="flex flex-wrap items-center gap-1.5 mb-2">
                                 @foreach ([1, 3, 6, 12, 24] as $t)
                                     <button 
                                         type="button" 
                                         onclick="setTenor({{ $t }})"
-                                        class="tenor-btn flex-1 py-1.5 px-2 text-xs border border-line rounded-md text-charcoal font-semibold hover:bg-forest-light transition cursor-pointer {{ $t === 3 ? 'bg-forest text-white border-forest' : 'bg-panel' }}"
+                                        class="tenor-btn flex-1 min-w-[52px] min-h-[44px] sm:min-h-0 py-2 sm:py-1.5 px-2 text-xs border border-line rounded-md text-charcoal font-semibold hover:bg-forest-light transition cursor-pointer {{ $t === 3 ? 'bg-forest text-white border-forest' : 'bg-panel' }}"
                                         data-tenor="{{ $t }}"
                                     >
                                         {{ $t }}x
@@ -308,7 +308,7 @@
 
                 <!-- Section 3: Live Preview Simulasi Cicilan -->
                 <div class="panel-card p-6">
-                    <div class="flex items-center justify-between border-b border-line pb-3 mb-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line pb-3 mb-4">
                         <div>
                             <h3 class="font-serif text-base text-charcoal font-medium">
                                 3. Simulasi Jadwal Pelunasan Pokok & Biaya
@@ -317,7 +317,7 @@
                                 Rincian pembagian cicilan pokok, bunga flat, dan biaya admin presisi per bulan.
                             </p>
                         </div>
-                        <div class="text-right">
+                        <div class="text-left sm:text-right shrink-0">
                             <span class="text-[11px] text-muted block uppercase">Estimasi Angsuran / Bln</span>
                             <span id="monthlyEstimateText" class="font-serif text-lg font-bold text-forest">Rp 400.000 / bln</span>
                         </div>
@@ -363,17 +363,17 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex items-center justify-end gap-3 pt-2">
+                <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-2">
                     <a 
                         href="{{ route('credit.index') }}" 
-                        class="min-h-[44px] px-5 py-2.5 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition flex items-center justify-center"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2.5 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition flex items-center justify-center"
                     >
                         Batal
                     </a>
                     <button 
                         type="submit" 
                         id="btnSubmitPurchase"
-                        class="min-h-[44px] px-6 py-2.5 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center gap-2 shadow-xs"
+                        class="w-full sm:w-auto min-h-[44px] px-6 py-2.5 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                     >
                         <span id="btnSubmitPurchaseText">Simpan Transaksi Belanja & Rencana Cicilan</span>
                     </button>
