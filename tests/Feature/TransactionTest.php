@@ -815,6 +815,31 @@ class TransactionTest extends TestCase
         $response->assertSee('Alasan Koreksi');
     }
 
+    public function test_transfer_transaction_edit_screen_renders_transfer_fields_and_fee_presets(): void
+    {
+        $service = app(TransactionService::class);
+        $transfer = $service->recordTransfer($this->spaceA, $this->userA, [
+            'source_account_id' => $this->bca->id,
+            'destination_account_id' => $this->gopay->id,
+            'amount' => 250000,
+            'fee_amount' => 2500,
+            'fee_category_id' => $this->expenseCat->id,
+            'transaction_date' => '2026-01-06',
+            'description' => 'Top Up GoPay',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('transactions.edit', $transfer));
+
+        $response->assertOk();
+        $response->assertSee('Jalur Transfer Rekening');
+        $response->assertSee('Biaya Admin Transfer');
+        $response->assertSee('Pilih Cepat Biaya Admin');
+        $response->assertSee('value="2.500"', false);
+        $response->assertSee('data-fee-preset="2500"', false);
+    }
+
     public function test_transaction_records_and_updates_transaction_time_cleanly(): void
     {
         $service = app(TransactionService::class);
