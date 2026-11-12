@@ -98,6 +98,11 @@ class RecurringSchedule extends Model
         return $query->whereNull('archived_at')->where('status', 'paused');
     }
 
+    public function scopeActiveOrPaused(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at')->whereIn('status', ['active', 'paused']);
+    }
+
     public function scopeArchived(Builder $query): Builder
     {
         return $query->where(function (Builder $q) {
@@ -227,6 +232,15 @@ class RecurringSchedule extends Model
             'overdue' => 'Terlambat',
             'due' => 'Jatuh Tempo Hari Ini',
             default => 'Mendatang',
+        };
+    }
+
+    public function frequencyLabel(): string
+    {
+        return match ($this->frequency) {
+            'weekly' => 'Mingguan',
+            'yearly' => 'Tahunan',
+            default => 'Bulanan',
         };
     }
 

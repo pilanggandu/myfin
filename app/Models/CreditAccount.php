@@ -60,6 +60,11 @@ class CreditAccount extends Model
         return $this->hasMany(CreditDebitNote::class)->orderBy('note_date', 'desc')->orderBy('id', 'desc');
     }
 
+    public function recurringSchedules(): HasMany
+    {
+        return $this->hasMany(RecurringSchedule::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');

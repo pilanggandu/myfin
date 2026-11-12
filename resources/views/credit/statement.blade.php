@@ -119,6 +119,62 @@
                 <span class="text-[11px] text-muted">Dari limit <span class="privacy-balance" data-raw-value="{{ $creditAccount->formatted_limit }}">{{ $creditAccount->formatted_limit }}</span></span>
             </div>
         </div>
+
+        <!-- Jadwal Berulang Terhubung -->
+        @if ($paymentSchedules->isNotEmpty() || $expenseSchedules->isNotEmpty() || ! $creditAccount->isArchived())
+            <div class="mt-6 pt-4 border-t border-line/70 flex flex-col gap-3 text-xs">
+                @foreach ($paymentSchedules as $sch)
+                    <div class="p-3 rounded-xl border border-line bg-cream/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="space-y-0.5 min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">Jadwal Bayar Rutin</span>
+                                @include('credit.partials._recurring-status-badge', ['schedule' => $sch, 'tz' => $tz])
+                            </div>
+                            <div class="font-bold text-charcoal truncate">{{ $sch->name }}</div>
+                            <div class="text-[11px] text-muted">
+                                Tempo berikutnya: <strong class="font-mono text-charcoal">{{ $sch->next_due_date->format('d M Y') }}</strong> ({{ $sch->frequencyLabel() }})
+                                &bull; {{ $sch->sourceAccount?->name ?? 'Rekening Fleksibel' }}
+                                &bull; @if ($sch->is_variable_amount)
+                                    Nominal Fleksibel
+                                @else
+                                    <span class="font-mono text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($sch->amount, 0, ',', '.') }}">Rp {{ number_format($sch->amount, 0, ',', '.') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <a
+                            href="{{ route('recurring.show', $sch) }}"
+                            class="min-h-[44px] sm:min-h-[36px] px-3.5 py-2 rounded-lg border border-line bg-panel text-forest hover:bg-cream text-xs font-bold inline-flex items-center justify-center shrink-0 transition"
+                        >
+                            Buka Jadwal
+                        </a>
+                    </div>
+                @endforeach
+
+                @if ($paymentSchedules->isEmpty() && ! $creditAccount->isArchived())
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                        <span>Belum ada jadwal pembayaran rutin untuk kartu ini.</span>
+                        <a
+                            href="{{ route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $creditAccount->id]) }}"
+                            class="min-h-[44px] sm:min-h-[36px] inline-flex items-center font-bold text-forest hover:underline"
+                        >
+                            + Jadwalkan Bayar Rutin
+                        </a>
+                    </div>
+                @endif
+
+                @if ($expenseSchedules->isNotEmpty())
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
+                        <span>
+                            Tagihan rutin dibebankan ke kartu ini ({{ $expenseSchedules->count() }}):
+                            <strong class="text-charcoal">{{ $expenseSchedules->pluck('name')->implode(', ') }}</strong>
+                        </span>
+                        <a href="{{ route('recurring.index', ['type' => 'expense']) }}" class="font-bold text-forest hover:underline shrink-0">
+                            Kelola Jadwal
+                        </a>
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
 
     @if ($statement['total_pending'] > 0)

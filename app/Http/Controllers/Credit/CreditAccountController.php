@@ -25,12 +25,16 @@ class CreditAccountController extends Controller
         $space = app('currentSpace');
         Gate::authorize('viewAny', CreditAccount::class);
 
+        $tz = $space->timezone ?? 'Asia/Jakarta';
         $tab = $request->query('tab', 'accounts');
         $selectedAccountFilter = $request->query('account_id');
         $planSearch = $request->query('search');
 
         $creditAccounts = $space->creditAccounts()
-            ->with(['installmentPlans.installments'])
+            ->with([
+                'installmentPlans.installments',
+                'recurringSchedules' => fn ($query) => $this->constrainVisibleRecurringSchedules($query),
+            ])
             ->orderBy('archived_at', 'asc')
             ->orderBy('name', 'asc')
             ->get();
@@ -133,7 +137,8 @@ class CreditAccountController extends Controller
             'monthlyProjections',
             'selectedAccountFilter',
             'planSearch',
-            'tab'
+            'tab',
+            'tz'
         ));
     }
 
@@ -141,9 +146,17 @@ class CreditAccountController extends Controller
     {
         Gate::authorize('view', $creditAccount);
         $space = app('currentSpace');
+        $tz = $space->timezone ?? 'Asia/Jakarta';
 
         $month = $request->query('month', now()->format('Y-m'));
         $statement = $creditAccount->getStatementBill($month);
+
+        $recurringSchedules = $this->constrainVisibleRecurringSchedules(
+            $creditAccount->recurringSchedules()
+        )->get();
+
+        $paymentSchedules = $recurringSchedules->where('type', 'credit_payment')->values();
+        $expenseSchedules = $recurringSchedules->where('type', 'expense')->values();
 
         $cashAccounts = $space->accounts()
             ->whereNull('archived_at')
@@ -162,7 +175,16 @@ class CreditAccountController extends Controller
             ];
         }
 
-        return view('credit.statement', compact('creditAccount', 'statement', 'month', 'cashAccounts', 'availableMonths'));
+        return view('credit.statement', compact(
+            'creditAccount',
+            'statement',
+            'month',
+            'cashAccounts',
+            'availableMonths',
+            'paymentSchedules',
+            'expenseSchedules',
+            'tz'
+        ));
     }
 
     public function payBill(PayCreditBillRequest $request, CreditAccount $creditAccount): RedirectResponse
@@ -222,5 +244,13 @@ class CreditAccountController extends Controller
 
         return redirect()->route('credit.index', ['tab' => 'accounts'])
             ->with('status', 'Akun kredit berhasil diaktifkan kembali.');
+    }
+
+    private function constrainVisibleRecurringSchedules(mixed $query): mixed
+    {
+        return $query->activeOrPaused()
+            ->with(['sourceAccount', 'category'])
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->orderBy('next_due_date', 'asc');
     }
 }

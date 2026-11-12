@@ -8,6 +8,7 @@ use App\Models\CreditAccount;
 use App\Models\Space;
 use App\Models\User;
 use App\Services\CreditService;
+use App\Services\RecurringService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -224,5 +225,115 @@ class CreditStatementTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Lembar Tagihan');
         $response->assertSee('BCA Card Visa');
+    }
+
+    public function test_credit_index_and_statement_display_connected_recurring_schedules(): void
+    {
+        $recurringService = app(RecurringService::class);
+
+        $paymentSchedule = $recurringService->createSchedule($this->space, $this->user, [
+            'type' => 'credit_payment',
+            'name' => 'Bayar Tagihan BCA Card',
+            'credit_account_id' => $this->creditCard->id,
+            'source_account_id' => $this->bankAccount->id,
+            'frequency' => 'monthly',
+            'start_date' => now()->addDays(5)->toDateString(),
+            'is_variable_amount' => true,
+        ]);
+
+        $recurringService->createSchedule($this->space, $this->user, [
+            'type' => 'expense',
+            'name' => 'Langganan Netflix CC',
+            'category_id' => $this->category->id,
+            'source_account_id' => $this->creditCard->account_id,
+            'frequency' => 'monthly',
+            'start_date' => now()->addDays(3)->toDateString(),
+            'amount' => 186000,
+        ]);
+
+        $archivedSchedule = $recurringService->createSchedule($this->space, $this->user, [
+            'type' => 'credit_payment',
+            'name' => 'Jadwal Lama Diarsipkan',
+            'credit_account_id' => $this->creditCard->id,
+            'source_account_id' => $this->bankAccount->id,
+            'frequency' => 'monthly',
+            'start_date' => now()->addDays(10)->toDateString(),
+            'is_variable_amount' => true,
+        ]);
+        $archivedSchedule->archive();
+
+        $unscheduledCard = $this->creditService->createCreditAccount($this->space, [
+            'name' => 'Mandiri PayLater',
+            'type' => 'paylater',
+            'credit_limit' => 5000000,
+        ]);
+
+        $indexResp = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.index', ['tab' => 'accounts']));
+
+        $indexResp->assertOk();
+        $indexResp->assertSee('Jadwal Bayar Rutin', false);
+        $indexResp->assertSee('Bayar Tagihan BCA Card', false);
+        $indexResp->assertSee('Terjadwal', false);
+        $indexResp->assertSee('Fleksibel', false);
+        $indexResp->assertSee('Langganan Netflix CC', false);
+        $indexResp->assertSee(route('recurring.show', $paymentSchedule), false);
+        $indexResp->assertSee('Lihat Jadwal', false);
+        $indexResp->assertSee(route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $unscheduledCard->id]));
+        $indexResp->assertDontSee('Jadwal Lama Diarsipkan', false);
+
+        $statementResp = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.accounts.statement', $this->creditCard));
+
+        $statementResp->assertOk();
+        $statementResp->assertSee('Bayar Tagihan BCA Card', false);
+        $statementResp->assertSee('Buka Jadwal', false);
+        $statementResp->assertSee('Langganan Netflix CC', false);
+        $statementResp->assertDontSee('Jadwal Lama Diarsipkan', false);
+    }
+
+    public function test_credit_index_displays_overdue_and_paused_recurring_schedule_badges(): void
+    {
+        $recurringService = app(RecurringService::class);
+
+        $recurringService->createSchedule($this->space, $this->user, [
+            'type' => 'credit_payment',
+            'name' => 'Bayar BCA Terlambat',
+            'credit_account_id' => $this->creditCard->id,
+            'source_account_id' => $this->bankAccount->id,
+            'frequency' => 'monthly',
+            'start_date' => now()->subDays(2)->toDateString(),
+            'amount' => 750000,
+        ]);
+
+        $pausedCard = $this->creditService->createCreditAccount($this->space, [
+            'name' => 'Kartu Dijeda',
+            'type' => 'credit_card',
+            'credit_limit' => 8000000,
+        ]);
+
+        $pausedSchedule = $recurringService->createSchedule($this->space, $this->user, [
+            'type' => 'credit_payment',
+            'name' => 'Jadwal Bayar Dijeda',
+            'credit_account_id' => $pausedCard->id,
+            'source_account_id' => $this->bankAccount->id,
+            'frequency' => 'monthly',
+            'start_date' => now()->addDays(4)->toDateString(),
+            'amount' => 500000,
+        ]);
+        $pausedSchedule->update(['status' => 'paused']);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('credit.index', ['tab' => 'accounts']));
+
+        $response->assertOk();
+        $response->assertSee('Bayar BCA Terlambat', false);
+        $response->assertSee('Terlambat', false);
+        $response->assertSee('Rp 750.000', false);
+        $response->assertSee('Jadwal Bayar Dijeda', false);
+        $response->assertSee('Dijeda', false);
     }
 }

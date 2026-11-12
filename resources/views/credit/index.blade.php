@@ -303,8 +303,8 @@
                                     </div>
                                 @else
                                     <div class="flex justify-between items-center text-[11px] border-t border-dashed border-line/50 pt-2 mt-2">
-                                        <span class="text-amber-600 dark:text-amber-400 font-medium">⚠️ Belum set tgl cetak & tempo</span>
-                                        <button type="button" onclick="editCreditAccount({{ json_encode($account) }})" class="text-[10px] text-forest font-bold hover:underline cursor-pointer">
+                                        <span class="text-amber-800 dark:text-amber-300 font-medium">Belum set tgl cetak &amp; tempo</span>
+                                        <button type="button" onclick="openEditCreditAccountModal({{ json_encode($account) }})" class="text-[11px] text-forest font-bold hover:underline cursor-pointer min-h-[32px] px-1">
                                             Atur
                                         </button>
                                     </div>
@@ -313,6 +313,9 @@
 
                             @php
                                 $statement = $account->getStatementBill();
+                                $paymentSchedules = $account->recurringSchedules->where('type', 'credit_payment')->values();
+                                $primaryPaymentSchedule = $paymentSchedules->first();
+                                $expenseSchedules = $account->recurringSchedules->where('type', 'expense')->values();
                             @endphp
                             <!-- Box Lembar Tagihan Bulan Ini -->
                             <div class="mt-3 p-3 rounded-xl border border-line bg-cream/40 flex items-center justify-between gap-3">
@@ -327,21 +330,62 @@
                                 </div>
                                 <a 
                                     href="{{ route('credit.accounts.statement', $account) }}" 
-                                    class="min-h-[34px] px-2.5 py-1.5 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-xs transition"
+                                    class="min-h-[44px] sm:min-h-[34px] px-3 py-1.5 border border-line bg-panel text-charcoal hover:bg-cream rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-xs transition"
                                     title="Buka Lembar Tagihan (Statement) Bulan Ini"
                                 >
                                     <span>📄 Tagihan</span>
                                 </a>
                             </div>
+
+                            @if ($primaryPaymentSchedule)
+                                <div class="mt-3 p-3 rounded-xl border border-line bg-panel space-y-1.5">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-[10px] text-muted uppercase font-bold tracking-wider">
+                                            Jadwal Bayar Rutin{{ $paymentSchedules->count() > 1 ? ' (' . $paymentSchedules->count() . ')' : '' }}
+                                        </span>
+                                        @include('credit.partials._recurring-status-badge', ['schedule' => $primaryPaymentSchedule, 'tz' => $tz])
+                                    </div>
+                                    <div class="flex items-baseline justify-between gap-2">
+                                        <a
+                                            href="{{ route('recurring.show', $primaryPaymentSchedule) }}"
+                                            class="text-xs font-bold text-charcoal hover:text-forest hover:underline truncate"
+                                        >
+                                            {{ $primaryPaymentSchedule->name }}
+                                        </a>
+                                        <span class="text-[11px] font-mono font-semibold text-charcoal shrink-0">
+                                            @if ($primaryPaymentSchedule->is_variable_amount)
+                                                Fleksibel
+                                            @else
+                                                <span class="privacy-balance" data-raw-value="Rp {{ number_format($primaryPaymentSchedule->amount, 0, ',', '.') }}">Rp {{ number_format($primaryPaymentSchedule->amount, 0, ',', '.') }}</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-muted flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+                                        <span>Tempo: <strong class="font-mono text-charcoal">{{ $primaryPaymentSchedule->next_due_date->format('d M Y') }}</strong> ({{ $primaryPaymentSchedule->frequencyLabel() }})</span>
+                                        <span>{{ $primaryPaymentSchedule->sourceAccount?->name ?? 'Rekening Fleksibel' }}</span>
+                                    </div>
+                                    @if ($expenseSchedules->isNotEmpty())
+                                        <div class="pt-1.5 border-t border-dashed border-line/60 text-[11px] text-muted flex items-center justify-between gap-2">
+                                            <span class="truncate">Langganan via kartu: <strong class="text-charcoal">{{ $expenseSchedules->pluck('name')->take(2)->implode(', ') }}{{ $expenseSchedules->count() > 2 ? ' +' . ($expenseSchedules->count() - 2) : '' }}</strong></span>
+                                            <a href="{{ route('recurring.index', ['type' => 'expense']) }}" class="text-forest font-semibold hover:underline shrink-0">Lihat</a>
+                                        </div>
+                                    @endif
+                                </div>
+                            @elseif ($expenseSchedules->isNotEmpty())
+                                <div class="mt-3 p-2.5 rounded-xl border border-line bg-panel text-[11px] text-muted flex items-center justify-between gap-2">
+                                    <span class="truncate">Langganan via kartu ({{ $expenseSchedules->count() }}): <strong class="text-charcoal">{{ $expenseSchedules->pluck('name')->take(2)->implode(', ') }}{{ $expenseSchedules->count() > 2 ? ' +' . ($expenseSchedules->count() - 2) : '' }}</strong></span>
+                                    <a href="{{ route('recurring.index', ['type' => 'expense']) }}" class="text-forest font-semibold hover:underline shrink-0">Lihat</a>
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Actions Bar -->
-                        <div class="flex items-center justify-between border-t border-line mt-4 pt-3 text-xs">
-                            <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line mt-4 pt-3 text-xs">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <button 
                                     type="button" 
                                     onclick="openEditCreditAccountModal({{ json_encode($account) }})" 
-                                    class="text-muted hover:text-charcoal font-bold py-1 min-h-[36px]"
+                                    class="text-muted hover:text-charcoal font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center cursor-pointer"
                                 >
                                     Edit
                                 </button>
@@ -349,15 +393,23 @@
                                     <button 
                                         type="button" 
                                         onclick="openPayBillModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $statement['total_pending'] }}, '{{ $statement['formatted_total_pending'] }}', {{ $liability }}, '{{ $account->formatted_liability }}', {{ json_encode($statement['installments']->where('status', 'pending')->pluck('id')->values()) }})" 
-                                        class="min-h-[34px] px-2.5 py-1 bg-forest text-white rounded-md text-[11px] font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
+                                        class="min-h-[44px] sm:min-h-[34px] px-2.5 py-1 bg-forest text-white rounded-md text-[11px] font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
                                     >
                                         Bayar Tagihan
                                     </button>
                                 @endif
-                                @if (!$account->isArchived())
+                                @if ($primaryPaymentSchedule)
+                                    <a 
+                                        href="{{ route('recurring.show', $primaryPaymentSchedule) }}" 
+                                        class="text-forest hover:underline font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center"
+                                        title="Lihat atau catat jadwal pembayaran tagihan kartu ini"
+                                    >
+                                        Lihat Jadwal
+                                    </a>
+                                @elseif (!$account->isArchived())
                                     <a 
                                         href="{{ route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $account->id]) }}" 
-                                        class="text-forest hover:underline font-bold py-1 min-h-[36px] inline-flex items-center"
+                                        class="text-forest hover:underline font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center"
                                         title="Buat jadwal rutin bulanan untuk membayar tagihan kartu ini"
                                     >
                                         Jadwalkan Bayar
