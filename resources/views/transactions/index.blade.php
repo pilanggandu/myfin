@@ -26,7 +26,7 @@
     <!-- Filter & Search Panel -->
     <div class="panel-card p-4 sm:p-5 mb-6">
         @php
-            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future'];
+            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future', 'min_amount', 'max_amount'];
             $activeCount = 0;
             foreach ($advancedKeys as $k) {
                 if (request()->filled($k)) {
@@ -36,11 +36,11 @@
             if (request()->has('status') && request('status') !== 'posted') {
                 $activeCount++;
             }
-            if (request('sort') === 'date_asc') {
+            if (request()->filled('sort') && request('sort') !== 'date_desc') {
                 $activeCount++;
             }
             $isAdvancedOpen = $activeCount > 0;
-            $hasAnyFilter = request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future'])
+            $hasAnyFilter = request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future', 'min_amount', 'max_amount'])
                 || (request()->has('status') && request('status') !== 'posted')
                 || (request()->has('sort') && request('sort') !== 'date_desc');
         @endphp
@@ -170,6 +170,7 @@
                             <option value="income" {{ request('type') === 'income' ? 'selected' : '' }}>Pemasukan (Income)</option>
                             <option value="expense" {{ request('type') === 'expense' ? 'selected' : '' }}>Pengeluaran (Expense)</option>
                             <option value="transfer" {{ request('type') === 'transfer' ? 'selected' : '' }}>Transfer Antar-Rekening</option>
+                            <option value="credit_payment" {{ request('type') === 'credit_payment' ? 'selected' : '' }}>Pembayaran Kredit</option>
                         </select>
                     </div>
 
@@ -253,10 +254,12 @@
                     </div>
 
                     <div>
-                        <label for="filterSortSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Urutan Tanggal</label>
+                        <label for="filterSortSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Urutan</label>
                         <select name="sort" id="filterSortSelect" class="field-select w-full">
                             <option value="date_desc" {{ request('sort', 'date_desc') === 'date_desc' ? 'selected' : '' }}>Terbaru (Tanggal ↓)</option>
                             <option value="date_asc" {{ request('sort') === 'date_asc' ? 'selected' : '' }}>Terlama (Tanggal ↑)</option>
+                            <option value="amount_desc" {{ request('sort') === 'amount_desc' ? 'selected' : '' }}>Nominal Terbesar</option>
+                            <option value="amount_asc" {{ request('sort') === 'amount_asc' ? 'selected' : '' }}>Nominal Terkecil</option>
                         </select>
                     </div>
 
@@ -279,6 +282,32 @@
                             id="filterEndDate"
                             value="{{ request('end_date') }}" 
                             class="field-input w-full" 
+                        />
+                    </div>
+
+                    <div>
+                        <label for="filterMinAmount" class="block text-[11px] font-semibold text-charcoal mb-1.5">Nominal Minimum (Rp)</label>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            name="min_amount"
+                            id="filterMinAmount"
+                            value="{{ request('min_amount') }}"
+                            placeholder="Contoh: 50.000"
+                            class="field-input w-full font-mono"
+                        />
+                    </div>
+
+                    <div>
+                        <label for="filterMaxAmount" class="block text-[11px] font-semibold text-charcoal mb-1.5">Nominal Maksimum (Rp)</label>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            name="max_amount"
+                            id="filterMaxAmount"
+                            value="{{ request('max_amount') }}"
+                            placeholder="Contoh: 500.000"
+                            class="field-input w-full font-mono"
                         />
                     </div>
                 </div>
@@ -1124,7 +1153,7 @@
                     s.value = '';
                 }
             });
-            form.querySelectorAll('#advancedFilterPanel input[type="date"]').forEach(i => i.value = '');
+            form.querySelectorAll('#advancedFilterPanel input[type="date"], #advancedFilterPanel input[name="min_amount"], #advancedFilterPanel input[name="max_amount"]').forEach(i => i.value = '');
             syncDatePresetChips();
             const futureInput = form.querySelector('input[name="include_future"]');
             if (futureInput) futureInput.remove();

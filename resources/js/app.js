@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import { initIndonesianDatePickers } from './date-picker-id.js';
 import { initSearchablePickers } from './category-picker.js';
+import { initAdvancedSearch } from './advanced-search.js';
 window.$ = window.jQuery = $;
 
 function applyTheme(theme) {
@@ -96,4 +97,5 @@ document.addEventListener('DOMContentLoaded', function() {
     initSidebarLiveClock();
     initIndonesianDatePickers();
     initSearchablePickers();
+    initAdvancedSearch();
 });

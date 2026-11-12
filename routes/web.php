@@ -11,6 +11,7 @@ use App\Http\Controllers\Credit\CreditAccountController;
 use App\Http\Controllers\Credit\InstallmentController;
 use App\Http\Controllers\Currencies\CurrencyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Goals\GoalController;
 use App\Http\Controllers\Members\MemberController;
 use App\Http\Controllers\Profile\ProfileController;
@@ -47,6 +48,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index']);
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/search', [GlobalSearchController::class, 'index'])->name('search.global');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

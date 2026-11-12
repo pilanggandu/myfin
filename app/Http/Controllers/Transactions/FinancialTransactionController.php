@@ -35,6 +35,14 @@ class FinancialTransactionController extends Controller
         $sort = $request->input('sort', 'date_desc');
         if ($sort === 'date_asc' || $request->input('direction') === 'asc') {
             $query->oldestFirst();
+        } elseif ($sort === 'amount_desc') {
+            $query->orderByRaw(
+                '(SELECT COALESCE(MAX(ABS(amount_signed)), 0) FROM transaction_entries WHERE transaction_entries.transaction_id = financial_transactions.id) DESC'
+            )->latestFirst();
+        } elseif ($sort === 'amount_asc') {
+            $query->orderByRaw(
+                '(SELECT COALESCE(MAX(ABS(amount_signed)), 0) FROM transaction_entries WHERE transaction_entries.transaction_id = financial_transactions.id) ASC'
+            )->latestFirst();
         } else {
             $query->latestFirst();
         }
@@ -103,7 +111,7 @@ class FinancialTransactionController extends Controller
 
     protected function applyIndexFilters(Builder|HasMany $query, Request $request, bool $forUpcomingCount = false): void
     {
-        if ($request->filled('type') && in_array($request->type, ['income', 'expense', 'transfer'])) {
+        if ($request->filled('type') && in_array($request->type, ['income', 'expense', 'transfer', 'credit_payment'])) {
             $query->where('type', $request->type);
         }
 
@@ -117,7 +125,11 @@ class FinancialTransactionController extends Controller
         }
 
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $categoryId = (int) $request->category_id;
+            $query->where(function (Builder $q) use ($categoryId): void {
+                $q->where('category_id', $categoryId)
+                    ->orWhere('fee_category_id', $categoryId);
+            });
         }
 
         if ($request->filled('member_id')) {
@@ -128,6 +140,25 @@ class FinancialTransactionController extends Controller
             $query->whereHas('entries', function ($q) use ($request) {
                 $q->where('account_id', $request->account_id);
             });
+        }
+
+        if ($request->filled('min_amount')) {
+            $minAmount = FinancialTransaction::parseSearchableAmount((string) $request->input('min_amount'));
+            if ($minAmount !== null) {
+                $query->whereHas('entries', function (Builder $q) use ($minAmount): void {
+                    $q->where('amount_signed', '>=', $minAmount)
+                        ->orWhere('amount_signed', '<=', -$minAmount);
+                });
+            }
+        }
+
+        if ($request->filled('max_amount')) {
+            $maxAmount = FinancialTransaction::parseSearchableAmount((string) $request->input('max_amount'));
+            if ($maxAmount !== null) {
+                $query->whereHas('entries', function (Builder $q) use ($maxAmount): void {
+                    $q->whereBetween('amount_signed', [-$maxAmount, $maxAmount]);
+                });
+            }
         }
 
         if ($request->filled('search')) {

@@ -253,24 +253,42 @@
                         <span class="hidden min-[420px]:inline text-xs font-bold">Menu</span>
                     </button>
 
-                    <div class="relative max-w-xs sm:max-w-md w-full hidden md:block">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                            </svg>
-                        </span>
-                        <input 
-                            type="search" 
-                            id="globalSearchInput"
-                            value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
-                            placeholder="Cari transaksi, rekening, atau catatan... ⌘K" 
-                            class="field-input pl-9 pr-12 text-xs h-8.5 rounded-lg w-full bg-panel"
-                            style="padding-left: 34px !important; padding-right: 48px !important;"
-                            onkeydown="if(event.key==='Enter'){ window.location.href='{{ route('transactions.index') }}?search=' + encodeURIComponent(this.value); }"
-                        />
-                        <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                            <kbd class="text-[9.5px] font-mono px-1 py-0.5 rounded bg-cream text-muted border border-line">⌘K</kbd>
+                    <div class="relative max-w-xs sm:max-w-md w-full hidden md:flex items-center gap-1.5">
+                        <div class="relative flex-1 min-w-0">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted" aria-hidden="true">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                            </span>
+                            <input 
+                                type="search" 
+                                id="globalSearchInput"
+                                value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
+                                placeholder="Cari transaksi, rekening, target... ⌘K" 
+                                aria-label="Pencarian global"
+                                class="field-input pl-9 pr-12 text-xs h-8.5 rounded-lg w-full bg-panel cursor-pointer"
+                                style="padding-left: 34px !important; padding-right: 44px !important;"
+                                onclick="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value })"
+                                oninput="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value })"
+                                onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value }); }"
+                            />
+                            <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+                                <kbd class="text-[9.5px] font-mono px-1 py-0.5 rounded bg-cream text-muted border border-line">⌘K</kbd>
+                            </div>
                         </div>
+                        <button
+                            type="button"
+                            id="globalSearchAdvancedBtn"
+                            onclick="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ expandFilters: true, initialQuery: document.getElementById('globalSearchInput')?.value || '' })"
+                            class="h-8.5 px-2.5 rounded-lg border border-line bg-panel text-charcoal hover:bg-cream hover:border-sage text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-forest"
+                            title="Buka Pencarian Lanjutan & Filter"
+                            aria-label="Buka Pencarian Lanjutan dan Filter"
+                        >
+                            <svg class="w-3.5 h-3.5 text-forest dark:text-blue-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                            </svg>
+                            <span class="hidden lg:inline">Lanjutan</span>
+                        </button>
                     </div>
 
                     <div class="text-xs text-muted truncate md:hidden min-w-0">
@@ -282,12 +300,12 @@
                     <button
                         type="button"
                         id="mobileSearchToggle"
-                        onclick="toggleMobileSearchBar()"
+                        onclick="window.openAdvancedSearchModal && window.openAdvancedSearchModal()"
                         class="md:hidden min-w-[44px] min-h-[44px] rounded-lg border border-line bg-panel text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer"
-                        title="Cari Transaksi"
-                        aria-label="Buka pencarian transaksi"
+                        title="Pencarian Lanjutan"
+                        aria-label="Buka pencarian lanjutan"
                         aria-expanded="false"
-                        aria-controls="mobileSearchBar"
+                        aria-controls="globalAdvancedSearchModal"
                     >
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -352,33 +370,6 @@
                 </div>
             </header>
 
-            <div id="mobileSearchBar" class="md:hidden hidden sticky top-[60px] z-19 px-3.5 py-2.5 bg-sidebar/95 backdrop-blur-sm border-b border-line">
-                <div class="relative flex items-center gap-2">
-                    <div class="relative flex-1">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                            </svg>
-                        </span>
-                        <input
-                            type="search"
-                            id="mobileGlobalSearchInput"
-                            value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
-                            placeholder="Cari transaksi, rekening, atau catatan..."
-                            class="field-input w-full text-xs !pl-9 bg-panel"
-                            onkeydown="if(event.key==='Enter'){ window.location.href='{{ route('transactions.index') }}?search=' + encodeURIComponent(this.value); }"
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        onclick="window.location.href='{{ route('transactions.index') }}?search=' + encodeURIComponent(document.getElementById('mobileGlobalSearchInput')?.value || '');"
-                        class="btn-arus-primary text-xs px-3.5 shrink-0"
-                    >
-                        Cari
-                    </button>
-                </div>
-            </div>
-
             <main class="flex-1 p-3.5 sm:p-6 lg:p-8 w-full space-y-5">
                 @if (session('success') || session('status'))
                     <div class="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3.5 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between" role="alert">
@@ -411,20 +402,6 @@
     </div>
 
     <script>
-        function toggleMobileSearchBar() {
-            const bar = document.getElementById('mobileSearchBar');
-            const toggle = document.getElementById('mobileSearchToggle');
-            const input = document.getElementById('mobileGlobalSearchInput');
-            if (!bar || !toggle) return;
-
-            const isHidden = bar.classList.contains('hidden');
-            bar.classList.toggle('hidden', !isHidden);
-            toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-            if (isHidden && input) {
-                setTimeout(() => input.focus(), 40);
-            }
-        }
-
         function toggleSidebar() {
             const sidebar = document.getElementById('appSidebar');
             const backdrop = document.getElementById('sidebarBackdrop');
@@ -760,22 +737,8 @@
         document.addEventListener('keydown', function(e) {
             if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
                 e.preventDefault();
-                const desktopSearch = document.getElementById('globalSearchInput');
-                if (desktopSearch && desktopSearch.offsetParent !== null) {
-                    desktopSearch.focus();
-                    desktopSearch.select();
-                } else {
-                    const mobileBar = document.getElementById('mobileSearchBar');
-                    const mobileSearch = document.getElementById('mobileGlobalSearchInput');
-                    const toggle = document.getElementById('mobileSearchToggle');
-                    if (mobileBar && mobileBar.classList.contains('hidden')) {
-                        mobileBar.classList.remove('hidden');
-                        toggle?.setAttribute('aria-expanded', 'true');
-                    }
-                    if (mobileSearch) {
-                        mobileSearch.focus();
-                        mobileSearch.select();
-                    }
+                if (typeof window.openAdvancedSearchModal === 'function') {
+                    window.openAdvancedSearchModal();
                 }
             }
             if ((e.key === 'h' || e.key === 'H') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
@@ -785,8 +748,9 @@
             if (e.key === 'Escape') {
                 document.getElementById('workspaceDropdown')?.classList.add('hidden');
                 document.getElementById('themeMenu')?.classList.add('hidden');
-                document.getElementById('mobileSearchBar')?.classList.add('hidden');
-                document.getElementById('mobileSearchToggle')?.setAttribute('aria-expanded', 'false');
+                if (typeof window.closeAdvancedSearchModal === 'function') {
+                    window.closeAdvancedSearchModal();
+                }
                 const sidebar = document.getElementById('appSidebar');
                 const backdrop = document.getElementById('sidebarBackdrop');
                 if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
@@ -799,6 +763,7 @@
     </script>
 
     <x-quick-transaction-modal />
+    <x-advanced-search-modal />
 
     @stack('scripts')
 </body>
