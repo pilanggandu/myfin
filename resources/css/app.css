@@ -159,12 +159,23 @@ h1, h2, h3, .font-display {
 .nav-section-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.1px;
   color: var(--color-muted);
   padding: 0 8px;
   margin-top: 18px;
   margin-bottom: 6px;
   text-transform: uppercase;
+}
+
+.sidebar-nav-group + .sidebar-nav-group {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line);
+}
+
+.sidebar-nav-group .nav-section-label {
+  margin-top: 0;
+  margin-bottom: 6px;
+  padding: 0 10px;
 }
 
 .sidebar-nav-item {
@@ -177,12 +188,19 @@ h1, h2, h3, .font-display {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--color-muted);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   text-decoration: none;
 }
 .sidebar-nav-item:hover {
   background: var(--color-forest-light);
   color: var(--color-charcoal);
+}
+.sidebar-nav-item:focus-visible {
+  outline: 2px solid var(--color-forest);
+  outline-offset: 1px;
+}
+.dark .sidebar-nav-item:focus-visible {
+  outline-color: #93C5FD;
 }
 .sidebar-nav-item.active {
   background: var(--color-forest-light);
@@ -195,6 +213,11 @@ h1, h2, h3, .font-display {
 .sidebar-nav-item.disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+@media (max-width: 1023px) {
+  .sidebar-nav-item {
+    min-height: 40px;
+  }
 }
 
 .sidebar-nav-parent {
