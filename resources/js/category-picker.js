@@ -93,13 +93,13 @@ export function enhanceSearchableSelect(selectEl) {
     selectEl.dataset.categoryPickerInitialized = 'true';
 
     const allowEmpty = selectEl.getAttribute('data-allow-empty') === 'true';
+    const emptyAsValue = selectEl.getAttribute('data-empty-as-value') === 'true';
     const showRecentChips = selectEl.getAttribute('data-show-recent-chips') === 'true';
     const recentScope = selectEl.getAttribute('data-recent-scope') || '';
     const pickerKind = selectEl.getAttribute('data-picker-kind') || 'category';
     const itemNoun = selectEl.getAttribute('data-picker-noun') || (pickerKind === 'account' ? 'rekening' : 'kategori');
     const itemTitleNoun = itemNoun.charAt(0).toUpperCase() + itemNoun.slice(1);
     const allSectionLabel = selectEl.getAttribute('data-all-label') || `Semua ${itemTitleNoun}`;
-    const isCompact = selectEl.classList.contains('h-9');
     const searchPlaceholder = selectEl.getAttribute('data-search-placeholder') || `Cari ${itemNoun}...`;
 
     let recentIds = parseRecentIds(selectEl);
@@ -132,9 +132,7 @@ export function enhanceSearchableSelect(selectEl) {
     triggerBtn.type = 'button';
     triggerBtn.className = [
         'arus-category-trigger',
-        'w-full flex items-center justify-between gap-2 text-left transition cursor-pointer',
-        isCompact ? 'min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-xs' : 'min-h-[44px] sm:min-h-[38px] px-3 py-1.5 text-[13px]',
-        selectEl.classList.contains('text-xs') ? 'text-xs' : '',
+        'cursor-pointer',
         selectEl.classList.contains('has-error') ? 'has-error' : '',
     ].filter(Boolean).join(' ');
     triggerBtn.setAttribute('aria-haspopup', 'listbox');
@@ -156,7 +154,7 @@ export function enhanceSearchableSelect(selectEl) {
     const chevron = document.createElement('span');
     chevron.className = 'text-muted transition-transform duration-150 inline-flex items-center';
     chevron.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <svg class="w-[14px] h-[14px]" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 8l4 4 4-4" />
         </svg>
     `;
@@ -167,7 +165,7 @@ export function enhanceSearchableSelect(selectEl) {
 
     triggerRow.appendChild(triggerBtn);
     if (allowEmpty) {
-        clearValueBtn.classList.add('absolute', 'right-8', 'top-1/2', '-translate-y-1/2', 'z-10');
+        clearValueBtn.classList.add('absolute', 'right-8', 'sm:right-9', 'top-1/2', '-translate-y-1/2', 'z-10');
         triggerRow.appendChild(clearValueBtn);
     }
     wrapper.appendChild(triggerRow);
@@ -286,6 +284,9 @@ export function enhanceSearchableSelect(selectEl) {
     selectEl.focus = function () {
         triggerBtn.focus();
     };
+    selectEl.addEventListener('focus', () => {
+        triggerBtn.focus();
+    });
 
     function syncDisabledState() {
         const disabled = isSelectDisabled();
@@ -374,7 +375,9 @@ export function enhanceSearchableSelect(selectEl) {
             triggerLabel.className = 'truncate flex-1 font-medium text-charcoal';
         } else {
             triggerLabel.textContent = emptyOption?.label || `Pilih ${itemTitleNoun}...`;
-            triggerLabel.className = 'truncate flex-1 text-[#526070] dark:text-[#94A3B8]';
+            triggerLabel.className = emptyAsValue
+                ? 'truncate flex-1 text-charcoal'
+                : 'truncate flex-1 text-[#526070] dark:text-[#94A3B8]';
         }
 
         if (allowEmpty) {

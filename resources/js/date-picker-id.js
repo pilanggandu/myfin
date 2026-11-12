@@ -42,7 +42,7 @@ export function enhanceDateInput(el) {
     }
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'arus-date-picker-wrapper relative inline-block w-full';
+    wrapper.className = 'arus-date-picker-wrapper relative block w-full';
     el.parentNode.insertBefore(wrapper, el);
     wrapper.appendChild(el);
 
@@ -83,6 +83,10 @@ export function enhanceDateInput(el) {
 
     wrapper.appendChild(visibleInput);
     wrapper.appendChild(calendarBtn);
+
+    el.addEventListener('focus', () => {
+        visibleInput.focus();
+    });
 
     const popup = document.createElement('div');
     popup.className = 'arus-calendar-popup fixed z-[75] bg-panel border border-line rounded-2xl shadow-2xl p-3.5 w-[min(308px,calc(100vw-16px))] sm:w-[280px] max-h-[calc(100dvh-16px)] overflow-y-auto hidden text-charcoal select-none';

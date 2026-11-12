@@ -65,7 +65,7 @@
                         placeholder="Cari keterangan, kategori, rekening, member, atau nominal..." 
                         aria-label="Cari transaksi"
                         autocomplete="off"
-                        class="field-input h-10 pl-9 pr-9 text-xs w-full" 
+                        class="field-input pl-9 pr-9 w-full" 
                         style="padding-left: 36px !important; padding-right: 36px !important;"
                     />
                     <button
@@ -85,7 +85,7 @@
                         type="button" 
                         id="toggleAdvancedBtn"
                         onclick="toggleAdvancedFilters()"
-                        class="btn-arus-secondary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-3.5 text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition select-none flex-1 sm:flex-initial justify-center {{ $isAdvancedOpen ? 'border-forest text-forest dark:text-blue-300 bg-forest-light/40' : '' }}"
+                        class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] px-3.5 text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition select-none flex-1 sm:flex-initial justify-center {{ $isAdvancedOpen ? 'border-forest text-forest dark:text-blue-300 bg-forest-light/40' : '' }}"
                         aria-expanded="{{ $isAdvancedOpen ? 'true' : 'false' }}"
                     >
                         <svg class="w-4 h-4 text-forest dark:text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -102,14 +102,14 @@
                         </svg>
                     </button>
 
-                    <button type="submit" class="btn-arus-primary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-4 text-xs font-bold cursor-pointer">
+                    <button type="submit" class="btn-arus-primary min-h-[44px] sm:min-h-[38px] px-4 text-xs font-bold cursor-pointer">
                         Terapkan
                     </button>
 
                     <a
                         href="{{ route('transactions.index') }}"
                         id="transactionResetLink"
-                        class="{{ $hasAnyFilter ? 'inline-flex' : 'hidden' }} btn-arus-secondary h-11 sm:h-10 min-h-[44px] sm:min-h-[40px] px-3 text-xs font-bold items-center justify-center text-muted hover:text-red transition cursor-pointer"
+                        class="{{ $hasAnyFilter ? 'inline-flex' : 'hidden' }} btn-arus-secondary min-h-[44px] sm:min-h-[38px] px-3 text-xs font-bold items-center justify-center text-muted hover:text-red transition cursor-pointer"
                         title="Reset Semua Filter"
                     >
                         Reset
@@ -132,8 +132,8 @@
             </div>
 
             @if ($recentFilterCategories->isNotEmpty())
-                <div class="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-line/60" id="recentCategoryFilterBar">
-                    <span class="text-[11px] font-semibold text-muted mr-1">Kategori terakhir:</span>
+                <div class="flex items-center gap-2 sm:gap-1.5 flex-wrap pt-3 border-t border-line/60" id="recentCategoryFilterBar">
+                    <span class="w-full sm:w-auto text-[11px] font-semibold text-muted sm:mr-1">Kategori terakhir:</span>
                     <button
                         type="button"
                         data-quick-filter-category=""
@@ -161,11 +161,11 @@
             @endif
 
             <!-- Panel Dropdown / Accordion: Filter Lanjutan -->
-            <div id="advancedFilterPanel" class="{{ $isAdvancedOpen ? '' : 'hidden' }} pt-4 mt-3 border-t border-line transition-all duration-200">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div id="advancedFilterPanel" class="{{ $isAdvancedOpen ? '' : 'hidden' }} pt-4 mt-3.5 border-t border-line transition-all duration-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Jenis Transaksi</label>
-                        <select name="type" class="field-select h-9 py-1 text-xs w-full">
+                        <label for="filterTypeSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Jenis Transaksi</label>
+                        <select name="type" id="filterTypeSelect" class="field-select w-full">
                             <option value="">Semua Jenis</option>
                             <option value="income" {{ request('type') === 'income' ? 'selected' : '' }}>Pemasukan (Income)</option>
                             <option value="expense" {{ request('type') === 'expense' ? 'selected' : '' }}>Pengeluaran (Expense)</option>
@@ -174,14 +174,15 @@
                     </div>
 
                     <div>
-                        <label for="filterAccountSelect" class="block text-xs font-bold text-charcoal mb-1">Rekening</label>
+                        <label for="filterAccountSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Rekening</label>
                         <select
                             name="account_id"
                             id="filterAccountSelect"
-                            class="field-select h-9 py-1 text-xs w-full"
+                            class="field-select w-full"
                             data-searchable-picker="true"
                             data-picker-kind="account"
                             data-allow-empty="true"
+                            data-empty-as-value="true"
                             data-recent-ids='@json($recentAccountIds ?? [])'
                             data-recent-scope="account"
                             data-search-placeholder="Cari rekening..."
@@ -201,13 +202,14 @@
                     </div>
 
                     <div>
-                        <label for="filterCategorySelect" class="block text-xs font-bold text-charcoal mb-1">Kategori</label>
+                        <label for="filterCategorySelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Kategori</label>
                         <select
                             name="category_id"
                             id="filterCategorySelect"
-                            class="field-select h-9 py-1 text-xs w-full"
+                            class="field-select w-full"
                             data-category-picker="true"
                             data-allow-empty="true"
+                            data-empty-as-value="true"
                             data-recent-ids='@json($recentCategoryIds ?? [])'
                             data-search-placeholder="Cari kategori..."
                         >
@@ -230,8 +232,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Member Terkait</label>
-                        <select name="member_id" class="field-select h-9 py-1 text-xs w-full">
+                        <label for="filterMemberSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Member Terkait</label>
+                        <select name="member_id" id="filterMemberSelect" class="field-select w-full">
                             <option value="">Semua Member</option>
                             @foreach ($members as $m)
                                 <option value="{{ $m->id }}" {{ (string)request('member_id') === (string)$m->id ? 'selected' : '' }}>
@@ -242,8 +244,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Status Transaksi</label>
-                        <select name="status" class="field-select h-9 py-1 text-xs w-full">
+                        <label for="filterStatusSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Status Transaksi</label>
+                        <select name="status" id="filterStatusSelect" class="field-select w-full">
                             <option value="posted" {{ request('status', 'posted') === 'posted' ? 'selected' : '' }}>Posted (Aktif - Default)</option>
                             <option value="all" {{ request('status') === 'all' ? 'selected' : '' }}>Semua Status (Termasuk Void)</option>
                             <option value="void" {{ request('status') === 'void' ? 'selected' : '' }}>Void (Dibatalkan)</option>
@@ -251,67 +253,65 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Urutan Tanggal</label>
-                        <select name="sort" class="field-select h-9 py-1 text-xs w-full">
+                        <label for="filterSortSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Urutan Tanggal</label>
+                        <select name="sort" id="filterSortSelect" class="field-select w-full">
                             <option value="date_desc" {{ request('sort', 'date_desc') === 'date_desc' ? 'selected' : '' }}>Terbaru (Tanggal ↓)</option>
                             <option value="date_asc" {{ request('sort') === 'date_asc' ? 'selected' : '' }}>Terlama (Tanggal ↑)</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Mulai Tanggal</label>
+                        <label for="filterStartDate" class="block text-[11px] font-semibold text-charcoal mb-1.5">Mulai Tanggal</label>
                         <input 
                             type="date" 
                             name="start_date" 
                             id="filterStartDate"
                             value="{{ request('start_date') }}" 
-                            class="field-input h-9 py-1 text-xs w-full" 
+                            class="field-input w-full" 
                         />
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-charcoal mb-1">Sampai Tanggal</label>
+                        <label for="filterEndDate" class="block text-[11px] font-semibold text-charcoal mb-1.5">Sampai Tanggal</label>
                         <input 
                             type="date" 
                             name="end_date" 
                             id="filterEndDate"
                             value="{{ request('end_date') }}" 
-                            class="field-input h-9 py-1 text-xs w-full" 
+                            class="field-input w-full" 
                         />
-                    </div>
-
-                    <div class="flex items-end gap-2">
-                        <button type="submit" class="btn-arus-primary h-9 min-h-[36px] px-4 text-xs font-bold flex-1 cursor-pointer">
-                            Terapkan Filter
-                        </button>
-                        <button type="button" onclick="clearAdvancedFilters()" class="btn-arus-secondary h-9 min-h-[36px] px-3 text-xs font-bold text-muted hover:text-charcoal cursor-pointer">
-                            Bersihkan
-                        </button>
                     </div>
                 </div>
 
-                <!-- Pilihan Tanggal Cepat -->
-                <div class="flex items-center gap-2 mt-3 pt-2.5 border-t border-line/60 flex-wrap text-xs">
-                    <span class="text-[10px] font-bold text-muted uppercase">Pilihan Tanggal Cepat:</span>
-                    <button type="button" onclick="setDateFilterPreset('today')" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
-                        Hari Ini
-                    </button>
-                    <span class="text-line">&bull;</span>
-                    <button type="button" onclick="setDateFilterPreset('this_month')" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
-                        Bulan Ini
-                    </button>
-                    <span class="text-line">&bull;</span>
-                    <button type="button" onclick="setDateFilterPreset('last_30_days')" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
-                        30 Hari Terakhir
-                    </button>
-                    <span class="text-line">&bull;</span>
-                    <button type="button" onclick="setDateFilterPreset('upcoming')" class="text-[11px] text-muted hover:text-forest underline transition cursor-pointer">
-                        Mendatang
-                    </button>
-                    <span class="text-line">&bull;</span>
-                    <button type="button" onclick="setDateFilterPreset('clear')" class="text-[11px] text-muted hover:text-red underline transition cursor-pointer">
-                        Hapus Tanggal
-                    </button>
+                <!-- Pilihan Tanggal Cepat & Tombol Aksi -->
+                <div class="mt-4 pt-3.5 border-t border-line/60 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div class="flex items-center gap-2 sm:gap-1.5 flex-wrap" id="quickDatePresetBar">
+                        <span class="w-full sm:w-auto text-[11px] font-semibold text-muted sm:mr-1">Pilihan Tanggal Cepat:</span>
+                        <button type="button" data-date-preset="today" onclick="setDateFilterPreset('today')" aria-pressed="false" class="min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border border-line bg-panel text-charcoal font-medium hover:bg-cream hover:border-sage transition cursor-pointer">
+                            Hari Ini
+                        </button>
+                        <button type="button" data-date-preset="this_month" onclick="setDateFilterPreset('this_month')" aria-pressed="false" class="min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border border-line bg-panel text-charcoal font-medium hover:bg-cream hover:border-sage transition cursor-pointer">
+                            Bulan Ini
+                        </button>
+                        <button type="button" data-date-preset="last_30_days" onclick="setDateFilterPreset('last_30_days')" aria-pressed="false" class="min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border border-line bg-panel text-charcoal font-medium hover:bg-cream hover:border-sage transition cursor-pointer">
+                            30 Hari Terakhir
+                        </button>
+                        <button type="button" data-date-preset="upcoming" onclick="setDateFilterPreset('upcoming')" aria-pressed="false" class="min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border border-line bg-panel text-charcoal font-medium hover:bg-cream hover:border-sage transition cursor-pointer">
+                            Mendatang
+                        </button>
+                        <button type="button" data-date-preset="clear" onclick="setDateFilterPreset('clear')" class="min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border border-line bg-panel text-muted font-medium hover:text-red hover:border-red/40 hover:bg-red/5 transition cursor-pointer">
+                            Hapus Tanggal
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2 sm:justify-end shrink-0">
+                        <button type="button" onclick="clearAdvancedFilters()" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] px-3.5 text-xs font-semibold text-muted hover:text-charcoal cursor-pointer flex-1 sm:flex-initial">
+                            Bersihkan
+                        </button>
+                        <button type="submit" class="btn-arus-primary min-h-[44px] sm:min-h-[38px] px-5 text-xs font-bold cursor-pointer flex-1 sm:flex-initial">
+                            Terapkan Filter
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -876,10 +876,65 @@
             runLiveTransactionSearch();
         }
 
+        function toLocalIsoDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function getDatePresetRange(preset) {
+            const now = new Date();
+            if (preset === 'today') {
+                const todayStr = toLocalIsoDate(now);
+                return { start: todayStr, end: todayStr };
+            }
+            if (preset === 'this_month') {
+                return {
+                    start: toLocalIsoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+                    end: toLocalIsoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+                };
+            }
+            if (preset === 'last_30_days') {
+                const past = new Date(now);
+                past.setDate(past.getDate() - 30);
+                return { start: toLocalIsoDate(past), end: toLocalIsoDate(now) };
+            }
+            if (preset === 'upcoming') {
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                return { start: toLocalIsoDate(tomorrow), end: '' };
+            }
+            return { start: '', end: '' };
+        }
+
+        function syncDatePresetChips() {
+            const startInput = document.getElementById('filterStartDate');
+            const endInput = document.getElementById('filterEndDate');
+            if (!startInput || !endInput) return;
+
+            const startVal = startInput.value || '';
+            const endVal = endInput.value || '';
+
+            document.querySelectorAll('#quickDatePresetBar [data-date-preset]').forEach(btn => {
+                const preset = btn.getAttribute('data-date-preset');
+                if (preset === 'clear') return;
+
+                const range = getDatePresetRange(preset);
+                const isActive = startVal !== '' && startVal === range.start && endVal === range.end;
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                btn.className = isActive
+                    ? 'min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border transition cursor-pointer bg-forest-light border-forest text-forest dark:text-blue-300 font-bold'
+                    : 'min-h-[44px] sm:min-h-[30px] px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs border border-line bg-panel text-charcoal font-medium hover:bg-cream hover:border-sage transition cursor-pointer';
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('transactionSearchInput');
             const clearBtn = document.getElementById('clearTransactionSearchBtn');
             const catSelect = document.getElementById('filterCategorySelect');
+            const startInput = document.getElementById('filterStartDate');
+            const endInput = document.getElementById('filterEndDate');
             const form = document.getElementById('transactionFilterForm');
 
             if (searchInput) {
@@ -902,6 +957,13 @@
                 });
             }
 
+            [startInput, endInput].forEach(el => {
+                if (el) {
+                    el.addEventListener('change', syncDatePresetChips);
+                }
+            });
+            syncDatePresetChips();
+
             if (form) {
                 form.addEventListener('submit', function() {
                     clearTimeout(transactionSearchTimer);
@@ -920,14 +982,14 @@
                 panel.classList.remove('hidden');
                 if (chevron) chevron.classList.add('rotate-180');
                 if (btn) {
-                    btn.classList.add('border-forest', 'text-forest', 'bg-forest-light/40');
+                    btn.classList.add('border-forest', 'text-forest', 'dark:text-blue-300', 'bg-forest-light/40');
                     btn.setAttribute('aria-expanded', 'true');
                 }
             } else {
                 panel.classList.add('hidden');
                 if (chevron) chevron.classList.remove('rotate-180');
                 if (btn) {
-                    btn.classList.remove('border-forest', 'text-forest', 'bg-forest-light/40');
+                    btn.classList.remove('border-forest', 'text-forest', 'dark:text-blue-300', 'bg-forest-light/40');
                     btn.setAttribute('aria-expanded', 'false');
                 }
             }
@@ -946,6 +1008,7 @@
                 }
             });
             form.querySelectorAll('#advancedFilterPanel input[type="date"]').forEach(i => i.value = '');
+            syncDatePresetChips();
             const futureInput = form.querySelector('input[name="include_future"]');
             if (futureInput) futureInput.remove();
             form.submit();
@@ -955,38 +1018,12 @@
             const startInput = document.getElementById('filterStartDate');
             const endInput = document.getElementById('filterEndDate');
             if (!startInput || !endInput) return;
-            
-            const now = new Date();
-            const toIso = (d) => {
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
-            };
-            
-            if (preset === 'today') {
-                const todayStr = toIso(now);
-                startInput.value = todayStr;
-                endInput.value = todayStr;
-            } else if (preset === 'this_month') {
-                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                startInput.value = toIso(firstDay);
-                endInput.value = toIso(lastDay);
-            } else if (preset === 'last_30_days') {
-                const past = new Date();
-                past.setDate(past.getDate() - 30);
-                startInput.value = toIso(past);
-                endInput.value = toIso(now);
-            } else if (preset === 'upcoming') {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                startInput.value = toIso(tomorrow);
-                endInput.value = '';
-            } else if (preset === 'clear') {
-                startInput.value = '';
-                endInput.value = '';
-            }
+
+            const range = getDatePresetRange(preset);
+            startInput.value = range.start;
+            endInput.value = range.end;
+            syncDatePresetChips();
         }
     </script>
+
 </x-layouts.app>
