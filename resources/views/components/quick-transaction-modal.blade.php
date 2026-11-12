@@ -379,7 +379,7 @@
                             >
                         </div>
                         <div class="sm:col-span-2">
-                            <label for="quickModalTime" class="block text-xs font-bold text-charcoal mb-1 flex items-center justify-between">
+                            <label for="quickModalTime" class="flex items-center justify-between text-xs font-bold text-charcoal mb-1">
                                 <span>Jam</span>
                                 <span class="text-[9px] text-muted font-normal">Opsional</span>
                             </label>

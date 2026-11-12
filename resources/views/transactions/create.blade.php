@@ -417,7 +417,7 @@
                                         >
                                     </div>
                                     <div class="sm:col-span-2">
-                                        <label for="transaction_time" class="block text-xs font-bold text-charcoal mb-1.5 flex items-center justify-between">
+                                        <label for="transaction_time" class="flex items-center justify-between text-xs font-bold text-charcoal mb-1.5">
                                             <span>Jam</span>
                                             <span class="text-[10px] text-muted font-normal">Opsional</span>
                                         </label>
