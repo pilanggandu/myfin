@@ -845,6 +845,19 @@
         let transactionSearchTimer = null;
         let transactionSearchAbort = null;
 
+        function resolveFormActionUrl(form, fallbackUrl) {
+            // Read the HTML attribute directly so child inputs named "action" cannot shadow form.action.
+            const rawAction = form?.getAttribute('action') || fallbackUrl || window.location.pathname;
+            if (
+                window.location.protocol === 'https:'
+                && typeof rawAction === 'string'
+                && rawAction.startsWith(`http://${window.location.host}/`)
+            ) {
+                return rawAction.replace(/^http:/, 'https:');
+            }
+            return rawAction;
+        }
+
         function buildTransactionFilterUrl() {
             const form = document.getElementById('transactionFilterForm');
             if (!form) return window.location.href;
@@ -861,7 +874,8 @@
             }
 
             const qs = params.toString();
-            return qs ? `${form.action}?${qs}` : form.action;
+            const baseUrl = resolveFormActionUrl(form, @js(route('transactions.index', [], false)));
+            return qs ? `${baseUrl}?${qs}` : baseUrl;
         }
 
         function syncQuickFilterChips(activeCategoryId) {
@@ -2298,12 +2312,15 @@
             }
 
             const form = document.getElementById('bulkCorrectForm');
-            const csrfToken = form?.querySelector('input[name="_token"]')?.value || '';
+            const csrfToken = form?.querySelector('input[name="_token"]')?.value
+                || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || '';
+            const submitUrl = resolveFormActionUrl(form, @js(route('transactions.bulk-correct', [], false)));
             bulkIsSubmitting = true;
             syncBulkSubmitButtonState();
 
             try {
-                const response = await fetch(form.action, {
+                const response = await fetch(submitUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2314,9 +2331,16 @@
                     body: JSON.stringify(payload),
                 });
 
-                const data = await response.json().catch(() => ({}));
+                const contentType = response.headers.get('content-type') || '';
+                const isJson = contentType.includes('application/json');
+                const data = isJson ? await response.json().catch(() => ({})) : {};
 
-                if (!response.ok) {
+                if (response.status === 419 || (response.redirected && !isJson)) {
+                    showBulkModalErrors('Sesi Anda telah kedaluwarsa. Muat ulang halaman lalu coba lagi.');
+                    return false;
+                }
+
+                if (!response.ok || !isJson) {
                     const serverErrors = [];
                     if (data.errors && typeof data.errors === 'object') {
                         Object.values(data.errors).forEach(arr => {
@@ -2326,7 +2350,10 @@
                         });
                     }
                     if (serverErrors.length === 0) {
-                        serverErrors.push(data.message || 'Gagal memproses koreksi massal. Silakan periksa kembali data Anda.');
+                        serverErrors.push(
+                            data.message
+                            || `Gagal memproses koreksi massal (HTTP ${response.status}). Silakan muat ulang halaman dan coba lagi.`
+                        );
                     }
                     showBulkModalErrors(serverErrors);
                     return false;

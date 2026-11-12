@@ -155,6 +155,8 @@ class BulkTransactionCorrectionTest extends TestCase
         $this->assertStringContainsString($this->expenseCat->name, $modalHtml);
         $this->assertStringContainsString($this->incomeCat->name, $modalHtml);
         $this->assertStringNotContainsString($archivedCat->name, $modalHtml);
+        $this->assertStringNotContainsString('fetch(form.action', $html);
+        $this->assertStringContainsString("getAttribute('action')", $html);
     }
 
     public function test_bulk_correct_updates_selected_fields_preserves_untouched_fields_and_writes_revisions(): void
@@ -723,5 +725,56 @@ class BulkTransactionCorrectionTest extends TestCase
             ->assertSessionHas('success', '1 transaksi berhasil dikoreksi.');
 
         $this->assertSame('Transaksi A Terkoreksi', $txA->fresh()->description);
+    }
+
+    public function test_bulk_correct_updates_category_only_for_six_expense_transactions_with_versions_and_null_reason(): void
+    {
+        $transactions = collect();
+        $versions = [];
+
+        for ($i = 1; $i <= 6; $i++) {
+            $tx = $this->service->recordExpense($this->spaceA, $this->userA, [
+                'account_id' => $i % 2 === 0 ? $this->gopay->id : $this->bca->id,
+                'category_id' => $this->expenseCat->id,
+                'member_id' => $i % 2 === 0 ? $this->memberBudi->id : $this->memberAli->id,
+                'amount' => 15000 * $i,
+                'transaction_date' => sprintf('2026-01-%02d', $i),
+                'transaction_time' => sprintf('%02d:00:00', 8 + $i),
+                'description' => "Pengeluaran #{$i}",
+            ]);
+
+            $transactions->push($tx);
+            $versions[$tx->id] = $tx->version;
+        }
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->postJson(route('transactions.bulk-correct'), [
+                'action' => 'update',
+                'transaction_ids' => $transactions->pluck('id')->all(),
+                'versions' => $versions,
+                'reason' => null,
+                'apply_category' => true,
+                'category_id' => $this->expenseCatAlt->id,
+            ]);
+
+        $response->assertOk()->assertJson([
+            'message' => '6 transaksi berhasil dikoreksi.',
+            'updated_count' => 6,
+            'action' => 'update',
+        ]);
+
+        foreach ($transactions as $index => $tx) {
+            $tx->refresh();
+            $this->assertSame($this->expenseCatAlt->id, $tx->category_id);
+            $this->assertSame(2, $tx->version);
+            $this->assertSame('Pengeluaran #'.($index + 1), $tx->description);
+            $this->assertSame(sprintf('2026-01-%02d', $index + 1), $tx->transaction_date->toDateString());
+        }
+
+        $this->assertSame(
+            6,
+            TransactionRevision::whereIn('transaction_id', $transactions->pluck('id'))->count()
+        );
     }
 }
