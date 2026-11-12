@@ -109,7 +109,7 @@ class GlobalSearchTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="globalSearchInput"', false);
-        $response->assertSee('id="globalSearchAdvancedBtn"', false);
+        $response->assertDontSee('id="globalSearchAdvancedBtn"', false);
         $response->assertSee('id="mobileSearchToggle"', false);
         $response->assertSee('id="globalAdvancedSearchModal"', false);
         $response->assertSee('id="advSearchQueryInput"', false);
@@ -446,5 +446,30 @@ class GlobalSearchTest extends TestCase
         $this->assertSame([$txMid->id], $ids);
         $this->assertNotContains($txLow->id, $ids);
         $this->assertNotContains($txHigh->id, $ids);
+    }
+
+    public function test_global_search_labels_menu_and_general_pages_with_explicit_urls(): void
+    {
+        $menuRes = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->getJson(route('search.global', ['q' => 'Laporan']));
+
+        $menuRes->assertOk();
+        $menuPages = collect($menuRes->json('groups.pages'));
+        $reportPage = $menuPages->firstWhere('title', 'Laporan Keuangan');
+        $this->assertNotNull($reportPage);
+        $this->assertSame('Menu', $reportPage['kind_label']);
+        $this->assertSame(route('reports.index'), $reportPage['url']);
+
+        $generalRes = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->getJson(route('search.global', ['q' => 'Log Aktivitas']));
+
+        $generalRes->assertOk();
+        $generalPages = collect($generalRes->json('groups.pages'));
+        $logPage = $generalPages->firstWhere('title', 'Log Aktivitas');
+        $this->assertNotNull($logPage);
+        $this->assertSame('General', $logPage['kind_label']);
+        $this->assertSame(route('activity-logs.index'), $logPage['url']);
     }
 }

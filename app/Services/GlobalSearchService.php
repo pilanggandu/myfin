@@ -594,27 +594,28 @@ class GlobalSearchService
     protected function searchPages(Space $space, string $term, int $limit): array
     {
         $pages = [
-            ['title' => 'Dashboard', 'subtitle' => 'Ringkasan arus kas, saldo, dan aktivitas terbaru', 'keywords' => 'dashboard beranda ringkasan home', 'url' => route('dashboard')],
-            ['title' => 'Daftar Transaksi', 'subtitle' => 'Riwayat pemasukan, pengeluaran, dan transfer', 'keywords' => 'transaksi mutasi riwayat pengeluaran pemasukan', 'url' => route('transactions.index')],
-            ['title' => 'Catat Transaksi Baru', 'subtitle' => 'Form lengkap pemasukan, pengeluaran, atau transfer', 'keywords' => 'catat buat tambah transaksi baru', 'url' => route('transactions.create')],
-            ['title' => 'Rekening & Wallet', 'subtitle' => 'Kelola akun bank, e-wallet, kas tunai, dan investasi', 'keywords' => 'rekening bank wallet dompet kas saldo akun', 'url' => route('accounts.index')],
-            ['title' => 'Kategori Transaksi', 'subtitle' => 'Kelola kategori pemasukan dan pengeluaran', 'keywords' => 'kategori label pos pengeluaran pemasukan', 'url' => route('categories.index')],
-            ['title' => 'Anggaran Bulanan', 'subtitle' => 'Pantau batas pengeluaran per kategori', 'keywords' => 'anggaran budget limit batas bulanan', 'url' => route('budgets.index')],
-            ['title' => 'Laporan Keuangan', 'subtitle' => 'Analisis arus kas, tren kategori, dan ekspor CSV', 'keywords' => 'laporan report analisis grafik statistik csv', 'url' => route('reports.index')],
-            ['title' => 'Jadwal Berulang', 'subtitle' => 'Tagihan rutin, gaji berkala, dan langganan', 'keywords' => 'jadwal berulang recurring tagihan rutin langganan', 'url' => route('recurring.index')],
-            ['title' => 'Kredit & Cicilan', 'subtitle' => 'Kartu kredit, paylater, tagihan bulanan, dan tenor', 'keywords' => 'kredit cicilan kartu paylater tagihan hutang', 'url' => route('credit.index')],
-            ['title' => 'Target & Bersama', 'subtitle' => 'Target tabungan pribadi dan kontribusi bersama', 'keywords' => 'target goal tabungan impian dana bersama', 'url' => route('goals.index')],
-            ['title' => 'Short Plan', 'subtitle' => 'Rencana belanja jangka pendek dan daftar kebutuhan', 'keywords' => 'short plan rencana belanja checklist', 'url' => route('short-plans.index')],
-            ['title' => 'Pengingat', 'subtitle' => 'Notifikasi pengingat tagihan dan pencatatan harian', 'keywords' => 'pengingat reminder notifikasi alarm email whatsapp', 'url' => route('reminders.index')],
-            ['title' => 'Log Aktivitas', 'subtitle' => 'Audit riwayat perubahan dan aktivitas ruang', 'keywords' => 'log aktivitas audit riwayat history', 'url' => route('activity-logs.index')],
-            ['title' => 'Mata Uang', 'subtitle' => 'Kurs mata uang asing dan konverter nilai tukar', 'keywords' => 'mata uang currency kurs konversi usd idr', 'url' => route('currencies.index')],
-            ['title' => 'Ruang Keuangan', 'subtitle' => 'Kelola ruang personal dan ruang bersama', 'keywords' => 'ruang space workspace personal bersama', 'url' => route('spaces.index')],
-            ['title' => 'Profil Pengguna', 'subtitle' => 'Pengaturan akun, kata sandi, dan pembersihan data', 'keywords' => 'profil akun user password keamanan pengaturan', 'url' => route('profile.edit')],
+            ['title' => 'Dashboard', 'kind_label' => 'Menu', 'subtitle' => 'Ringkasan arus kas, saldo, dan aktivitas terbaru', 'keywords' => 'dashboard beranda ringkasan home', 'url' => route('dashboard')],
+            ['title' => 'Daftar Transaksi', 'kind_label' => 'Menu', 'subtitle' => 'Riwayat pemasukan, pengeluaran, dan transfer', 'keywords' => 'transaksi mutasi riwayat pengeluaran pemasukan', 'url' => route('transactions.index')],
+            ['title' => 'Catat Transaksi Baru', 'kind_label' => 'Menu', 'subtitle' => 'Form lengkap pemasukan, pengeluaran, atau transfer', 'keywords' => 'catat buat tambah transaksi baru', 'url' => route('transactions.create')],
+            ['title' => 'Rekening & Wallet', 'kind_label' => 'Menu', 'subtitle' => 'Kelola akun bank, e-wallet, kas tunai, dan investasi', 'keywords' => 'rekening bank wallet dompet kas saldo akun', 'url' => route('accounts.index')],
+            ['title' => 'Kategori Transaksi', 'kind_label' => 'Menu', 'subtitle' => 'Kelola kategori pemasukan dan pengeluaran', 'keywords' => 'kategori label pos pengeluaran pemasukan', 'url' => route('categories.index')],
+            ['title' => 'Anggaran Bulanan', 'kind_label' => 'Menu', 'subtitle' => 'Pantau batas pengeluaran per kategori', 'keywords' => 'anggaran budget limit batas bulanan', 'url' => route('budgets.index')],
+            ['title' => 'Laporan Keuangan', 'kind_label' => 'Menu', 'subtitle' => 'Analisis arus kas, tren kategori, dan ekspor CSV', 'keywords' => 'laporan report analisis grafik statistik csv', 'url' => route('reports.index')],
+            ['title' => 'Jadwal Berulang', 'kind_label' => 'Menu', 'subtitle' => 'Tagihan rutin, gaji berkala, dan langganan', 'keywords' => 'jadwal berulang recurring tagihan rutin langganan', 'url' => route('recurring.index')],
+            ['title' => 'Kredit & Cicilan', 'kind_label' => 'Menu', 'subtitle' => 'Kartu kredit, paylater, tagihan bulanan, dan tenor', 'keywords' => 'kredit cicilan kartu paylater tagihan hutang', 'url' => route('credit.index')],
+            ['title' => 'Target & Bersama', 'kind_label' => 'Menu', 'subtitle' => 'Target tabungan pribadi dan kontribusi bersama', 'keywords' => 'target goal tabungan impian dana bersama', 'url' => route('goals.index')],
+            ['title' => 'Short Plan', 'kind_label' => 'Menu', 'subtitle' => 'Rencana belanja jangka pendek dan daftar kebutuhan', 'keywords' => 'short plan rencana belanja checklist', 'url' => route('short-plans.index')],
+            ['title' => 'Pengingat', 'kind_label' => 'Menu', 'subtitle' => 'Notifikasi pengingat tagihan dan pencatatan harian', 'keywords' => 'pengingat reminder notifikasi alarm email whatsapp', 'url' => route('reminders.index')],
+            ['title' => 'Log Aktivitas', 'kind_label' => 'General', 'subtitle' => 'Audit riwayat perubahan dan aktivitas ruang', 'keywords' => 'log aktivitas audit riwayat history', 'url' => route('activity-logs.index')],
+            ['title' => 'Mata Uang', 'kind_label' => 'General', 'subtitle' => 'Kurs mata uang asing dan konverter nilai tukar', 'keywords' => 'mata uang currency kurs konversi usd idr', 'url' => route('currencies.index')],
+            ['title' => 'Ruang Keuangan', 'kind_label' => 'General', 'subtitle' => 'Kelola ruang personal dan ruang bersama', 'keywords' => 'ruang space workspace personal bersama', 'url' => route('spaces.index')],
+            ['title' => 'Profil Pengguna', 'kind_label' => 'General', 'subtitle' => 'Pengaturan akun, kata sandi, dan pembersihan data', 'keywords' => 'profil akun user password keamanan pengaturan', 'url' => route('profile.edit')],
         ];
 
         if (! $space->isPersonal()) {
             $pages[] = [
                 'title' => 'Member Ruang Bersama',
+                'kind_label' => 'General',
                 'subtitle' => 'Kelola anggota dan partisipan transaksi ruang bersama',
                 'keywords' => 'member anggota tim keluarga bersama',
                 'url' => route('members.index'),
@@ -625,13 +626,14 @@ class GlobalSearchService
 
         return collect($pages)
             ->filter(function (array $page) use ($needle): bool {
-                $haystack = mb_strtolower($page['title'].' '.$page['subtitle'].' '.$page['keywords']);
+                $haystack = mb_strtolower($page['title'].' '.$page['subtitle'].' '.$page['keywords'].' '.$page['kind_label']);
 
                 return str_contains($haystack, $needle);
             })
             ->take($limit)
             ->map(fn (array $page): array => [
                 'title' => $page['title'],
+                'kind_label' => $page['kind_label'],
                 'subtitle' => $page['subtitle'],
                 'url' => $page['url'],
             ])

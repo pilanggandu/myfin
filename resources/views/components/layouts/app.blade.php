@@ -281,42 +281,27 @@
                         <span class="hidden min-[420px]:inline text-xs font-bold">Menu</span>
                     </button>
 
-                    <div class="relative max-w-xs sm:max-w-md w-full hidden md:flex items-center gap-1.5">
-                        <div class="relative flex-1 min-w-0">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted" aria-hidden="true">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                                </svg>
-                            </span>
-                            <input 
-                                type="search" 
-                                id="globalSearchInput"
-                                value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
-                                placeholder="Cari transaksi, rekening, target... ⌘K" 
-                                aria-label="Pencarian global"
-                                class="field-input pl-9 pr-12 text-xs h-8.5 rounded-lg w-full bg-panel cursor-pointer"
-                                style="padding-left: 34px !important; padding-right: 44px !important;"
-                                onclick="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value })"
-                                oninput="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value })"
-                                onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value }); }"
-                            />
-                            <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                                <kbd class="text-[9.5px] font-mono px-1 py-0.5 rounded bg-cream text-muted border border-line">⌘K</kbd>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            id="globalSearchAdvancedBtn"
-                            onclick="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ expandFilters: true, initialQuery: document.getElementById('globalSearchInput')?.value || '' })"
-                            class="h-8.5 px-2.5 rounded-lg border border-line bg-panel text-charcoal hover:bg-cream hover:border-sage text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-forest"
-                            title="Buka Pencarian Lanjutan & Filter"
-                            aria-label="Buka Pencarian Lanjutan dan Filter"
-                        >
-                            <svg class="w-3.5 h-3.5 text-forest dark:text-blue-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                    <div class="relative max-w-xs sm:max-w-md w-full hidden md:block">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted" aria-hidden="true">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                             </svg>
-                            <span class="hidden lg:inline">Lanjutan</span>
-                        </button>
+                        </span>
+                        <input 
+                            type="search" 
+                            id="globalSearchInput"
+                            value="{{ request()->routeIs('transactions.index') ? request('search') : '' }}"
+                            placeholder="Cari transaksi, modul, menu... ⌘K" 
+                            aria-label="Pencarian global"
+                            class="field-input pl-9 pr-12 text-xs h-8.5 rounded-lg w-full bg-panel cursor-pointer"
+                            style="padding-left: 34px !important; padding-right: 44px !important;"
+                            onclick="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value })"
+                            oninput="window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value })"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.openAdvancedSearchModal && window.openAdvancedSearchModal({ initialQuery: this.value }); }"
+                        />
+                        <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+                            <kbd class="text-[9.5px] font-mono px-1 py-0.5 rounded bg-cream text-muted border border-line">⌘K</kbd>
+                        </div>
                     </div>
 
                     <div class="text-xs text-muted truncate md:hidden min-w-0">

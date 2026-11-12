@@ -295,25 +295,6 @@ export function initAdvancedSearch() {
         return span;
     }
 
-    function createSectionHeader(title, countText) {
-        const header = document.createElement('div');
-        header.className = 'flex items-center justify-between gap-2 mb-2';
-
-        const h3 = document.createElement('h3');
-        h3.className = 'text-[11px] font-bold uppercase tracking-wider text-muted';
-        h3.textContent = title;
-        header.appendChild(h3);
-
-        if (countText) {
-            const count = document.createElement('span');
-            count.className = 'text-[11px] font-mono text-muted';
-            count.textContent = countText;
-            header.appendChild(count);
-        }
-
-        return header;
-    }
-
     function createResultRow({ url, title, subtitle, badges = [], rightText = null, rightToneClass = 'text-charcoal', isPrivacyAmount = false, query = '' }) {
         const link = document.createElement('a');
         link.href = url;
@@ -389,7 +370,7 @@ export function initAdvancedSearch() {
 
         // Summary bar
         const summaryBar = document.createElement('div');
-        summaryBar.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-line/70';
+        summaryBar.className = 'flex items-center justify-between gap-2 pb-2 border-b border-line/70';
 
         const summaryText = document.createElement('div');
         summaryText.className = 'text-xs text-muted';
@@ -398,263 +379,182 @@ export function initAdvancedSearch() {
             : '';
         summaryText.textContent = `Ditemukan ${totalReturned} item relevan${txNote}`;
         summaryBar.appendChild(summaryText);
-
-        if (totalTx > 0 || data.has_transaction_filters) {
-            const viewAllBtn = document.createElement('a');
-            viewAllBtn.href = data.transactions_index_url || buildTransactionsUrl();
-            viewAllBtn.className = 'inline-flex items-center justify-center min-h-[36px] sm:min-h-[30px] px-3 py-1 rounded-lg bg-forest-light text-forest dark:text-blue-300 text-xs font-bold hover:opacity-90 transition shrink-0';
-            viewAllBtn.textContent = totalTx > 0 ? `Lihat semua (${totalTx}) di Transaksi` : 'Buka di Daftar Transaksi';
-            viewAllBtn.addEventListener('click', () => {
-                if (query) saveRecentSearch(query);
-            });
-            summaryBar.appendChild(viewAllBtn);
-        }
-
         resultsContent.appendChild(summaryBar);
 
-        // 1. Transactions
-        if (groups.transactions?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Transaksi', `${totalTx} cocok`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
+        const unifiedItems = [];
 
-            groups.transactions.forEach((tx) => {
-                const typeBadgeClass = tx.type === 'income'
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+        // Transactions
+        (groups.transactions || []).forEach((tx) => {
+            const typeBadgeClass = tx.type === 'income'
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : tx.type === 'expense'
+                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                    : 'bg-forest-light text-forest dark:text-blue-300';
+
+            const badges = [{ text: 'Transaksi', classes: typeBadgeClass }];
+            if (tx.status === 'void') {
+                badges.push({ text: 'Void', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' });
+            } else if (tx.is_upcoming) {
+                badges.push({ text: 'Mendatang', classes: 'bg-cream text-muted border border-line' });
+            }
+
+            const metaParts = [tx.type_label, tx.formatted_date, tx.account_summary];
+            if (tx.category_name) metaParts.push(tx.category_name);
+            if (tx.member_name) metaParts.push(tx.member_name);
+
+            const amountTone = tx.status === 'void'
+                ? 'text-muted line-through'
+                : tx.type === 'income'
+                    ? 'text-emerald-700 dark:text-emerald-300'
                     : tx.type === 'expense'
-                        ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
-                        : 'bg-forest-light text-forest dark:text-blue-300';
+                        ? 'text-rose-700 dark:text-rose-300'
+                        : 'text-charcoal';
 
-                const badges = [{ text: tx.type_label, classes: typeBadgeClass }];
-                if (tx.status === 'void') {
-                    badges.push({ text: 'Void', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' });
-                }
-                if (tx.is_upcoming) {
-                    badges.push({ text: 'Mendatang', classes: 'bg-cream text-muted border border-line' });
-                }
-
-                const metaParts = [tx.formatted_date, tx.account_summary];
-                if (tx.category_name) metaParts.push(tx.category_name);
-                if (tx.member_name) metaParts.push(tx.member_name);
-
-                const amountTone = tx.status === 'void'
-                    ? 'text-muted line-through'
-                    : tx.type === 'income'
-                        ? 'text-emerald-700 dark:text-emerald-300'
-                        : tx.type === 'expense'
-                            ? 'text-rose-700 dark:text-rose-300'
-                            : 'text-charcoal';
-
-                list.appendChild(createResultRow({
-                    url: tx.url,
-                    title: tx.description || '(Tanpa keterangan)',
-                    subtitle: metaParts.filter(Boolean).join(' | '),
-                    badges,
-                    rightText: tx.formatted_amount,
-                    rightToneClass: amountTone,
-                    isPrivacyAmount: true,
-                    query,
-                }));
+            unifiedItems.push({
+                url: tx.url,
+                title: tx.description || '(Tanpa keterangan)',
+                subtitle: metaParts.filter(Boolean).join(' · '),
+                badges,
+                rightText: tx.formatted_amount,
+                rightToneClass: amountTone,
+                isPrivacyAmount: true,
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
+        // Accounts
+        (groups.accounts || []).forEach((acc) => {
+            const badges = [{ text: 'Rekening', classes: 'bg-sky-500/15 text-sky-700 dark:text-sky-300' }];
+            if (acc.is_archived) {
+                badges.push({ text: 'Arsip', classes: 'bg-cream text-muted border border-line' });
+            }
 
-        // 2. Accounts
-        if (groups.accounts?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Rekening & Wallet', `${groups.accounts.length}`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
+            const metaParts = [acc.type_label];
+            if (acc.is_default) metaParts.push('Rekening Utama');
+            metaParts.push('Detail mutasi & saldo');
 
-            groups.accounts.forEach((acc) => {
-                const badges = [{ text: acc.type_label, classes: 'bg-forest-light text-forest dark:text-blue-300' }];
-                if (acc.is_default) badges.push({ text: 'Utama', classes: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' });
-                if (acc.is_archived) badges.push({ text: 'Arsip', classes: 'bg-cream text-muted' });
-
-                list.appendChild(createResultRow({
-                    url: acc.url,
-                    title: acc.name,
-                    subtitle: 'Klik untuk lihat detail mutasi & saldo rekening',
-                    badges,
-                    rightText: acc.formatted_balance,
-                    rightToneClass: acc.balance < 0 ? 'text-rose-700 dark:text-rose-300' : 'text-charcoal',
-                    isPrivacyAmount: true,
-                    query,
-                }));
+            unifiedItems.push({
+                url: acc.url,
+                title: acc.name,
+                subtitle: metaParts.filter(Boolean).join(' · '),
+                badges,
+                rightText: acc.formatted_balance,
+                rightToneClass: acc.balance < 0 ? 'text-rose-700 dark:text-rose-300' : 'text-charcoal',
+                isPrivacyAmount: true,
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
-
-        // 3. Goals
-        if (groups.goals?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Target Tabungan', `${groups.goals.length}`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
-
-            groups.goals.forEach((goal) => {
-                list.appendChild(createResultRow({
-                    url: goal.url,
-                    title: goal.name,
-                    subtitle: `${goal.formatted_current} / ${goal.formatted_target}${goal.target_date ? ' | Target ' + goal.target_date : ''}`,
-                    badges: [{ text: goal.status_label, classes: 'bg-forest-light text-forest dark:text-blue-300' }],
-                    rightText: `${goal.percentage}%`,
-                    rightToneClass: 'text-forest dark:text-blue-300',
-                    query,
-                }));
+        // Goals
+        (groups.goals || []).forEach((goal) => {
+            unifiedItems.push({
+                url: goal.url,
+                title: goal.name,
+                subtitle: `${goal.status_label} · ${goal.formatted_current} / ${goal.formatted_target}${goal.target_date ? ' · Target ' + goal.target_date : ''}`,
+                badges: [{ text: 'Target', classes: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' }],
+                rightText: `${goal.percentage}%`,
+                rightToneClass: 'text-forest dark:text-blue-300',
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
-
-        // 4. Short Plans
-        if (groups.short_plans?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Short Plan', `${groups.short_plans.length}`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
-
-            groups.short_plans.forEach((plan) => {
-                list.appendChild(createResultRow({
-                    url: plan.url,
-                    title: plan.title,
-                    subtitle: plan.target_date ? `Target ${plan.target_date}` : 'Rencana jangka pendek',
-                    badges: [{ text: plan.status_label, classes: 'bg-cream text-charcoal border border-line' }],
-                    rightText: plan.formatted_amount,
-                    isPrivacyAmount: true,
-                    query,
-                }));
+        // Short Plans
+        (groups.short_plans || []).forEach((plan) => {
+            unifiedItems.push({
+                url: plan.url,
+                title: plan.title,
+                subtitle: `${plan.status_label}${plan.target_date ? ' · Target ' + plan.target_date : ' · Rencana jangka pendek'}`,
+                badges: [{ text: 'Short Plan', classes: 'bg-teal-500/15 text-teal-700 dark:text-teal-300' }],
+                rightText: plan.formatted_amount,
+                isPrivacyAmount: true,
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
-
-        // 5. Recurring Schedules
-        if (groups.recurring?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Jadwal Berulang', `${groups.recurring.length}`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
-
-            groups.recurring.forEach((rec) => {
-                list.appendChild(createResultRow({
-                    url: rec.url,
-                    title: rec.name,
-                    subtitle: `${rec.frequency_label}${rec.next_due_date ? ' | Berikutnya ' + rec.next_due_date : ''}`,
-                    badges: [{ text: rec.status === 'active' ? 'Aktif' : rec.status, classes: 'bg-forest-light text-forest dark:text-blue-300' }],
-                    rightText: rec.formatted_amount,
-                    isPrivacyAmount: true,
-                    query,
-                }));
+        // Recurring Schedules
+        (groups.recurring || []).forEach((rec) => {
+            unifiedItems.push({
+                url: rec.url,
+                title: rec.name,
+                subtitle: `${rec.frequency_label}${rec.next_due_date ? ' · Berikutnya ' + rec.next_due_date : ''}`,
+                badges: [{ text: 'Jadwal Berulang', classes: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' }],
+                rightText: rec.formatted_amount,
+                isPrivacyAmount: true,
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
-
-        // 6. Credit & Installments
-        if (groups.credit?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Kredit & Cicilan', `${groups.credit.length}`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
-
-            groups.credit.forEach((item) => {
-                list.appendChild(createResultRow({
-                    url: item.url,
-                    title: item.name,
-                    subtitle: item.meta,
-                    badges: [{ text: item.kind_label, classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' }],
-                    query,
-                }));
+        // Credit & Installments
+        (groups.credit || []).forEach((item) => {
+            unifiedItems.push({
+                url: item.url,
+                title: item.name,
+                subtitle: item.meta,
+                badges: [{ text: item.kind_label || 'Kredit', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' }],
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
-
-        // 7. Categories, Budgets, Members, Reminders
-        const miscItems = [];
+        // Categories
         (groups.categories || []).forEach((cat) => {
-            miscItems.push({
+            unifiedItems.push({
                 url: cat.url,
                 title: cat.name,
-                subtitle: 'Lihat transaksi dengan kategori ini',
-                badge: { text: `Kategori ${cat.type_label}`, classes: 'bg-cream text-charcoal border border-line' },
+                subtitle: `${cat.type_label} · Lihat transaksi kategori ini`,
+                badges: [{ text: 'Kategori', classes: 'bg-violet-500/15 text-violet-700 dark:text-violet-300' }],
             });
         });
+
+        // Budgets
         (groups.budgets || []).forEach((budget) => {
-            miscItems.push({
+            unifiedItems.push({
                 url: budget.url,
                 title: `Anggaran ${budget.category_name}`,
-                subtitle: `${budget.period} | Batas ${budget.formatted_limit}`,
-                badge: { text: 'Anggaran', classes: 'bg-forest-light text-forest dark:text-blue-300' },
+                subtitle: `${budget.period} · Batas ${budget.formatted_limit}`,
+                badges: [{ text: 'Anggaran', classes: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300' }],
             });
         });
+
+        // Members
         (groups.members || []).forEach((member) => {
-            miscItems.push({
+            unifiedItems.push({
                 url: member.url,
                 title: member.name,
-                subtitle: 'Lihat transaksi terkait member ini',
-                badge: { text: 'Member', classes: 'bg-cream text-charcoal border border-line' },
+                subtitle: 'Partisipan · Lihat transaksi member ini',
+                badges: [{ text: 'Member', classes: 'bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300' }],
             });
         });
+
+        // Reminders
         (groups.reminders || []).forEach((rem) => {
-            miscItems.push({
+            unifiedItems.push({
                 url: rem.url,
                 title: rem.title,
-                subtitle: `${rem.type_label}${rem.due_date ? ' | ' + rem.due_date : ''}`,
-                badge: { text: rem.is_active ? 'Pengingat Aktif' : 'Nonaktif', classes: 'bg-cream text-charcoal border border-line' },
+                subtitle: `${rem.type_label}${rem.due_date ? ' · ' + rem.due_date : ''}`,
+                badges: [{ text: rem.is_active ? 'Pengingat' : 'Pengingat Nonaktif', classes: 'bg-orange-500/15 text-orange-800 dark:text-orange-300' }],
             });
         });
 
-        if (miscItems.length > 0) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Kategori, Anggaran & Lainnya', `${miscItems.length}`));
-            const list = document.createElement('div');
-            list.className = 'space-y-1.5';
+        // Menu & General Pages
+        (groups.pages || []).forEach((page) => {
+            const label = page.kind_label || 'Menu';
+            const badgeClass = label === 'General'
+                ? 'bg-cream text-muted border border-line'
+                : 'bg-forest-light text-forest dark:text-blue-300';
 
-            miscItems.forEach((item) => {
-                list.appendChild(createResultRow({
-                    url: item.url,
-                    title: item.title,
-                    subtitle: item.subtitle,
-                    badges: [item.badge],
-                    query,
-                }));
+            unifiedItems.push({
+                url: page.url,
+                title: page.title,
+                subtitle: page.subtitle,
+                badges: [{ text: label, classes: badgeClass }],
             });
+        });
 
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2';
 
-        // 8. Pages
-        if (groups.pages?.length) {
-            const section = document.createElement('section');
-            section.appendChild(createSectionHeader('Menu & Halaman', `${groups.pages.length}`));
-            const list = document.createElement('div');
-            list.className = 'grid grid-cols-1 sm:grid-cols-2 gap-1.5';
+        unifiedItems.forEach((item) => {
+            grid.appendChild(createResultRow({
+                ...item,
+                query,
+            }));
+        });
 
-            groups.pages.forEach((page) => {
-                list.appendChild(createResultRow({
-                    url: page.url,
-                    title: page.title,
-                    subtitle: page.subtitle,
-                    badges: [{ text: 'Halaman', classes: 'bg-cream text-muted border border-line' }],
-                    query,
-                }));
-            });
-
-            section.appendChild(list);
-            resultsContent.appendChild(section);
-        }
+        resultsContent.appendChild(grid);
 
         setVisibleState('results');
 
@@ -976,6 +876,9 @@ export function initAdvancedSearch() {
             if (activeResultIndex >= 0 && items[activeResultIndex]) {
                 e.preventDefault();
                 items[activeResultIndex].click();
+            } else if (items.length > 0 && hasAnyActiveInput()) {
+                e.preventDefault();
+                items[0].click();
             } else if (hasAnyActiveInput()) {
                 e.preventDefault();
                 if (queryInput.value) {
