@@ -1,5 +1,5 @@
 @php
-    $balance = $account->currentBalance();
+    $balance = isset($precomputedBalance) ? (float) $precomputedBalance : $account->currentBalance();
     $typeLabel = $account->typeLabel();
     $availableLimit = $account->availableLimit();
     $isArchived = $account->isArchived();

@@ -1,6 +1,36 @@
 @php
     $viewMode = $viewMode ?? 'list';
     $hasExplicitView = $hasExplicitView ?? false;
+    $sort = $sort ?? 'name_asc';
+    $groupByType = $groupByType ?? false;
+    $accountGroups = $accountGroups ?? collect();
+    $accountBalances = $accountBalances ?? [];
+    $accountBalanceFor = static fn ($acc): float => (float) ($accountBalances[$acc->id] ?? $acc->currentBalance());
+
+    $displaySections = $groupByType
+        ? $accountGroups
+        : collect([[
+            'type' => null,
+            'label' => null,
+            'accounts' => $accounts,
+            'active_count' => $activeAccounts->count(),
+            'archived_count' => $accounts->whereNotNull('archived_at')->count(),
+            'total_amount' => null,
+            'summary_label' => null,
+        ]]);
+
+    $groupToggleUrl = request()->fullUrlWithQuery([
+        'group' => $groupByType ? null : 'type',
+    ]);
+    $nameSortUrl = request()->fullUrlWithQuery([
+        'sort' => $sort === 'name_asc' ? 'name_desc' : 'name_asc',
+    ]);
+    $typeSortUrl = request()->fullUrlWithQuery([
+        'sort' => $sort === 'type_asc' ? 'type_desc' : 'type_asc',
+    ]);
+    $balanceSortUrl = request()->fullUrlWithQuery([
+        'sort' => $sort === 'balance_desc' ? 'name_asc' : 'balance_desc',
+    ]);
 @endphp
 
 <x-layouts.app title="Rekening & Wallet">
@@ -39,25 +69,25 @@
         <x-metric-card
             label="REKENING BANK"
             :value="$accounts->where('type', 'bank')->count() . ' Rekening'"
-            :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'bank')->sum(fn($a) => $a->currentBalance()), 0, ',', '.')"
+            :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'bank')->sum($accountBalanceFor), 0, ',', '.')"
             :toggle="true"
         />
         <x-metric-card
             label="E-WALLET & KAS TUNAI"
             :value="$accounts->whereIn('type', ['e-wallet', 'cash'])->count() . ' Akun'"
-            :sub="'Saldo: Rp ' . number_format($accounts->whereIn('type', ['e-wallet', 'cash'])->sum(fn($a) => $a->currentBalance()), 0, ',', '.')"
+            :sub="'Saldo: Rp ' . number_format($accounts->whereIn('type', ['e-wallet', 'cash'])->sum($accountBalanceFor), 0, ',', '.')"
             :toggle="true"
         />
         <x-metric-card
             label="INVESTASI & RDN"
             :value="$accounts->where('type', 'investment')->count() . ' Akun'"
-            :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'investment')->sum(fn($a) => $a->currentBalance()), 0, ',', '.')"
+            :sub="'Saldo: Rp ' . number_format($accounts->where('type', 'investment')->sum($accountBalanceFor), 0, ',', '.')"
             :toggle="true"
         />
     </div>
 
     <div class="panel-card p-0 overflow-hidden" data-privacy-scope="accounts-table">
-        <div class="px-5 sm:px-6 py-4 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="px-5 sm:px-6 py-4 border-b border-line flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="min-w-0">
                     <span class="text-sm font-bold text-forest dark:text-blue-400 block">Daftar Rekening Terdaftar ({{ $accounts->count() }})</span>
@@ -74,12 +104,59 @@
                 </button>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="text-xs text-muted">
+            <div class="flex flex-wrap items-center justify-between lg:justify-end gap-2.5">
+                <div class="text-xs text-muted mr-1">
                     {{ $activeAccounts->count() }} Aktif &bull; {{ $accounts->whereNotNull('archived_at')->count() }} Diarsipkan
                 </div>
 
                 @if ($accounts->isNotEmpty())
+                    <form id="accountsSortForm" method="GET" action="{{ route('accounts.index') }}" class="flex flex-wrap items-center gap-2">
+                        @if ($groupByType)
+                            <input type="hidden" name="group" value="type">
+                        @endif
+                        <input
+                            type="hidden"
+                            id="accountsSortViewInput"
+                            name="view"
+                            value="{{ $hasExplicitView ? $viewMode : '' }}"
+                            @disabled(! $hasExplicitView)
+                        >
+
+                        <label for="accountsSortSelect" class="sr-only">Urutkan daftar rekening</label>
+                        <select
+                            id="accountsSortSelect"
+                            name="sort"
+                            onchange="this.form.submit()"
+                            class="field-input min-h-[44px] w-auto py-2 pl-3 pr-8 text-xs font-semibold text-charcoal bg-panel border-line rounded-lg cursor-pointer focus:ring-2 focus:ring-forest"
+                            aria-label="Urutkan rekening berdasarkan"
+                        >
+                            <option value="name_asc" @selected($sort === 'name_asc')>Urut: Nama (A-Z)</option>
+                            <option value="name_desc" @selected($sort === 'name_desc')>Urut: Nama (Z-A)</option>
+                            <option value="type_asc" @selected($sort === 'type_asc')>Urut: Tipe Akun (Bank - Pinjaman)</option>
+                            <option value="type_desc" @selected($sort === 'type_desc')>Urut: Tipe Akun (Terbalik)</option>
+                            <option value="balance_desc" @selected($sort === 'balance_desc')>Urut: Saldo Tertinggi</option>
+                        </select>
+                        <noscript>
+                            <button type="submit" class="btn-arus-secondary min-h-[44px] text-xs font-semibold">
+                                Urutkan
+                            </button>
+                        </noscript>
+                    </form>
+
+                    <a
+                        id="accountsGroupToggleBtn"
+                        href="{{ $groupToggleUrl }}"
+                        data-account-query-link
+                        aria-pressed="{{ $groupByType ? 'true' : 'false' }}"
+                        class="min-h-[44px] px-3.5 py-2 rounded-lg border text-xs inline-flex items-center gap-1.5 transition focus:ring-2 focus:ring-forest {{ $groupByType ? 'bg-forest-light border-forest text-forest dark:text-blue-300 font-bold' : 'bg-panel border-line text-charcoal hover:bg-cream font-semibold' }}"
+                        title="Kelompokkan daftar rekening berdasarkan tipe akun"
+                    >
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m-10.5 5.25h16.5" />
+                        </svg>
+                        <span>Kelompokkan Tipe</span>
+                    </a>
+
                     <div
                         role="group"
                         aria-label="Pilih mode tampilan daftar rekening"
@@ -138,13 +215,38 @@
         @else
             <div id="accountsListView" class="{{ $viewMode === 'card' ? 'hidden' : '' }}">
                 <div class="md:hidden divide-y divide-line">
-                    @foreach ($accounts as $account)
-                        @php
-                            $balance = $account->currentBalance();
-                            $typeLabel = $account->typeLabel();
-                            $availableLimit = $account->availableLimit();
-                        @endphp
-                        <div class="p-5 space-y-4 hover:bg-cream/20 transition-colors {{ $account->isArchived() ? 'opacity-70 bg-sidebar/30' : '' }}">
+                    @foreach ($displaySections as $section)
+                        @if ($groupByType && $section['label'])
+                            <div data-account-group-mobile="{{ $section['type'] }}" class="px-5 py-3 bg-cream/65 dark:bg-sidebar flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="w-8 h-8 rounded-lg bg-forest-light text-forest dark:text-blue-300 border border-forest/20 flex items-center justify-center flex-shrink-0">
+                                        @include('accounts.partials._type-icon', ['type' => $section['type']])
+                                    </span>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-charcoal truncate">{{ $section['label'] }}</div>
+                                        <div class="text-[11px] text-muted">
+                                            {{ $section['accounts']->count() }} Akun
+                                            @if ($section['archived_count'] > 0)
+                                                ({{ $section['archived_count'] }} arsip)
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">{{ $section['summary_label'] }}</span>
+                                    <span class="font-mono text-xs font-bold text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($section['total_amount'], 0, ',', '.') }}">
+                                        Rp {{ number_format($section['total_amount'], 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                        @endif
+                        @foreach ($section['accounts'] as $account)
+                            @php
+                                $balance = $accountBalanceFor($account);
+                                $typeLabel = $account->typeLabel();
+                                $availableLimit = $account->availableLimit();
+                            @endphp
+                            <div class="p-5 space-y-4 hover:bg-cream/20 transition-colors {{ $account->isArchived() ? 'opacity-70 bg-sidebar/30' : '' }}">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex items-start gap-3 min-w-0 flex-1">
                                     <span class="w-10 h-10 rounded-xl bg-forest-light text-forest dark:text-blue-400 flex items-center justify-center flex-shrink-0">
@@ -264,7 +366,8 @@
                                     </form>
                                 @endif
                             </div>
-                        </div>
+                            </div>
+                        @endforeach
                     @endforeach
                 </div>
 
@@ -272,22 +375,69 @@
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
-                                <th class="py-3 px-6">Nama Rekening</th>
-                                <th class="py-3 px-4">Tipe</th>
+                                <th class="py-3 px-6">
+                                    <a href="{{ $nameSortUrl }}" data-account-query-link class="inline-flex items-center gap-1.5 hover:text-forest transition cursor-pointer select-none focus:ring-2 focus:ring-forest rounded">
+                                        <span>Nama Rekening</span>
+                                        @if (in_array($sort, ['name_asc', 'name_desc'], true))
+                                            <span class="text-forest dark:text-blue-400 font-bold">{{ $sort === 'name_asc' ? '↑' : '↓' }}</span>
+                                        @endif
+                                    </a>
+                                </th>
+                                <th class="py-3 px-4">
+                                    <a href="{{ $typeSortUrl }}" data-account-query-link class="inline-flex items-center gap-1.5 hover:text-forest transition cursor-pointer select-none focus:ring-2 focus:ring-forest rounded" title="Urutkan berdasarkan tipe akun">
+                                        <span>Tipe</span>
+                                        @if (in_array($sort, ['type_asc', 'type_desc'], true))
+                                            <span class="text-forest dark:text-blue-400 font-bold">{{ $sort === 'type_asc' ? '↑' : '↓' }}</span>
+                                        @else
+                                            <span class="text-muted/60">↕</span>
+                                        @endif
+                                    </a>
+                                </th>
                                 <th class="py-3 px-4">Saldo Awal</th>
                                 <th class="py-3 px-4">Status</th>
-                                <th class="py-3 px-4 text-right">Saldo Saat Ini</th>
+                                <th class="py-3 px-4 text-right">
+                                    <a href="{{ $balanceSortUrl }}" data-account-query-link class="inline-flex items-center justify-end gap-1.5 hover:text-forest transition cursor-pointer select-none focus:ring-2 focus:ring-forest rounded" title="Urutkan berdasarkan saldo tertinggi">
+                                        <span>Saldo Saat Ini</span>
+                                        @if ($sort === 'balance_desc')
+                                            <span class="text-forest dark:text-blue-400 font-bold">↓</span>
+                                        @endif
+                                    </a>
+                                </th>
                                 <th class="py-3 px-6 text-right">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-line">
-                            @foreach ($accounts as $account)
-                                @php
-                                    $balance = $account->currentBalance();
-                                    $typeLabel = $account->typeLabel();
-                                    $availableLimit = $account->availableLimit();
-                                @endphp
-                                <tr class="hover:bg-cream/30 transition-colors {{ $account->isArchived() ? 'opacity-65' : '' }}">
+                        @foreach ($displaySections as $section)
+                            <tbody class="divide-y divide-line">
+                                @if ($groupByType && $section['label'])
+                                    <tr data-account-group="{{ $section['type'] }}" class="bg-cream/65 dark:bg-sidebar/90 border-y border-line">
+                                        <td colspan="6" class="py-2.5 px-6">
+                                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                                <div class="flex items-center gap-2.5">
+                                                    <span class="w-7 h-7 rounded-lg bg-forest-light text-forest dark:text-blue-300 border border-forest/20 inline-flex items-center justify-center flex-shrink-0">
+                                                        @include('accounts.partials._type-icon', ['type' => $section['type']])
+                                                    </span>
+                                                    <span class="text-xs font-bold text-charcoal">{{ $section['label'] }}</span>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-panel border border-line text-muted">
+                                                        {{ $section['accounts']->count() }} Akun
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs font-semibold text-muted">
+                                                    <span>{{ $section['summary_label'] }}:</span>
+                                                    <span class="font-mono font-bold text-charcoal ml-1 privacy-balance" data-raw-value="Rp {{ number_format($section['total_amount'], 0, ',', '.') }}">
+                                                        Rp {{ number_format($section['total_amount'], 0, ',', '.') }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endif
+                                @foreach ($section['accounts'] as $account)
+                                    @php
+                                        $balance = $accountBalanceFor($account);
+                                        $typeLabel = $account->typeLabel();
+                                        $availableLimit = $account->availableLimit();
+                                    @endphp
+                                    <tr data-account-row="{{ $account->id }}" class="hover:bg-cream/30 transition-colors {{ $account->isArchived() ? 'opacity-65' : '' }}">
                                     <td class="py-4 px-6">
                                         <div class="flex items-center gap-3">
                                             <span class="w-8 h-8 rounded-lg bg-forest-light text-forest dark:text-blue-400 flex items-center justify-center flex-shrink-0">
@@ -456,18 +606,61 @@
                                         </div>
                                     </td>
                                 </tr>
-                            @endforeach
-                        </tbody>
+                                @endforeach
+                            </tbody>
+                        @endforeach
                     </table>
                 </div>
             </div>
 
             <div id="accountsCardView" class="p-4 sm:p-5 bg-cream/20 dark:bg-sidebar/40 {{ $viewMode === 'card' ? '' : 'hidden' }}">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach ($accounts as $account)
-                        @include('accounts.partials._account-card', ['account' => $account])
-                    @endforeach
-                </div>
+                @if ($groupByType)
+                    <div class="space-y-6">
+                        @foreach ($accountGroups as $section)
+                            <section data-account-card-group="{{ $section['type'] }}" class="space-y-3">
+                                <div class="px-4 py-3 rounded-xl border border-line bg-panel flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <span class="w-8 h-8 rounded-lg bg-forest-light text-forest dark:text-blue-300 border border-forest/20 inline-flex items-center justify-center flex-shrink-0">
+                                            @include('accounts.partials._type-icon', ['type' => $section['type']])
+                                        </span>
+                                        <div class="min-w-0">
+                                            <div class="text-sm font-bold text-charcoal">{{ $section['label'] }}</div>
+                                            <div class="text-[11px] text-muted">
+                                                {{ $section['active_count'] }} Aktif
+                                                @if ($section['archived_count'] > 0)
+                                                    &bull; {{ $section['archived_count'] }} Diarsipkan
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="block text-[10px] font-bold uppercase tracking-wider text-muted">{{ $section['summary_label'] }}</span>
+                                        <span class="font-mono text-sm font-bold text-charcoal privacy-balance" data-raw-value="Rp {{ number_format($section['total_amount'], 0, ',', '.') }}">
+                                            Rp {{ number_format($section['total_amount'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    @foreach ($section['accounts'] as $account)
+                                        @include('accounts.partials._account-card', [
+                                            'account' => $account,
+                                            'precomputedBalance' => $accountBalanceFor($account),
+                                        ])
+                                    @endforeach
+                                </div>
+                            </section>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @foreach ($accounts as $account)
+                            @include('accounts.partials._account-card', [
+                                'account' => $account,
+                                'precomputedBalance' => $accountBalanceFor($account),
+                            ])
+                        @endforeach
+                    </div>
+                @endif
             </div>
         @endif
     </div>
@@ -515,10 +708,24 @@
                     }
                 });
 
+                const sortViewInput = document.getElementById('accountsSortViewInput');
+                if (sortViewInput && (persist || hasExplicitView)) {
+                    sortViewInput.value = mode;
+                    sortViewInput.disabled = false;
+                }
+
                 if (persist) {
                     try {
                         localStorage.setItem(STORAGE_KEY, mode);
                     } catch (e) {}
+
+                    document.querySelectorAll('[data-account-query-link]').forEach(function(link) {
+                        try {
+                            const nextUrl = new URL(link.href, window.location.origin);
+                            nextUrl.searchParams.set('view', mode);
+                            link.href = nextUrl.toString();
+                        } catch (e) {}
+                    });
 
                     try {
                         const currentUrl = new URL(window.location.href);

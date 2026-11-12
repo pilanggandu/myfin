@@ -152,18 +152,49 @@ class Account extends Model
         return 'Rp '.number_format($bal, $decimals, ',', '.');
     }
 
+    /**
+     * Pemetaan label Bahasa Indonesia untuk setiap tipe akun.
+     *
+     * @var array<string, string>
+     */
+    public const TYPE_LABELS = [
+        'bank' => 'Bank',
+        'e-wallet' => 'E-Wallet',
+        'cash' => 'Kas Tunai',
+        'investment' => 'Investasi / RDN',
+        'credit_card' => 'Kartu Kredit',
+        'paylater' => 'PayLater',
+        'loan' => 'Pinjaman',
+    ];
+
+    /**
+     * Urutan prioritas tampilan untuk pengelompokan dan pengurutan tipe akun.
+     *
+     * @var array<string, int>
+     */
+    public const TYPE_ORDER = [
+        'bank' => 1,
+        'e-wallet' => 2,
+        'cash' => 3,
+        'investment' => 4,
+        'credit_card' => 5,
+        'paylater' => 6,
+        'loan' => 7,
+    ];
+
+    public static function labelForType(string $type): string
+    {
+        return self::TYPE_LABELS[$type] ?? $type;
+    }
+
+    public static function typePriority(string $type): int
+    {
+        return self::TYPE_ORDER[$type] ?? 99;
+    }
+
     public function typeLabel(): string
     {
-        return match ($this->type) {
-            'bank' => 'Bank',
-            'e-wallet' => 'E-Wallet',
-            'cash' => 'Kas Tunai',
-            'investment' => 'Investasi / RDN',
-            'credit_card' => 'Kartu Kredit',
-            'paylater' => 'PayLater',
-            'loan' => 'Pinjaman',
-            default => $this->type,
-        };
+        return self::labelForType($this->type);
     }
 
     public function isCreditCard(): bool

@@ -551,4 +551,199 @@ class AccountTest extends TestCase
             $this->assertSame($label, $account->typeLabel());
         }
     }
+
+    public function test_accounts_index_can_sort_by_account_type_ascending_and_descending(): void
+    {
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'A-Loan Pinjaman',
+            'type' => 'loan',
+            'opening_balance' => -500000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Bibit Investasi',
+            'type' => 'investment',
+            'opening_balance' => 3000000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Dompet Tunai',
+            'type' => 'cash',
+            'opening_balance' => 250000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'OVO Wallet',
+            'type' => 'e-wallet',
+            'opening_balance' => 450000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Zebra Bank Mandiri',
+            'type' => 'bank',
+            'opening_balance' => 4000000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Alpha Bank BCA',
+            'type' => 'bank',
+            'opening_balance' => 7000000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $ascResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['sort' => 'type_asc']));
+
+        $ascResponse->assertOk();
+        $ascResponse->assertViewHas('sort', 'type_asc');
+        $ascAccounts = $ascResponse->viewData('accounts');
+        $this->assertSame(
+            ['bank', 'bank', 'e-wallet', 'cash', 'investment', 'loan'],
+            $ascAccounts->pluck('type')->all()
+        );
+        $this->assertSame(
+            ['Alpha Bank BCA', 'Zebra Bank Mandiri'],
+            $ascAccounts->where('type', 'bank')->pluck('name')->values()->all()
+        );
+
+        $descResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['sort' => 'type_desc']));
+
+        $descResponse->assertOk();
+        $descResponse->assertViewHas('sort', 'type_desc');
+        $descAccounts = $descResponse->viewData('accounts');
+        $this->assertSame(
+            ['loan', 'investment', 'cash', 'e-wallet', 'bank', 'bank'],
+            $descAccounts->pluck('type')->all()
+        );
+    }
+
+    public function test_accounts_index_supports_balance_desc_name_desc_and_invalid_sort_fallback(): void
+    {
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Alpha Kecil',
+            'type' => 'cash',
+            'opening_balance' => 100000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Beta Besar',
+            'type' => 'bank',
+            'opening_balance' => 9000000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Zeta Menengah',
+            'type' => 'e-wallet',
+            'opening_balance' => 1500000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $balResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['sort' => 'balance_desc']));
+
+        $balResponse->assertOk();
+        $this->assertSame(
+            ['Beta Besar', 'Zeta Menengah', 'Alpha Kecil'],
+            $balResponse->viewData('accounts')->pluck('name')->all()
+        );
+
+        $nameDescResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['sort' => 'name_desc']));
+
+        $nameDescResponse->assertOk();
+        $this->assertSame(
+            ['Zeta Menengah', 'Beta Besar', 'Alpha Kecil'],
+            $nameDescResponse->viewData('accounts')->pluck('name')->all()
+        );
+
+        $fallbackResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['sort' => 'unknown_sort']));
+
+        $fallbackResponse->assertOk();
+        $fallbackResponse->assertViewHas('sort', 'name_asc');
+        $this->assertSame(
+            ['Alpha Kecil', 'Beta Besar', 'Zeta Menengah'],
+            $fallbackResponse->viewData('accounts')->pluck('name')->all()
+        );
+    }
+
+    public function test_accounts_index_can_group_accounts_by_type_across_list_and_card_views(): void
+    {
+        $bca = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Bank BCA',
+            'type' => 'bank',
+            'opening_balance' => 2000000,
+            'opened_on' => '2026-01-01',
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'Bank Mandiri Lama',
+            'type' => 'bank',
+            'opening_balance' => 500000,
+            'opened_on' => '2025-01-01',
+            'archived_at' => now(),
+        ]);
+        Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'GoPay',
+            'type' => 'e-wallet',
+            'opening_balance' => 300000,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['group' => 'type', 'sort' => 'type_asc', 'view' => 'card']));
+
+        $response->assertOk();
+        $response->assertViewHas('groupByType', true);
+        $response->assertViewHas('viewMode', 'card');
+
+        $groups = $response->viewData('accountGroups');
+        $this->assertSame(['bank', 'e-wallet'], $groups->pluck('type')->all());
+
+        $bankGroup = $groups->firstWhere('type', 'bank');
+        $this->assertNotNull($bankGroup);
+        $this->assertSame('Bank', $bankGroup['label']);
+        $this->assertSame(1, $bankGroup['active_count']);
+        $this->assertSame(1, $bankGroup['archived_count']);
+        $this->assertEquals(2500000.0, $bankGroup['total_amount']);
+        $this->assertSame('Total Saldo', $bankGroup['summary_label']);
+        // Aktif muncul sebelum arsip di dalam grup yang sama
+        $this->assertSame($bca->id, $bankGroup['accounts']->first()->id);
+
+        $response->assertSee('data-account-group="bank"', false);
+        $response->assertSee('data-account-group="e-wallet"', false);
+        $response->assertSee('data-account-card-group="bank"', false);
+        $response->assertSee('data-account-card-group="e-wallet"', false);
+        $response->assertSee('id="accountsSortSelect"', false);
+        $response->assertSee('id="accountsGroupToggleBtn"', false);
+
+        // Reverse group order saat sort=type_desc
+        $reverseResponse = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index', ['group' => 'type', 'sort' => 'type_desc']));
+
+        $reverseResponse->assertOk();
+        $this->assertSame(
+            ['e-wallet', 'bank'],
+            $reverseResponse->viewData('accountGroups')->pluck('type')->all()
+        );
+    }
 }
