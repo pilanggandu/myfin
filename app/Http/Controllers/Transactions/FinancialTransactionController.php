@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Transactions;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Transaction\BulkCorrectTransactionsRequest;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Category;
@@ -29,7 +30,7 @@ class FinancialTransactionController extends Controller
         $space = app('currentSpace');
 
         $query = $space->financialTransactions()
-            ->with(['category', 'feeCategory', 'entries.account', 'creator', 'member']);
+            ->with(['category', 'feeCategory', 'entries.account', 'creator', 'member', 'installmentPlan']);
 
         $sort = $request->input('sort', 'date_desc');
         if ($sort === 'date_asc' || $request->input('direction') === 'asc') {
@@ -72,6 +73,14 @@ class FinancialTransactionController extends Controller
             $expenseCategories->concat($incomeCategories),
             $recentCategoryIds
         );
+        $activeIncomeCategories = $incomeCategories
+            ->filter(fn (Category $category): bool => ! $category->isArchived())
+            ->values();
+        $activeExpenseCategories = $expenseCategories
+            ->filter(fn (Category $category): bool => ! $category->isArchived())
+            ->values();
+        $recentIncomeCategoryIds = $space->recentCategoryIds('income', 6);
+        $recentExpenseCategoryIds = $space->recentCategoryIds('expense', 6);
 
         return view('transactions.index', compact(
             'transactions',
@@ -79,6 +88,10 @@ class FinancialTransactionController extends Controller
             'recentAccountIds',
             'incomeCategories',
             'expenseCategories',
+            'activeIncomeCategories',
+            'activeExpenseCategories',
+            'recentIncomeCategoryIds',
+            'recentExpenseCategoryIds',
             'members',
             'recentCategoryIds',
             'recentFilterCategories',
@@ -292,5 +305,32 @@ class FinancialTransactionController extends Controller
 
         return redirect()->route('transactions.index')
             ->with('success', 'Transaksi berhasil dibatalkan (void).');
+    }
+
+    /**
+     * Terapkan koreksi atau pembatalan (void) seragam secara massal pada transaksi terpilih.
+     */
+    public function bulkCorrect(BulkCorrectTransactionsRequest $request): RedirectResponse|JsonResponse
+    {
+        $space = app('currentSpace');
+        $validated = $request->validated();
+
+        $updated = $this->transactionService->bulkCorrectTransactions($space, $request->user(), $validated);
+        $count = $updated->count();
+        $action = $validated['action'];
+
+        $message = $action === 'void'
+            ? "{$count} transaksi berhasil dibatalkan (void)."
+            : "{$count} transaksi berhasil dikoreksi.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'updated_count' => $count,
+                'action' => $action,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 }

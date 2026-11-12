@@ -317,6 +317,44 @@
         </form>
     </div>
 
+    <!-- Bulk Action Feedback Banner (AJAX) -->
+    <div id="bulkActionFeedback" class="hidden mb-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 flex items-center justify-between gap-3 shadow-xs" role="status" aria-live="polite">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0" aria-hidden="true">✓</span>
+            <span id="bulkActionFeedbackText" class="text-xs font-semibold"></span>
+        </div>
+        <button type="button" onclick="hideBulkActionFeedback()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/15 transition inline-flex items-center justify-center cursor-pointer shrink-0" aria-label="Tutup pesan status">
+            ✕
+        </button>
+    </div>
+
+    <!-- Bulk Action Toolbar -->
+    <div id="bulkActionBar" class="hidden sticky top-3 z-30 mb-4 panel-card bg-panel/95 backdrop-blur-xs border border-forest/40 p-3.5 sm:px-5 sm:py-3 shadow-md" role="region" aria-label="Bilah aksi koreksi massal">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2.5 min-w-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-forest dark:bg-blue-600 text-white text-xs font-bold shrink-0">
+                    <span id="bulkSelectedCount">0</span>
+                    <span>dipilih</span>
+                </span>
+                <span id="bulkSelectionBreakdown" class="text-xs font-medium text-charcoal"></span>
+                <span id="bulkInstallmentBadge" class="hidden text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-200">
+                    Termasuk transaksi cicilan (nominal &amp; rekening terkunci)
+                </span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <button type="button" onclick="openBulkCorrectModal('update')" class="btn-arus-primary min-h-[44px] sm:min-h-[36px] px-4 text-xs font-bold justify-center flex-1 sm:flex-initial cursor-pointer">
+                    Koreksi Massal
+                </button>
+                <button type="button" onclick="openBulkCorrectModal('void')" class="min-h-[44px] sm:min-h-[36px] px-3.5 py-2 rounded-lg border border-red-300 dark:border-red-700/60 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 hover:bg-red-700 hover:text-white dark:hover:bg-red-700 dark:hover:text-white text-xs font-bold transition cursor-pointer inline-flex items-center justify-center flex-1 sm:flex-initial">
+                    Void Massal
+                </button>
+                <button type="button" onclick="clearBulkSelection()" class="btn-arus-secondary min-h-[44px] sm:min-h-[36px] px-3.5 text-xs font-semibold justify-center cursor-pointer">
+                    Batal Pilih
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="transactionResultsContainer" class="space-y-4">
         @if ($hasAnyFilter)
             @php
@@ -475,9 +513,23 @@
             @else
             <!-- Tampilan Ponsel (Mobile Cards) -->
             <div class="md:hidden divide-y divide-line">
+                <div class="px-4 py-2 border-b border-line bg-cream/35 flex items-center justify-between gap-2">
+                    <label class="inline-flex items-center gap-2.5 min-h-[44px] text-xs font-semibold text-charcoal cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            data-bulk-select-all
+                            aria-label="Pilih semua transaksi yang memenuhi syarat di halaman ini"
+                            class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                        >
+                        <span>Pilih semua di halaman ini</span>
+                    </label>
+                    <span class="text-[11px] text-muted">Centang untuk koreksi massal</span>
+                </div>
                 @foreach ($transactions as $trx)
                     @php
                         $isVoid = $trx->isVoid();
+                        $isBulkEligible = ! $isVoid && in_array($trx->type, ['income', 'expense', 'transfer'], true);
+                        $hasInstallmentPlan = $trx->installmentPlan !== null;
                         $amount = $trx->totalAmount();
                         $typeBadge = match($trx->type) {
                             'income' => 'Pemasukan',
@@ -498,8 +550,25 @@
                             default => '',
                         };
                     @endphp
-                    <div class="p-5 space-y-3 hover:bg-cream/20 transition-colors {{ $isVoid ? 'opacity-55' : '' }}">
-                        <div class="flex items-start justify-between gap-3">
+                    <div class="p-5 space-y-3 hover:bg-cream/20 transition-colors {{ $isVoid ? 'opacity-55' : '' }}" data-trx-card="{{ $trx->id }}">
+                        <div class="flex items-start justify-between gap-2">
+                            <label
+                                class="w-11 h-11 -ml-2.5 -mt-2 inline-flex items-center justify-center rounded-lg hover:bg-cream/60 transition shrink-0 {{ $isBulkEligible ? 'cursor-pointer' : 'cursor-not-allowed opacity-40' }}"
+                                title="{{ $isBulkEligible ? 'Pilih transaksi untuk koreksi massal' : 'Transaksi void atau sistem kredit tidak dapat dikoreksi massal' }}"
+                            >
+                                <input
+                                    type="checkbox"
+                                    data-bulk-select-row
+                                    data-trx-id="{{ $trx->id }}"
+                                    data-trx-version="{{ $trx->version }}"
+                                    data-trx-type="{{ $trx->type }}"
+                                    data-trx-installment="{{ $hasInstallmentPlan ? '1' : '0' }}"
+                                    data-trx-desc="{{ $trx->description }}"
+                                    aria-label="Pilih transaksi {{ $trx->description }}"
+                                    @disabled(! $isBulkEligible)
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:cursor-not-allowed cursor-pointer"
+                                >
+                            </label>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="font-bold text-base text-charcoal {{ $isVoid ? 'line-through' : '' }}">
@@ -594,7 +663,17 @@
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
-                            <th class="py-3 px-6">
+                            <th class="py-3 pl-5 pr-2 w-10">
+                                <label class="inline-flex items-center justify-center w-8 h-8 cursor-pointer rounded hover:bg-cream/60" title="Pilih semua transaksi yang memenuhi syarat di halaman ini">
+                                    <input
+                                        type="checkbox"
+                                        data-bulk-select-all
+                                        aria-label="Pilih semua transaksi yang memenuhi syarat di halaman ini"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                </label>
+                            </th>
+                            <th class="py-3 pl-2 pr-6">
                                 @php
                                     $currentSort = request('sort', 'date_desc');
                                     $nextSort = $currentSort === 'date_desc' ? 'date_asc' : 'date_desc';
@@ -619,6 +698,8 @@
                         @foreach ($transactions as $trx)
                             @php
                                 $isVoid = $trx->isVoid();
+                                $isBulkEligible = ! $isVoid && in_array($trx->type, ['income', 'expense', 'transfer'], true);
+                                $hasInstallmentPlan = $trx->installmentPlan !== null;
                                 $amount = $trx->totalAmount();
                                 $amountColor = match($trx->type) {
                                     'income' => 'text-forest',
@@ -633,8 +714,27 @@
                                     default => '',
                                 };
                             @endphp
-                            <tr class="hover:bg-cream/30 transition-colors {{ $isVoid ? 'opacity-55' : '' }}">
-                                <td class="py-4 px-6 whitespace-nowrap text-muted">
+                            <tr class="hover:bg-cream/30 transition-colors {{ $isVoid ? 'opacity-55' : '' }}" data-trx-row="{{ $trx->id }}">
+                                <td class="py-4 pl-5 pr-2 w-10 whitespace-nowrap">
+                                    <label
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-cream/60 {{ $isBulkEligible ? 'cursor-pointer' : 'cursor-not-allowed opacity-40' }}"
+                                        title="{{ $isBulkEligible ? 'Pilih transaksi untuk koreksi massal' : 'Transaksi void atau sistem kredit tidak dapat dikoreksi massal' }}"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            data-bulk-select-row
+                                            data-trx-id="{{ $trx->id }}"
+                                            data-trx-version="{{ $trx->version }}"
+                                            data-trx-type="{{ $trx->type }}"
+                                            data-trx-installment="{{ $hasInstallmentPlan ? '1' : '0' }}"
+                                            data-trx-desc="{{ $trx->description }}"
+                                            aria-label="Pilih transaksi {{ $trx->description }}"
+                                            @disabled(! $isBulkEligible)
+                                            class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest disabled:cursor-not-allowed cursor-pointer"
+                                        >
+                                    </label>
+                                </td>
+                                <td class="py-4 pl-2 pr-6 whitespace-nowrap text-muted">
                                     <div class="font-medium text-charcoal">{{ $trx->transaction_date->format('d M Y') }}</div>
                                     @if ($trx->formattedTime())
                                         <div class="text-[11px] text-muted/75 font-mono">{{ $trx->formattedTime() }} WIB</div>
@@ -839,6 +939,9 @@
                     if (typeof window.initPrivacySystem === 'function') {
                         window.initPrivacySystem();
                     }
+                    if (typeof window.syncBulkSelectionAfterResultsRender === 'function') {
+                        window.syncBulkSelectionAfterResultsRender();
+                    }
                 }
             } catch (err) {
                 if (err.name === 'AbortError') return;
@@ -1026,4 +1129,1265 @@
         }
     </script>
 
+    @php
+        $bulkActiveIncomeCategories = ($activeIncomeCategories ?? $incomeCategories->filter(fn ($c) => ! $c->isArchived()))->values();
+        $bulkActiveExpenseCategories = ($activeExpenseCategories ?? $expenseCategories->filter(fn ($c) => ! $c->isArchived()))->values();
+        $bulkRecentIncomeCatIds = $recentIncomeCategoryIds ?? [];
+        $bulkRecentExpenseCatIds = $recentExpenseCategoryIds ?? [];
+    @endphp
+
+    <!-- Modal Koreksi & Void Massal -->
+    <div
+        id="bulkCorrectModal"
+        class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-2.5 sm:p-4 overflow-y-auto hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bulkModalTitle"
+        onclick="closeBulkCorrectModal()"
+    >
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-2 sm:my-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] overflow-y-auto" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex items-start justify-between gap-3 border-b border-line pb-3">
+                <div class="min-w-0">
+                    <h2 id="bulkModalTitle" class="font-serif text-xl sm:text-2xl text-forest dark:text-blue-300 font-normal">
+                        Koreksi Massal Transaksi
+                    </h2>
+                    <p id="bulkModalSelectionSummary" class="text-xs text-muted mt-0.5">
+                        0 transaksi dipilih
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onclick="closeBulkCorrectModal()"
+                    class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg border border-line text-muted hover:text-charcoal hover:bg-cream transition inline-flex items-center justify-center cursor-pointer text-sm shrink-0"
+                    aria-label="Tutup modal koreksi massal"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <!-- Inline Error Alert -->
+            <div id="bulkModalError" class="hidden p-3.5 rounded-xl border border-red-200 dark:border-red-800/70 bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 text-xs space-y-1" role="alert"></div>
+
+            <!-- Mode Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-cream/70 border border-line" role="tablist" aria-label="Pilih mode aksi massal">
+                <button
+                    type="button"
+                    id="bulkModeTabUpdate"
+                    role="tab"
+                    aria-selected="true"
+                    onclick="switchBulkModalMode('update')"
+                    class="min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer bg-panel text-forest dark:text-blue-300 border border-line shadow-2xs"
+                >
+                    Ubah Kolom Seragam
+                </button>
+                <button
+                    type="button"
+                    id="bulkModeTabVoid"
+                    role="tab"
+                    aria-selected="false"
+                    onclick="switchBulkModalMode('void')"
+                    class="min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer text-muted hover:text-charcoal border border-transparent"
+                >
+                    Batalkan (Void) Massal
+                </button>
+            </div>
+
+            <form id="bulkCorrectForm" method="POST" action="{{ route('transactions.bulk-correct') }}" class="space-y-4" onsubmit="return submitBulkCorrection(event)">
+                @csrf
+                <input type="hidden" id="bulkActionInput" name="action" value="update">
+
+                <!-- Panel Mode Update -->
+                <div id="bulkUpdateFieldsSection" class="space-y-3.5">
+                    <p class="text-xs text-muted">
+                        Centang hanya kolom yang ingin ditimpa ke seluruh transaksi terpilih. Kolom yang tidak dicentang tetap mempertahankan nilai asli masing-masing transaksi.
+                    </p>
+
+                    <div id="bulkCompatibilityNotice" class="hidden p-3 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs leading-relaxed"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Field: Kategori -->
+                        <div id="bulkFieldCardCategory" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                    <input
+                                        type="checkbox"
+                                        id="bulkApplyCategory"
+                                        name="apply_category"
+                                        value="1"
+                                        data-bulk-field-toggle="bulkBodyCategory"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                    <span>Kategori</span>
+                                </label>
+                                <span id="bulkCategoryTypePill" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-cream text-muted"></span>
+                            </div>
+                            <div id="bulkBodyCategory" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                <div id="bulkExpenseCategoryWrap">
+                                    <select
+                                        id="bulkExpenseCategoryId"
+                                        name="category_id"
+                                        class="field-input text-xs w-full"
+                                        data-searchable-picker="true"
+                                        data-picker-kind="category"
+                                        data-picker-noun="kategori"
+                                        data-show-recent-chips="true"
+                                        data-recent-ids='@json($bulkRecentExpenseCatIds)'
+                                    >
+                                        <option value="">-- Pilih Kategori Pengeluaran --</option>
+                                        @foreach ($bulkActiveExpenseCategories as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div id="bulkIncomeCategoryWrap" class="hidden">
+                                    <select
+                                        id="bulkIncomeCategoryId"
+                                        name="category_id"
+                                        class="field-input text-xs w-full"
+                                        data-searchable-picker="true"
+                                        data-picker-kind="category"
+                                        data-picker-noun="kategori"
+                                        data-show-recent-chips="true"
+                                        data-recent-ids='@json($bulkRecentIncomeCatIds)'
+                                        disabled
+                                    >
+                                        <option value="">-- Pilih Kategori Pemasukan --</option>
+                                        @foreach ($bulkActiveIncomeCategories as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <p id="bulkCategoryDisabledMsg" class="hidden text-[11px] text-muted leading-snug py-1.5">
+                                    Hanya tersedia jika seluruh transaksi yang dipilih bertipe sama (semua Pengeluaran atau semua Pemasukan).
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Field: Rekening (Single Account for Income/Expense) -->
+                        <div id="bulkFieldCardAccount" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                    <input
+                                        type="checkbox"
+                                        id="bulkApplyAccount"
+                                        name="apply_account"
+                                        value="1"
+                                        data-bulk-field-toggle="bulkBodyAccount"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                    <span>Rekening</span>
+                                </label>
+                                <span id="bulkAccountBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-cream text-muted hidden"></span>
+                            </div>
+                            <div id="bulkBodyAccount" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                <div id="bulkSingleAccountSelectWrap">
+                                    <select
+                                        id="bulkAccountId"
+                                        name="account_id"
+                                        class="field-input text-xs w-full"
+                                        data-searchable-picker="true"
+                                        data-picker-kind="account"
+                                        data-picker-noun="rekening"
+                                        data-show-recent-chips="true"
+                                        data-recent-ids='@json($recentAccountIds)'
+                                    >
+                                        <option value="">-- Pilih Rekening --</option>
+                                        @foreach ($accounts as $acc)
+                                            <option value="{{ $acc->id }}">{{ $acc->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <p id="bulkAccountDisabledMsg" class="hidden text-[11px] text-muted leading-snug py-1.5"></p>
+                            </div>
+                        </div>
+
+                        <!-- Transfer-Only Fields (Shown when ALL selected transactions are Transfer) -->
+                        <div id="bulkTransferSection" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl border border-line bg-cream/30">
+                            <div class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-forest dark:text-blue-300">
+                                Penyesuaian Khusus Transfer Antar-Rekening
+                            </div>
+
+                            <!-- Rekening Asal -->
+                            <div id="bulkFieldCardSourceAccount" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                                <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                    <input
+                                        type="checkbox"
+                                        id="bulkApplySourceAccount"
+                                        name="apply_source_account"
+                                        value="1"
+                                        data-bulk-field-toggle="bulkBodySourceAccount"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                    <span>Rekening Asal Transfer</span>
+                                </label>
+                                <div id="bulkBodySourceAccount" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                    <select
+                                        id="bulkSourceAccountId"
+                                        name="source_account_id"
+                                        class="field-input text-xs w-full"
+                                        data-searchable-picker="true"
+                                        data-picker-kind="account"
+                                        data-picker-noun="rekening"
+                                        data-show-recent-chips="true"
+                                        data-recent-ids='@json($recentAccountIds)'
+                                    >
+                                        <option value="">-- Pilih Rekening Asal --</option>
+                                        @foreach ($accounts as $acc)
+                                            <option value="{{ $acc->id }}">{{ $acc->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Rekening Tujuan -->
+                            <div id="bulkFieldCardDestAccount" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                                <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                    <input
+                                        type="checkbox"
+                                        id="bulkApplyDestinationAccount"
+                                        name="apply_destination_account"
+                                        value="1"
+                                        data-bulk-field-toggle="bulkBodyDestinationAccount"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                    <span>Rekening Tujuan Transfer</span>
+                                </label>
+                                <div id="bulkBodyDestinationAccount" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                    <select
+                                        id="bulkDestinationAccountId"
+                                        name="destination_account_id"
+                                        class="field-input text-xs w-full"
+                                        data-searchable-picker="true"
+                                        data-picker-kind="account"
+                                        data-picker-noun="rekening"
+                                        data-show-recent-chips="true"
+                                        data-recent-ids='@json($recentAccountIds)'
+                                    >
+                                        <option value="">-- Pilih Rekening Tujuan --</option>
+                                        @foreach ($accounts as $acc)
+                                            <option value="{{ $acc->id }}">{{ $acc->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Biaya Admin -->
+                            <div id="bulkFieldCardFeeAmount" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                                <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                    <input
+                                        type="checkbox"
+                                        id="bulkApplyFeeAmount"
+                                        name="apply_fee_amount"
+                                        value="1"
+                                        data-bulk-field-toggle="bulkBodyFeeAmount"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                    <span>Biaya Admin Transfer (Rp)</span>
+                                </label>
+                                <div id="bulkBodyFeeAmount" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                    <input
+                                        type="text"
+                                        id="bulkFeeAmountDisplay"
+                                        inputmode="numeric"
+                                        placeholder="0"
+                                        class="field-input text-xs w-full font-mono"
+                                        oninput="onBulkMonetaryInput('bulkFeeAmountDisplay', 'bulkFeeAmount', true)"
+                                    >
+                                    <input type="hidden" id="bulkFeeAmount" name="fee_amount" value="0">
+                                </div>
+                            </div>
+
+                            <!-- Kategori Biaya Admin -->
+                            <div id="bulkFieldCardFeeCategory" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                                <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                    <input
+                                        type="checkbox"
+                                        id="bulkApplyFeeCategory"
+                                        name="apply_fee_category"
+                                        value="1"
+                                        data-bulk-field-toggle="bulkBodyFeeCategory"
+                                        class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                    >
+                                    <span>Kategori Biaya Admin</span>
+                                </label>
+                                <div id="bulkBodyFeeCategory" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                    <select id="bulkFeeCategoryId" name="fee_category_id" class="field-input text-xs w-full">
+                                        <option value="">Otomatis (Admin / Layanan)</option>
+                                        @foreach ($bulkActiveExpenseCategories as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Field: Nominal -->
+                        <div id="bulkFieldCardAmount" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                <input
+                                    type="checkbox"
+                                    id="bulkApplyAmount"
+                                    name="apply_amount"
+                                    value="1"
+                                    data-bulk-field-toggle="bulkBodyAmount"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span>Nominal (Rp)</span>
+                            </label>
+                            <div id="bulkBodyAmount" class="opacity-55 pointer-events-none transition-opacity space-y-1" inert>
+                                <div id="bulkAmountInputWrap" class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted pointer-events-none">Rp</span>
+                                    <input
+                                        type="text"
+                                        id="bulkAmountDisplay"
+                                        inputmode="numeric"
+                                        placeholder="Contoh: 50.000"
+                                        class="field-input text-xs w-full pl-9 font-mono"
+                                        oninput="onBulkMonetaryInput('bulkAmountDisplay', 'bulkAmount', false)"
+                                    >
+                                    <input type="hidden" id="bulkAmount" name="amount" value="">
+                                </div>
+                                <p id="bulkAmountDisabledMsg" class="hidden text-[11px] text-muted leading-snug py-1"></p>
+                            </div>
+                        </div>
+
+                        <!-- Field: Member Terkait -->
+                        <div id="bulkFieldCardMember" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                <input
+                                    type="checkbox"
+                                    id="bulkApplyMember"
+                                    name="apply_member"
+                                    value="1"
+                                    data-bulk-field-toggle="bulkBodyMember"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span>Member Terkait</span>
+                            </label>
+                            <div id="bulkBodyMember" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                <select id="bulkMemberId" name="member_id" class="field-input text-xs w-full">
+                                    <option value="">Tanpa Member (Umum / Hapus Tag)</option>
+                                    @foreach ($members as $member)
+                                        <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Field: Tanggal -->
+                        <div id="bulkFieldCardDate" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                <input
+                                    type="checkbox"
+                                    id="bulkApplyDate"
+                                    name="apply_transaction_date"
+                                    value="1"
+                                    data-bulk-field-toggle="bulkBodyDate"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span>Tanggal Transaksi</span>
+                            </label>
+                            <div id="bulkBodyDate" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                <input
+                                    type="date"
+                                    id="bulkTransactionDate"
+                                    name="transaction_date"
+                                    class="field-input text-xs w-full"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Field: Jam -->
+                        <div id="bulkFieldCardTime" class="p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                <input
+                                    type="checkbox"
+                                    id="bulkApplyTime"
+                                    name="apply_transaction_time"
+                                    value="1"
+                                    data-bulk-field-toggle="bulkBodyTime"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span>Jam Transaksi</span>
+                            </label>
+                            <div id="bulkBodyTime" class="opacity-55 pointer-events-none transition-opacity space-y-1" inert>
+                                <input
+                                    type="time"
+                                    id="bulkTransactionTime"
+                                    name="transaction_time"
+                                    class="field-input text-xs w-full"
+                                >
+                                <span class="block text-[11px] text-muted">
+                                    Biarkan kosong dan centang kolom ini untuk menghapus jam.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Field: Keterangan -->
+                        <div id="bulkFieldCardDescription" class="md:col-span-2 p-3 rounded-xl border border-line bg-surface/60 space-y-2 transition-colors">
+                            <label class="inline-flex items-center gap-2 min-h-[28px] cursor-pointer text-xs font-bold text-charcoal select-none">
+                                <input
+                                    type="checkbox"
+                                    id="bulkApplyDescription"
+                                    name="apply_description"
+                                    value="1"
+                                    data-bulk-field-toggle="bulkBodyDescription"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span>Keterangan Transaksi</span>
+                            </label>
+                            <div id="bulkBodyDescription" class="opacity-55 pointer-events-none transition-opacity" inert>
+                                <input
+                                    type="text"
+                                    id="bulkDescription"
+                                    name="description"
+                                    maxlength="255"
+                                    placeholder="Masukkan keterangan seragam untuk seluruh transaksi terpilih"
+                                    class="field-input text-xs w-full"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Mode Void -->
+                <div id="bulkVoidSection" class="hidden space-y-3">
+                    <div class="p-4 rounded-xl border border-red-200 dark:border-red-800/70 bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 space-y-2 text-xs">
+                        <div class="font-bold text-sm text-red-700 dark:text-red-300">
+                            Konfirmasi Pembatalan (Void) Massal
+                        </div>
+                        <ul class="list-disc pl-4 space-y-1 leading-relaxed">
+                            <li>Seluruh transaksi yang dipilih akan berstatus <strong>VOID</strong> dan tidak lagi dihitung dalam saldo rekening maupun laporan.</li>
+                            <li>Transaksi yang berasal dari jadwal rutin akan dikembalikan menjadi status <strong>pending</strong>, dan rencana cicilan pembelian kredit terkait akan dibatalkan otomatis.</li>
+                            <li>Tindakan ini tidak menghapus riwayat transaksi dan tetap tercatat pada Riwayat Revisi masing-masing transaksi.</li>
+                        </ul>
+                    </div>
+
+                    <label class="flex items-start gap-2.5 p-3 rounded-xl border border-line bg-surface/70 cursor-pointer text-xs text-charcoal select-none">
+                        <input
+                            type="checkbox"
+                            id="bulkVoidConfirmCheck"
+                            class="w-4 h-4 mt-0.5 rounded border-line text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 cursor-pointer shrink-0"
+                            onchange="syncBulkSubmitButtonState()"
+                        >
+                        <span>Saya memahami konsekuensinya dan yakin ingin membatalkan (void) seluruh transaksi yang dipilih.</span>
+                    </label>
+                </div>
+
+                <!-- Shared Audit Reason -->
+                <div class="p-3 rounded-xl border border-line bg-cream/30 space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label for="bulkReason" class="text-xs font-bold text-charcoal">
+                            Alasan Koreksi / Catatan Audit <span class="font-normal text-muted">(Opsional)</span>
+                        </label>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" onclick="applyBulkReasonPreset('Salah kategori')" class="px-2 py-1 rounded-md border border-line bg-panel text-[11px] font-medium text-charcoal hover:bg-cream transition cursor-pointer">
+                                Salah kategori
+                            </button>
+                            <button type="button" onclick="applyBulkReasonPreset('Pindah rekening')" class="px-2 py-1 rounded-md border border-line bg-panel text-[11px] font-medium text-charcoal hover:bg-cream transition cursor-pointer">
+                                Pindah rekening
+                            </button>
+                            <button type="button" onclick="applyBulkReasonPreset('Koreksi tanggal')" class="px-2 py-1 rounded-md border border-line bg-panel text-[11px] font-medium text-charcoal hover:bg-cream transition cursor-pointer">
+                                Koreksi tanggal
+                            </button>
+                            <button type="button" onclick="applyBulkReasonPreset('Input duplikat')" class="px-2 py-1 rounded-md border border-line bg-panel text-[11px] font-medium text-charcoal hover:bg-cream transition cursor-pointer">
+                                Input duplikat
+                            </button>
+                        </div>
+                    </div>
+                    <input
+                        type="text"
+                        id="bulkReason"
+                        name="reason"
+                        maxlength="255"
+                        placeholder="Catatan audit untuk Riwayat Revisi transaksi (opsional)"
+                        class="field-input text-xs w-full"
+                    >
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="border-t border-line pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <button
+                        type="button"
+                        onclick="closeBulkCorrectModal()"
+                        class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] px-4 justify-center cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button
+                        type="submit"
+                        id="bulkModalSubmitBtn"
+                        class="btn-arus-primary min-h-[44px] sm:min-h-[38px] px-5 justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Terapkan Koreksi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const bulkSelectedTransactions = new Map();
+        let bulkModalCurrentMode = 'update';
+        let bulkIsSubmitting = false;
+
+        function getBulkEligibleCheckboxes() {
+            return Array.from(document.querySelectorAll('#transactionResultsContainer [data-bulk-select-row]:not(:disabled)'));
+        }
+
+        function setBulkRowSelected(checkbox) {
+            const id = String(checkbox.getAttribute('data-trx-id') || '');
+            if (!id) return;
+
+            if (checkbox.checked) {
+                bulkSelectedTransactions.set(id, {
+                    id: Number(id),
+                    version: Number(checkbox.getAttribute('data-trx-version') || 1),
+                    type: String(checkbox.getAttribute('data-trx-type') || ''),
+                    installment: checkbox.getAttribute('data-trx-installment') === '1',
+                    desc: String(checkbox.getAttribute('data-trx-desc') || ''),
+                });
+            } else {
+                bulkSelectedTransactions.delete(id);
+            }
+        }
+
+        function syncBulkDomSelectionUI() {
+            const selectedIds = new Set(bulkSelectedTransactions.keys());
+
+            document.querySelectorAll('#transactionResultsContainer [data-bulk-select-row]').forEach(cb => {
+                const id = String(cb.getAttribute('data-trx-id') || '');
+                const isSelected = !cb.disabled && selectedIds.has(id);
+                cb.checked = isSelected;
+            });
+
+            document.querySelectorAll('#transactionResultsContainer [data-trx-row], #transactionResultsContainer [data-trx-card]').forEach(el => {
+                const id = String(el.getAttribute('data-trx-row') || el.getAttribute('data-trx-card') || '');
+                el.classList.toggle('bg-forest-light/25', selectedIds.has(id));
+            });
+
+            const eligibleCheckboxes = getBulkEligibleCheckboxes();
+            const uniqueEligibleIds = new Set(eligibleCheckboxes.map(cb => String(cb.getAttribute('data-trx-id'))));
+            const selectedOnPageCount = Array.from(uniqueEligibleIds).filter(id => selectedIds.has(id)).length;
+            const allChecked = uniqueEligibleIds.size > 0 && selectedOnPageCount === uniqueEligibleIds.size;
+            const someChecked = selectedOnPageCount > 0 && selectedOnPageCount < uniqueEligibleIds.size;
+
+            document.querySelectorAll('#transactionResultsContainer [data-bulk-select-all]').forEach(selectAllCb => {
+                selectAllCb.disabled = uniqueEligibleIds.size === 0;
+                selectAllCb.checked = allChecked;
+                selectAllCb.indeterminate = someChecked;
+            });
+
+            const bar = document.getElementById('bulkActionBar');
+            const countEl = document.getElementById('bulkSelectedCount');
+            const breakdownEl = document.getElementById('bulkSelectionBreakdown');
+            const installmentBadge = document.getElementById('bulkInstallmentBadge');
+
+            if (!bar || !countEl || !breakdownEl) return;
+
+            const totalSelected = bulkSelectedTransactions.size;
+            bar.classList.toggle('hidden', totalSelected === 0);
+            countEl.textContent = String(totalSelected);
+
+            const typeCounts = { expense: 0, income: 0, transfer: 0 };
+            let hasInstallment = false;
+            bulkSelectedTransactions.forEach(item => {
+                if (Object.prototype.hasOwnProperty.call(typeCounts, item.type)) {
+                    typeCounts[item.type]++;
+                }
+                if (item.installment) {
+                    hasInstallment = true;
+                }
+            });
+
+            const parts = [];
+            if (typeCounts.expense > 0) parts.push(`${typeCounts.expense} Pengeluaran`);
+            if (typeCounts.income > 0) parts.push(`${typeCounts.income} Pemasukan`);
+            if (typeCounts.transfer > 0) parts.push(`${typeCounts.transfer} Transfer`);
+            breakdownEl.textContent = parts.length > 0 ? `(${parts.join(', ')})` : '';
+
+            if (installmentBadge) {
+                installmentBadge.classList.toggle('hidden', !hasInstallment);
+            }
+        }
+
+        function syncBulkSelectionAfterResultsRender() {
+            const visibleEligible = new Map();
+            getBulkEligibleCheckboxes().forEach(cb => {
+                const id = String(cb.getAttribute('data-trx-id') || '');
+                if (id) {
+                    visibleEligible.set(id, {
+                        id: Number(id),
+                        version: Number(cb.getAttribute('data-trx-version') || 1),
+                        type: String(cb.getAttribute('data-trx-type') || ''),
+                        installment: cb.getAttribute('data-trx-installment') === '1',
+                        desc: String(cb.getAttribute('data-trx-desc') || ''),
+                    });
+                }
+            });
+
+            Array.from(bulkSelectedTransactions.keys()).forEach(id => {
+                if (!visibleEligible.has(id)) {
+                    bulkSelectedTransactions.delete(id);
+                } else {
+                    bulkSelectedTransactions.set(id, visibleEligible.get(id));
+                }
+            });
+
+            syncBulkDomSelectionUI();
+        }
+        window.syncBulkSelectionAfterResultsRender = syncBulkSelectionAfterResultsRender;
+
+        function clearBulkSelection() {
+            bulkSelectedTransactions.clear();
+            syncBulkDomSelectionUI();
+        }
+
+        function hideBulkModalError() {
+            const errBox = document.getElementById('bulkModalError');
+            if (!errBox) return;
+            errBox.innerHTML = '';
+            errBox.classList.add('hidden');
+        }
+
+        function showBulkModalErrors(messages) {
+            const errBox = document.getElementById('bulkModalError');
+            if (!errBox) return;
+
+            const list = (Array.isArray(messages) ? messages : [messages])
+                .map(msg => String(msg || '').trim())
+                .filter(Boolean);
+
+            if (list.length === 0) {
+                hideBulkModalError();
+                return;
+            }
+
+            errBox.innerHTML = '';
+            list.forEach(msg => {
+                const div = document.createElement('div');
+                div.textContent = msg;
+                errBox.appendChild(div);
+            });
+            errBox.classList.remove('hidden');
+            errBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function showBulkActionFeedback(message) {
+            const box = document.getElementById('bulkActionFeedback');
+            const text = document.getElementById('bulkActionFeedbackText');
+            if (!box || !text) return;
+            text.textContent = message;
+            box.classList.remove('hidden');
+            box.classList.add('flex');
+        }
+
+        function hideBulkActionFeedback() {
+            const box = document.getElementById('bulkActionFeedback');
+            if (!box) return;
+            box.classList.add('hidden');
+            box.classList.remove('flex');
+        }
+
+        function toggleBulkFieldBody(checkbox) {
+            const targetId = checkbox.getAttribute('data-bulk-field-toggle');
+            if (!targetId) return;
+            const body = document.getElementById(targetId);
+            const card = checkbox.closest('[id^="bulkFieldCard"]');
+            const enabled = checkbox.checked && !checkbox.disabled;
+
+            if (body) {
+                body.classList.toggle('opacity-55', !enabled);
+                body.classList.toggle('pointer-events-none', !enabled);
+                body.inert = !enabled;
+                if (!enabled) {
+                    document.querySelectorAll('.arus-category-popover').forEach(popover => {
+                        popover.dispatchEvent(new CustomEvent('arus:force-close'));
+                    });
+                }
+                body.querySelectorAll('input, select').forEach(el => {
+                    if (el.id === 'bulkExpenseCategoryId' || el.id === 'bulkIncomeCategoryId') {
+                        return;
+                    }
+                    el.disabled = !enabled;
+                });
+            }
+
+            if (targetId === 'bulkBodyCategory') {
+                const expWrap = document.getElementById('bulkExpenseCategoryWrap');
+                const expSel = document.getElementById('bulkExpenseCategoryId');
+                const incSel = document.getElementById('bulkIncomeCategoryId');
+                const isExpenseVisible = expWrap && !expWrap.classList.contains('hidden');
+                if (expSel) expSel.disabled = !(enabled && isExpenseVisible);
+                if (incSel) incSel.disabled = !(enabled && !isExpenseVisible);
+            }
+
+            if (card) {
+                card.classList.toggle('border-forest/60', enabled);
+                card.classList.toggle('bg-panel', enabled);
+                card.classList.toggle('border-line', !enabled);
+                card.classList.toggle('bg-surface/60', !enabled);
+            }
+        }
+
+        function getBulkSelectionStats() {
+            const types = new Set();
+            let hasInstallment = false;
+            bulkSelectedTransactions.forEach(item => {
+                types.add(item.type);
+                if (item.installment) {
+                    hasInstallment = true;
+                }
+            });
+            return {
+                count: bulkSelectedTransactions.size,
+                types,
+                singleType: types.size === 1 ? Array.from(types)[0] : null,
+                hasInstallment,
+            };
+        }
+
+        function resetBulkModalFields() {
+            const form = document.getElementById('bulkCorrectForm');
+            if (!form) return;
+
+            form.querySelectorAll('[data-bulk-field-toggle]').forEach(cb => {
+                cb.checked = false;
+                toggleBulkFieldBody(cb);
+            });
+
+            ['bulkExpenseCategoryId', 'bulkIncomeCategoryId', 'bulkAccountId', 'bulkSourceAccountId', 'bulkDestinationAccountId', 'bulkFeeCategoryId', 'bulkMemberId'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = '';
+                    el.dispatchEvent(new Event('change'));
+                }
+            });
+
+            ['bulkAmountDisplay', 'bulkAmount', 'bulkFeeAmountDisplay', 'bulkTransactionDate', 'bulkTransactionTime', 'bulkDescription', 'bulkReason'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+
+            const feeHidden = document.getElementById('bulkFeeAmount');
+            if (feeHidden) feeHidden.value = '0';
+
+            const voidConfirm = document.getElementById('bulkVoidConfirmCheck');
+            if (voidConfirm) voidConfirm.checked = false;
+        }
+
+        function configureBulkCompatibilityUI() {
+            const stats = getBulkSelectionStats();
+            const summaryEl = document.getElementById('bulkModalSelectionSummary');
+            const compatNotice = document.getElementById('bulkCompatibilityNotice');
+
+            const typeParts = [];
+            let expCount = 0;
+            let incCount = 0;
+            let trfCount = 0;
+            bulkSelectedTransactions.forEach(item => {
+                if (item.type === 'expense') expCount++;
+                else if (item.type === 'income') incCount++;
+                else if (item.type === 'transfer') trfCount++;
+            });
+            if (expCount > 0) typeParts.push(`${expCount} Pengeluaran`);
+            if (incCount > 0) typeParts.push(`${incCount} Pemasukan`);
+            if (trfCount > 0) typeParts.push(`${trfCount} Transfer`);
+
+            if (summaryEl) {
+                summaryEl.textContent = `${stats.count} transaksi dipilih (${typeParts.join(', ')})`;
+            }
+
+            const notices = [];
+
+            // Kategori availability
+            const catCb = document.getElementById('bulkApplyCategory');
+            const catPill = document.getElementById('bulkCategoryTypePill');
+            const expWrap = document.getElementById('bulkExpenseCategoryWrap');
+            const incWrap = document.getElementById('bulkIncomeCategoryWrap');
+            const catMsg = document.getElementById('bulkCategoryDisabledMsg');
+            const categorySupported = stats.singleType === 'expense' || stats.singleType === 'income';
+
+            if (catCb && expWrap && incWrap && catMsg && catPill) {
+                if (stats.singleType === 'expense') {
+                    catCb.disabled = false;
+                    catPill.textContent = 'Pengeluaran';
+                    expWrap.classList.remove('hidden');
+                    incWrap.classList.add('hidden');
+                    catMsg.classList.add('hidden');
+                } else if (stats.singleType === 'income') {
+                    catCb.disabled = false;
+                    catPill.textContent = 'Pemasukan';
+                    expWrap.classList.add('hidden');
+                    incWrap.classList.remove('hidden');
+                    catMsg.classList.add('hidden');
+                } else {
+                    catCb.checked = false;
+                    catCb.disabled = true;
+                    catPill.textContent = 'Tidak tersedia';
+                    expWrap.classList.add('hidden');
+                    incWrap.classList.add('hidden');
+                    catMsg.classList.remove('hidden');
+                    notices.push('Kolom Kategori dinonaktifkan karena pilihan berisi transaksi Transfer atau mencampur Pemasukan dan Pengeluaran.');
+                }
+                toggleBulkFieldBody(catCb);
+            }
+
+            // Account & Transfer section availability
+            const accCard = document.getElementById('bulkFieldCardAccount');
+            const accCb = document.getElementById('bulkApplyAccount');
+            const accSelectWrap = document.getElementById('bulkSingleAccountSelectWrap');
+            const accMsg = document.getElementById('bulkAccountDisabledMsg');
+            const accBadge = document.getElementById('bulkAccountBadge');
+            const transferSection = document.getElementById('bulkTransferSection');
+
+            if (stats.singleType === 'transfer') {
+                if (accCard) accCard.classList.add('hidden');
+                if (accCb) {
+                    accCb.checked = false;
+                    accCb.disabled = true;
+                    toggleBulkFieldBody(accCb);
+                }
+                if (transferSection) transferSection.classList.remove('hidden');
+            } else {
+                if (accCard) accCard.classList.remove('hidden');
+                if (transferSection) {
+                    transferSection.classList.add('hidden');
+                    transferSection.querySelectorAll('[data-bulk-field-toggle]').forEach(cb => {
+                        cb.checked = false;
+                        toggleBulkFieldBody(cb);
+                    });
+                }
+
+                const singleAccountBlocked = stats.types.has('transfer') || stats.hasInstallment;
+                if (accCb && accSelectWrap && accMsg && accBadge) {
+                    if (singleAccountBlocked) {
+                        accCb.checked = false;
+                        accCb.disabled = true;
+                        accSelectWrap.classList.add('hidden');
+                        accMsg.classList.remove('hidden');
+                        accBadge.classList.remove('hidden');
+                        accBadge.textContent = 'Terkunci';
+                        accMsg.textContent = stats.types.has('transfer')
+                            ? 'Kolom rekening tunggal tidak tersedia saat pilihan mencampur transaksi Transfer dengan Pengeluaran/Pemasukan.'
+                            : 'Rekening transaksi pembelian cicilan tidak dapat diubah secara massal.';
+                    } else {
+                        accCb.disabled = false;
+                        accSelectWrap.classList.remove('hidden');
+                        accMsg.classList.add('hidden');
+                        accBadge.classList.add('hidden');
+                    }
+                    toggleBulkFieldBody(accCb);
+                }
+            }
+
+            if (stats.types.has('transfer') && stats.types.size > 1) {
+                notices.push('Transaksi Transfer dicampur dengan jenis lain: Anda tetap dapat mengubah Tanggal, Jam, Member, Keterangan, Nominal, atau melakukan Void Massal.');
+            }
+
+            // Amount lock when installment plan is present
+            const amtCb = document.getElementById('bulkApplyAmount');
+            const amtWrap = document.getElementById('bulkAmountInputWrap');
+            const amtMsg = document.getElementById('bulkAmountDisabledMsg');
+            if (amtCb && amtWrap && amtMsg) {
+                if (stats.hasInstallment) {
+                    amtCb.checked = false;
+                    amtCb.disabled = true;
+                    amtWrap.classList.add('hidden');
+                    amtMsg.classList.remove('hidden');
+                    amtMsg.textContent = 'Nominal tidak dapat diubah karena pilihan mencakup transaksi pembelian cicilan kredit.';
+                    notices.push('Sebagian transaksi merupakan pembelian cicilan kredit, sehingga Nominal dan Rekening dikunci.');
+                } else {
+                    amtCb.disabled = false;
+                    amtWrap.classList.remove('hidden');
+                    amtMsg.classList.add('hidden');
+                }
+                toggleBulkFieldBody(amtCb);
+            }
+
+            if (compatNotice) {
+                if (notices.length > 0) {
+                    compatNotice.textContent = notices.join(' ');
+                    compatNotice.classList.remove('hidden');
+                } else {
+                    compatNotice.textContent = '';
+                    compatNotice.classList.add('hidden');
+                }
+            }
+        }
+
+        function switchBulkModalMode(mode) {
+            bulkModalCurrentMode = mode === 'void' ? 'void' : 'update';
+            const actionInput = document.getElementById('bulkActionInput');
+            const updateSection = document.getElementById('bulkUpdateFieldsSection');
+            const voidSection = document.getElementById('bulkVoidSection');
+            const tabUpdate = document.getElementById('bulkModeTabUpdate');
+            const tabVoid = document.getElementById('bulkModeTabVoid');
+
+            if (actionInput) actionInput.value = bulkModalCurrentMode;
+            if (updateSection) updateSection.classList.toggle('hidden', bulkModalCurrentMode !== 'update');
+            if (voidSection) voidSection.classList.toggle('hidden', bulkModalCurrentMode !== 'void');
+
+            if (tabUpdate && tabVoid) {
+                const isUpdate = bulkModalCurrentMode === 'update';
+                tabUpdate.setAttribute('aria-selected', isUpdate ? 'true' : 'false');
+                tabVoid.setAttribute('aria-selected', !isUpdate ? 'true' : 'false');
+
+                tabUpdate.className = isUpdate
+                    ? 'min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer bg-panel text-forest dark:text-blue-300 border border-line shadow-2xs'
+                    : 'min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer text-muted hover:text-charcoal border border-transparent';
+
+                tabVoid.className = !isUpdate
+                    ? 'min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer bg-red-700 text-white border border-red-700 shadow-2xs'
+                    : 'min-h-[44px] sm:min-h-[38px] px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 border border-transparent';
+            }
+
+            hideBulkModalError();
+            syncBulkSubmitButtonState();
+        }
+
+        function syncBulkSubmitButtonState() {
+            const btn = document.getElementById('bulkModalSubmitBtn');
+            const voidConfirm = document.getElementById('bulkVoidConfirmCheck');
+            if (!btn) return;
+
+            if (bulkIsSubmitting) {
+                btn.disabled = true;
+                btn.textContent = 'Memproses...';
+                return;
+            }
+
+            if (bulkModalCurrentMode === 'void') {
+                btn.className = 'min-h-[44px] sm:min-h-[38px] px-5 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-xs font-bold transition inline-flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+                btn.textContent = `Batalkan (Void) ${bulkSelectedTransactions.size} Transaksi`;
+                btn.disabled = !(voidConfirm && voidConfirm.checked);
+            } else {
+                btn.className = 'btn-arus-primary min-h-[44px] sm:min-h-[38px] px-5 justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+                btn.textContent = `Terapkan Koreksi (${bulkSelectedTransactions.size} Transaksi)`;
+                btn.disabled = false;
+            }
+        }
+
+        function openBulkCorrectModal(mode = 'update') {
+            if (bulkSelectedTransactions.size === 0) return;
+
+            const modal = document.getElementById('bulkCorrectModal');
+            if (!modal) return;
+
+            hideBulkModalError();
+            resetBulkModalFields();
+            configureBulkCompatibilityUI();
+            switchBulkModalMode(mode);
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            const focusTarget = document.getElementById(mode === 'void' ? 'bulkVoidConfirmCheck' : 'bulkModeTabUpdate');
+            if (focusTarget) {
+                setTimeout(() => focusTarget.focus(), 40);
+            }
+        }
+
+        function closeBulkCorrectModal() {
+            if (bulkIsSubmitting) return;
+            const modal = document.getElementById('bulkCorrectModal');
+            if (!modal) return;
+
+            document.querySelectorAll('.arus-category-popover').forEach(popover => {
+                popover.dispatchEvent(new CustomEvent('arus:force-close'));
+            });
+
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function applyBulkReasonPreset(text) {
+            const input = document.getElementById('bulkReason');
+            if (!input) return;
+            input.value = text;
+            input.focus();
+        }
+
+        function onBulkMonetaryInput(displayId, hiddenId, allowZero = false) {
+            const displayEl = document.getElementById(displayId);
+            const hiddenEl = document.getElementById(hiddenId);
+            if (!displayEl || !hiddenEl) return;
+
+            const digits = displayEl.value.replace(/\D/g, '');
+            const num = digits !== '' ? parseInt(digits, 10) : (allowZero ? 0 : null);
+
+            if (num === null) {
+                displayEl.value = '';
+                hiddenEl.value = '';
+                return;
+            }
+
+            if (num === 0 && !allowZero) {
+                displayEl.value = '';
+                hiddenEl.value = '';
+                return;
+            }
+
+            displayEl.value = Number(num).toLocaleString('id-ID');
+            hiddenEl.value = String(num);
+        }
+
+        function buildBulkPayload() {
+            const ids = Array.from(bulkSelectedTransactions.values()).map(item => item.id);
+            const versions = {};
+            bulkSelectedTransactions.forEach(item => {
+                versions[item.id] = item.version;
+            });
+
+            const reasonVal = (document.getElementById('bulkReason')?.value || '').trim();
+            const payload = {
+                action: bulkModalCurrentMode,
+                transaction_ids: ids,
+                versions,
+                reason: reasonVal !== '' ? reasonVal : null,
+            };
+
+            if (bulkModalCurrentMode === 'void') {
+                return { payload, errors: [] };
+            }
+
+            const stats = getBulkSelectionStats();
+            const errors = [];
+            let appliedCount = 0;
+
+            if (document.getElementById('bulkApplyCategory')?.checked) {
+                appliedCount++;
+                payload.apply_category = true;
+                const catEl = stats.singleType === 'income'
+                    ? document.getElementById('bulkIncomeCategoryId')
+                    : document.getElementById('bulkExpenseCategoryId');
+                const catVal = catEl?.value || '';
+                if (!catVal) {
+                    errors.push('Pilih kategori baru karena perubahan Kategori diaktifkan.');
+                } else {
+                    payload.category_id = Number(catVal);
+                }
+            }
+
+            if (document.getElementById('bulkApplyAccount')?.checked) {
+                appliedCount++;
+                payload.apply_account = true;
+                const accVal = document.getElementById('bulkAccountId')?.value || '';
+                if (!accVal) {
+                    errors.push('Pilih rekening tujuan perubahan karena perubahan Rekening diaktifkan.');
+                } else {
+                    payload.account_id = Number(accVal);
+                }
+            }
+
+            if (document.getElementById('bulkApplySourceAccount')?.checked) {
+                appliedCount++;
+                payload.apply_source_account = true;
+                const srcVal = document.getElementById('bulkSourceAccountId')?.value || '';
+                if (!srcVal) {
+                    errors.push('Pilih rekening asal transfer yang baru.');
+                } else {
+                    payload.source_account_id = Number(srcVal);
+                }
+            }
+
+            if (document.getElementById('bulkApplyDestinationAccount')?.checked) {
+                appliedCount++;
+                payload.apply_destination_account = true;
+                const dstVal = document.getElementById('bulkDestinationAccountId')?.value || '';
+                if (!dstVal) {
+                    errors.push('Pilih rekening tujuan transfer yang baru.');
+                } else {
+                    payload.destination_account_id = Number(dstVal);
+                }
+            }
+
+            if (payload.apply_source_account && payload.apply_destination_account && payload.source_account_id === payload.destination_account_id) {
+                errors.push('Rekening tujuan transfer harus berbeda dengan rekening asal.');
+            }
+
+            if (document.getElementById('bulkApplyFeeAmount')?.checked) {
+                appliedCount++;
+                payload.apply_fee_amount = true;
+                const rawFee = document.getElementById('bulkFeeAmount')?.value;
+                payload.fee_amount = rawFee !== '' ? Number(rawFee) : 0;
+            }
+
+            if (document.getElementById('bulkApplyFeeCategory')?.checked) {
+                appliedCount++;
+                payload.apply_fee_category = true;
+                const feeCatVal = document.getElementById('bulkFeeCategoryId')?.value || '';
+                payload.fee_category_id = feeCatVal !== '' ? Number(feeCatVal) : null;
+            }
+
+            if (document.getElementById('bulkApplyAmount')?.checked) {
+                appliedCount++;
+                payload.apply_amount = true;
+                const amtVal = Number(document.getElementById('bulkAmount')?.value || 0);
+                if (!amtVal || amtVal <= 0) {
+                    errors.push('Masukkan nominal transaksi lebih dari Rp 0.');
+                } else {
+                    payload.amount = amtVal;
+                }
+            }
+
+            if (document.getElementById('bulkApplyMember')?.checked) {
+                appliedCount++;
+                payload.apply_member = true;
+                const memVal = document.getElementById('bulkMemberId')?.value || '';
+                payload.member_id = memVal !== '' ? Number(memVal) : null;
+            }
+
+            if (document.getElementById('bulkApplyDate')?.checked) {
+                appliedCount++;
+                payload.apply_transaction_date = true;
+                const dateVal = document.getElementById('bulkTransactionDate')?.value || '';
+                if (!dateVal) {
+                    errors.push('Isi tanggal transaksi yang baru.');
+                } else {
+                    payload.transaction_date = dateVal;
+                }
+            }
+
+            if (document.getElementById('bulkApplyTime')?.checked) {
+                appliedCount++;
+                payload.apply_transaction_time = true;
+                const timeVal = document.getElementById('bulkTransactionTime')?.value || '';
+                payload.transaction_time = timeVal !== '' ? timeVal : null;
+            }
+
+            if (document.getElementById('bulkApplyDescription')?.checked) {
+                appliedCount++;
+                payload.apply_description = true;
+                const descVal = (document.getElementById('bulkDescription')?.value || '').trim();
+                if (!descVal) {
+                    errors.push('Isi keterangan transaksi yang baru.');
+                } else {
+                    payload.description = descVal;
+                }
+            }
+
+            if (appliedCount === 0) {
+                errors.push('Centang minimal satu kolom yang ingin diubah secara seragam.');
+            }
+
+            return { payload, errors };
+        }
+
+        async function submitBulkCorrection(event) {
+            event.preventDefault();
+            if (bulkIsSubmitting) return false;
+
+            hideBulkModalError();
+
+            if (bulkSelectedTransactions.size === 0) {
+                showBulkModalErrors('Tidak ada transaksi yang dipilih.');
+                return false;
+            }
+
+            if (bulkModalCurrentMode === 'void' && !document.getElementById('bulkVoidConfirmCheck')?.checked) {
+                showBulkModalErrors('Centang kotak konfirmasi pembatalan transaksi terlebih dahulu.');
+                return false;
+            }
+
+            const { payload, errors } = buildBulkPayload();
+            if (errors.length > 0) {
+                showBulkModalErrors(errors);
+                return false;
+            }
+
+            const form = document.getElementById('bulkCorrectForm');
+            const csrfToken = form?.querySelector('input[name="_token"]')?.value || '';
+            bulkIsSubmitting = true;
+            syncBulkSubmitButtonState();
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    const serverErrors = [];
+                    if (data.errors && typeof data.errors === 'object') {
+                        Object.values(data.errors).forEach(arr => {
+                            if (Array.isArray(arr)) {
+                                arr.forEach(msg => serverErrors.push(msg));
+                            }
+                        });
+                    }
+                    if (serverErrors.length === 0) {
+                        serverErrors.push(data.message || 'Gagal memproses koreksi massal. Silakan periksa kembali data Anda.');
+                    }
+                    showBulkModalErrors(serverErrors);
+                    return false;
+                }
+
+                bulkIsSubmitting = false;
+                closeBulkCorrectModal();
+                clearBulkSelection();
+                showBulkActionFeedback(data.message || 'Koreksi massal transaksi berhasil disimpan.');
+                await runLiveTransactionSearch();
+            } catch (err) {
+                showBulkModalErrors('Terjadi gangguan jaringan saat mengirim permintaan koreksi massal.');
+            } finally {
+                bulkIsSubmitting = false;
+                syncBulkSubmitButtonState();
+            }
+
+            return false;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultsContainer = document.getElementById('transactionResultsContainer');
+            if (resultsContainer) {
+                resultsContainer.addEventListener('change', function(event) {
+                    const rowCb = event.target.closest('[data-bulk-select-row]');
+                    if (rowCb) {
+                        setBulkRowSelected(rowCb);
+                        syncBulkDomSelectionUI();
+                        return;
+                    }
+
+                    const selectAllCb = event.target.closest('[data-bulk-select-all]');
+                    if (selectAllCb) {
+                        const checked = selectAllCb.checked;
+                        getBulkEligibleCheckboxes().forEach(cb => {
+                            cb.checked = checked;
+                            setBulkRowSelected(cb);
+                        });
+                        syncBulkDomSelectionUI();
+                    }
+                });
+            }
+
+            document.querySelectorAll('#bulkCorrectForm [data-bulk-field-toggle]').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    toggleBulkFieldBody(this);
+                });
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key !== 'Escape') return;
+                const modal = document.getElementById('bulkCorrectModal');
+                if (!modal || modal.classList.contains('hidden')) return;
+
+                const hasOpenCategoryPopover = document.querySelector('.arus-category-popover[style*="display: block"]');
+                const hasOpenCalendarPopup = document.querySelector('.arus-calendar-popup[style*="display: block"]');
+                if (hasOpenCategoryPopover || hasOpenCalendarPopup) return;
+
+                event.preventDefault();
+                closeBulkCorrectModal();
+            });
+        });
+    </script>
 </x-layouts.app>

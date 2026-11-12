@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions', [FinancialTransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [FinancialTransactionController::class, 'create'])->name('transactions.create');
     Route::post('/transactions', [FinancialTransactionController::class, 'store'])->name('transactions.store');
+    Route::post('/transactions/bulk-correct', [FinancialTransactionController::class, 'bulkCorrect'])->name('transactions.bulk-correct');
     Route::get('/transactions/{transaction}', [FinancialTransactionController::class, 'show'])->name('transactions.show');
     Route::get('/transactions/{transaction}/edit', [FinancialTransactionController::class, 'edit'])->name('transactions.edit');
     Route::put('/transactions/{transaction}', [FinancialTransactionController::class, 'update'])->name('transactions.update');
