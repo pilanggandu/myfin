@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\StoreMemberRequest;
 use App\Http\Requests\Member\UpdateMemberRequest;
 use App\Models\Member;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -13,6 +14,10 @@ use Illuminate\View\View;
 
 class MemberController extends Controller
 {
+    public function __construct(
+        private readonly ActivityLogService $activityLog
+    ) {}
+
     public function index(Request $request): View
     {
         $space = app('currentSpace');
@@ -46,17 +51,43 @@ class MemberController extends Controller
             'notes' => $request->validated('notes'),
         ]);
 
+        $this->activityLog->log(
+            module: 'member',
+            action: 'created',
+            description: "Menambahkan member '{$member->name}'",
+            space: $space,
+            actor: $request->user(),
+            subject: $member,
+            subjectLabel: $member->name,
+        );
+
         return redirect()->route('members.index')
             ->with('status', "Member \"{$member->name}\" berhasil ditambahkan.");
     }
 
     public function update(UpdateMemberRequest $request, Member $member): RedirectResponse
     {
+        $before = ['name' => $member->name, 'notes' => $member->notes];
         $member->update([
             'name' => $request->validated('name'),
             'color' => $request->validated('color') ?: $member->color,
             'notes' => $request->validated('notes'),
         ]);
+
+        $this->activityLog->log(
+            module: 'member',
+            action: 'updated',
+            description: "Memperbarui data member '{$member->name}'",
+            space: $member->space,
+            actor: $request->user(),
+            subject: $member,
+            subjectLabel: $member->name,
+            properties: $this->activityLog->buildDiff(
+                $before,
+                ['name' => $member->name, 'notes' => $member->notes],
+                ['name' => 'Nama', 'notes' => 'Catatan']
+            ),
+        );
 
         return redirect()->route('members.index')
             ->with('status', "Data member \"{$member->name}\" berhasil diperbarui.");
@@ -68,11 +99,25 @@ class MemberController extends Controller
 
         if ($member->isArchived()) {
             $member->unarchive();
+            $action = 'unarchived';
+            $desc = "Memulihkan member '{$member->name}' dari arsip";
             $message = "Member \"{$member->name}\" berhasil dipulihkan dari arsip.";
         } else {
             $member->archive();
+            $action = 'archived';
+            $desc = "Mengarsipkan member '{$member->name}'";
             $message = "Member \"{$member->name}\" berhasil diarsipkan.";
         }
+
+        $this->activityLog->log(
+            module: 'member',
+            action: $action,
+            description: $desc,
+            space: $member->space,
+            actor: $request->user(),
+            subject: $member,
+            subjectLabel: $member->name,
+        );
 
         return redirect()->route('members.index')->with('status', $message);
     }

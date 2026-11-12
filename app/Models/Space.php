@@ -237,6 +237,11 @@ class Space extends Model
         return $this->shortPlans()->where('status', 'planned');
     }
 
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
     public function totalBalance(): int
     {
         $total = 0;

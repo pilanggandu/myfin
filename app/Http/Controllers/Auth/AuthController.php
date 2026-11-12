@@ -10,6 +10,7 @@ use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Mail\RegistrationOtpMail;
 use App\Models\EmailOtp;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,10 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function showLogin(): View
     {
         return view('auth.login');
@@ -36,6 +41,18 @@ class AuthController extends Controller
         if ($personalSpace) {
             session(['active_space_id' => $personalSpace->id]);
         }
+
+        $this->activityLog->log(
+            module: 'auth',
+            action: 'login',
+            description: 'Masuk ke akun menggunakan email dan kata sandi',
+            space: null,
+            actor: $user,
+            subject: $user,
+            subjectLabel: $user->email,
+            properties: ['method' => 'password'],
+            request: $request,
+        );
 
         return redirect()->intended(route('dashboard'));
     }
@@ -165,6 +182,18 @@ class AuthController extends Controller
             session(['active_space_id' => $personalSpace->id]);
         }
 
+        $this->activityLog->log(
+            module: 'auth',
+            action: 'registered',
+            description: 'Mendaftarkan akun baru melalui verifikasi email OTP',
+            space: null,
+            actor: $user,
+            subject: $user,
+            subjectLabel: $user->email,
+            properties: ['method' => 'email_otp'],
+            request: $request,
+        );
+
         return redirect()->route('dashboard')
             ->with('success', 'Selamat datang di ARUS! Email berhasil diverifikasi dan ruang keuangan personal Anda telah disiapkan.');
     }
@@ -211,6 +240,20 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if ($user) {
+            $this->activityLog->log(
+                module: 'auth',
+                action: 'logout',
+                description: 'Keluar dari sesi akun',
+                space: null,
+                actor: $user,
+                subject: $user,
+                subjectLabel: $user->email,
+                request: $request,
+            );
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();

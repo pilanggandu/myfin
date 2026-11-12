@@ -19,6 +19,10 @@ use Illuminate\Validation\ValidationException;
 
 class CreditService
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function createCreditAccount(Space $space, array $data): CreditAccount
     {
         return DB::transaction(function () use ($space, $data) {
@@ -31,7 +35,7 @@ class CreditService
                 'is_default' => false,
             ]);
 
-            return CreditAccount::create([
+            $creditAccount = CreditAccount::create([
                 'space_id' => $space->id,
                 'account_id' => $ledgerAccount->id,
                 'name' => $data['name'],
@@ -40,12 +44,35 @@ class CreditService
                 'billing_cycle_day' => ! empty($data['billing_cycle_day']) ? (int) $data['billing_cycle_day'] : null,
                 'due_day' => ! empty($data['due_day']) ? (int) $data['due_day'] : null,
             ]);
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'created',
+                description: "Menambahkan akun kredit \"{$creditAccount->name}\" (limit ".$this->activityLog->formatCurrency($creditAccount->credit_limit).')',
+                space: $space,
+                subject: $creditAccount,
+                subjectLabel: $creditAccount->name,
+                properties: [
+                    'type' => $creditAccount->type,
+                    'credit_limit' => $creditAccount->credit_limit,
+                ],
+            );
+
+            return $creditAccount;
         });
     }
 
     public function updateCreditAccount(CreditAccount $creditAccount, array $data): CreditAccount
     {
         return DB::transaction(function () use ($creditAccount, $data) {
+            $before = [
+                'name' => $creditAccount->name,
+                'type' => $creditAccount->type,
+                'credit_limit' => $creditAccount->credit_limit,
+                'billing_cycle_day' => $creditAccount->billing_cycle_day,
+                'due_day' => $creditAccount->due_day,
+            ];
+
             $creditAccount->update([
                 'name' => $data['name'],
                 'type' => $data['type'] ?? $creditAccount->type,
@@ -60,6 +87,30 @@ class CreditService
                     'type' => $data['type'] ?? $creditAccount->type,
                 ]);
             }
+
+            $diff = $this->activityLog->buildDiff($before, [
+                'name' => $creditAccount->name,
+                'type' => $creditAccount->type,
+                'credit_limit' => $creditAccount->credit_limit,
+                'billing_cycle_day' => $creditAccount->billing_cycle_day,
+                'due_day' => $creditAccount->due_day,
+            ], [
+                'name' => 'Nama Akun',
+                'type' => 'Tipe',
+                'credit_limit' => 'Limit Kredit',
+                'billing_cycle_day' => 'Tanggal Cetak Tagihan',
+                'due_day' => 'Tanggal Jatuh Tempo',
+            ]);
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'updated',
+                description: "Memperbarui akun kredit \"{$creditAccount->name}\"",
+                space: $creditAccount->space,
+                subject: $creditAccount,
+                subjectLabel: $creditAccount->name,
+                properties: $diff,
+            );
 
             return $creditAccount;
         });
@@ -236,6 +287,23 @@ class CreditService
                 $plan->checkCompletion();
             }
 
+            if (empty($data['skip_activity_log'])) {
+                $this->activityLog->log(
+                    module: 'credit',
+                    action: 'created',
+                    description: "Mencatat pembelian kredit \"{$plan->name}\" sebesar ".$this->activityLog->formatCurrency($totalAmount)." ({$tenor}x cicilan via {$lockedCreditAccount->name})",
+                    space: $space,
+                    actor: $actor,
+                    subject: $plan,
+                    subjectLabel: $plan->name,
+                    properties: [
+                        'credit_account' => $lockedCreditAccount->name,
+                        'total_amount' => $totalAmount,
+                        'tenor' => $tenor,
+                    ],
+                );
+            }
+
             return $plan;
         });
     }
@@ -386,6 +454,22 @@ class CreditService
 
             $lockedInstallment->installmentPlan->checkCompletion();
 
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'paid',
+                description: "Membayar cicilan ke-{$lockedInstallment->installment_number} \"{$lockedInstallment->installmentPlan->name}\" sebesar ".$this->activityLog->formatCurrency($payment->total_amount),
+                space: $space,
+                actor: $actor,
+                subject: $lockedInstallment->installmentPlan,
+                subjectLabel: $lockedInstallment->installmentPlan->name,
+                properties: [
+                    'installment_number' => $lockedInstallment->installment_number,
+                    'total_amount' => $payment->total_amount,
+                    'source_account' => $sourceAccount->name,
+                    'payment_date' => $data['payment_date'],
+                ],
+            );
+
             return $payment;
         });
     }
@@ -414,6 +498,19 @@ class CreditService
                     'updated_by' => $actor->id,
                 ]);
             }
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'voided',
+                description: "Membatalkan (void) rencana cicilan \"{$plan->name}\" sebesar ".$this->activityLog->formatCurrency($plan->total_amount),
+                space: $plan->space,
+                actor: $actor,
+                subject: $plan,
+                subjectLabel: $plan->name,
+                properties: [
+                    'total_amount' => $plan->total_amount,
+                ],
+            );
         });
     }
 
@@ -514,6 +611,21 @@ class CreditService
 
             $lockedPlan->update(['status' => 'completed']);
 
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'payoff',
+                description: "Melunasi penuh rencana cicilan \"{$lockedPlan->name}\" ({$settledCount} cicilan) sebesar ".$this->activityLog->formatCurrency($totalRemainingPrincipal),
+                space: $space,
+                actor: $actor,
+                subject: $lockedPlan,
+                subjectLabel: $lockedPlan->name,
+                properties: [
+                    'settled_count' => $settledCount,
+                    'total_paid' => $totalRemainingPrincipal,
+                    'source_account' => $sourceAccount->name,
+                ],
+            );
+
             return [
                 'transaction' => $transaction,
                 'settled_count' => $settledCount,
@@ -577,6 +689,21 @@ class CreditService
 
             $lockedInstallment->installmentPlan->checkCompletion();
 
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'mark_paid',
+                description: "Menandai lunas tanpa kas untuk cicilan ke-{$lockedInstallment->installment_number} \"{$lockedInstallment->installmentPlan->name}\"",
+                space: $space,
+                actor: $actor,
+                subject: $lockedInstallment->installmentPlan,
+                subjectLabel: $lockedInstallment->installmentPlan->name,
+                properties: [
+                    'installment_number' => $lockedInstallment->installment_number,
+                    'principal_amount' => $lockedInstallment->principal_amount,
+                    'notes' => $notes,
+                ],
+            );
+
             return $lockedInstallment;
         });
     }
@@ -637,6 +764,21 @@ class CreditService
 
             $plan->checkCompletion();
 
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'mark_paid',
+                description: "Menandai lunas {$overdueInstallments->count()} cicilan lampau untuk \"{$plan->name}\"",
+                space: $space,
+                actor: $actor,
+                subject: $plan,
+                subjectLabel: $plan->name,
+                properties: [
+                    'count' => $overdueInstallments->count(),
+                    'total_principal' => $totalPrincipal,
+                    'notes' => $notes,
+                ],
+            );
+
             return $overdueInstallments->count();
         });
     }
@@ -681,6 +823,19 @@ class CreditService
             if ($plan->status === 'completed') {
                 $plan->update(['status' => 'active']);
             }
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'reset_pending',
+                description: "Mengembalikan status cicilan ke-{$locked->installment_number} \"{$plan->name}\" menjadi menunggu",
+                space: $plan->space,
+                actor: $actor,
+                subject: $plan,
+                subjectLabel: $plan->name,
+                properties: [
+                    'installment_number' => $locked->installment_number,
+                ],
+            );
 
             return $locked;
         });
@@ -817,6 +972,22 @@ class CreditService
             if (Schema::hasTable('credit_debit_notes')) {
                 $note->save();
             }
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'note_added',
+                description: 'Mencatat '.($type === 'credit_note' ? 'nota kredit' : 'nota debit')." pada akun \"{$creditAccount->name}\" sebesar ".$this->activityLog->formatCurrency($amount),
+                space: $space,
+                actor: $actor,
+                subject: $creditAccount,
+                subjectLabel: $creditAccount->name,
+                properties: [
+                    'note_type' => $type,
+                    'amount' => $amount,
+                    'note_date' => $noteDate,
+                    'description' => $description,
+                ],
+            );
 
             return $note;
         });
@@ -980,7 +1151,7 @@ class CreditService
                 }
             }
 
-            return CreditPayment::create([
+            $payment = CreditPayment::create([
                 'space_id' => $space->id,
                 'credit_account_id' => $creditAccount->id,
                 'installment_id' => null,
@@ -993,6 +1164,25 @@ class CreditService
                 'payment_date' => $data['payment_date'],
                 'notes' => $data['notes'] ?? 'Pembayaran Tagihan Akun Kredit',
             ]);
+
+            if (empty($data['skip_activity_log'])) {
+                $this->activityLog->log(
+                    module: 'credit',
+                    action: 'paid',
+                    description: "Membayar tagihan akun kredit \"{$creditAccount->name}\" sebesar ".$this->activityLog->formatCurrency($paymentAmount),
+                    space: $space,
+                    actor: $actor,
+                    subject: $creditAccount,
+                    subjectLabel: $creditAccount->name,
+                    properties: [
+                        'amount' => $paymentAmount,
+                        'source_account' => $sourceAccount->name,
+                        'payment_date' => $data['payment_date'],
+                    ],
+                );
+            }
+
+            return $payment;
         });
     }
 }

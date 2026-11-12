@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\StoreBudgetRequest;
 use App\Http\Requests\Budget\UpdateBudgetRequest;
 use App\Models\Budget;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -14,6 +15,10 @@ use Illuminate\View\View;
 
 class BudgetController extends Controller
 {
+    public function __construct(
+        private readonly ActivityLogService $activityLog
+    ) {}
+
     public function index(Request $request): View
     {
         Gate::authorize('viewAny', Budget::class);
@@ -86,7 +91,26 @@ class BudgetController extends Controller
         $space = app('currentSpace');
         $validated = $request->validated();
 
-        $space->budgets()->create($validated);
+        $budget = $space->budgets()->create($validated);
+        $budget->load('category');
+        $categoryName = $budget->category?->name ?? 'Kategori';
+        $periodLabel = sprintf('%02d/%d', $budget->month, $budget->year);
+
+        $this->activityLog->log(
+            module: 'budget',
+            action: 'created',
+            description: "Menetapkan anggaran '{$categoryName}' periode {$periodLabel} sebesar ".$this->activityLog->formatCurrency($budget->limit_amount),
+            space: $space,
+            actor: $request->user(),
+            subject: $budget,
+            subjectLabel: "{$categoryName} ({$periodLabel})",
+            properties: [
+                'category' => $categoryName,
+                'year' => $budget->year,
+                'month' => $budget->month,
+                'limit_amount' => (int) $budget->limit_amount,
+            ],
+        );
 
         return redirect()->route('budgets.index', [
             'year' => $validated['year'],
@@ -99,9 +123,28 @@ class BudgetController extends Controller
         Gate::authorize('update', $budget);
 
         $validated = $request->validated();
+        $oldLimit = (int) $budget->limit_amount;
         $budget->update([
             'limit_amount' => $validated['limit_amount'],
         ]);
+
+        $categoryName = $budget->category?->name ?? 'Kategori';
+        $periodLabel = sprintf('%02d/%d', $budget->month, $budget->year);
+
+        $this->activityLog->log(
+            module: 'budget',
+            action: 'updated',
+            description: "Memperbarui limit anggaran '{$categoryName}' ({$periodLabel}) menjadi ".$this->activityLog->formatCurrency($budget->limit_amount),
+            space: $budget->space,
+            actor: $request->user(),
+            subject: $budget,
+            subjectLabel: "{$categoryName} ({$periodLabel})",
+            properties: $this->activityLog->buildDiff(
+                ['limit_amount' => $oldLimit],
+                ['limit_amount' => (int) $budget->limit_amount],
+                ['limit_amount' => 'Limit Anggaran']
+            ),
+        );
 
         return redirect()->route('budgets.index', [
             'year' => $budget->year,
@@ -116,8 +159,20 @@ class BudgetController extends Controller
         $year = $budget->year;
         $month = $budget->month;
         $categoryName = $budget->category->name;
+        $space = $budget->space;
+        $periodLabel = sprintf('%02d/%d', $month, $year);
+        $limitAmount = (int) $budget->limit_amount;
 
         $budget->delete();
+
+        $this->activityLog->log(
+            module: 'budget',
+            action: 'deleted',
+            description: "Menghapus anggaran '{$categoryName}' periode {$periodLabel}",
+            space: $space,
+            subjectLabel: "{$categoryName} ({$periodLabel})",
+            properties: ['limit_amount' => $limitAmount],
+        );
 
         return redirect()->route('budgets.index', [
             'year' => $year,

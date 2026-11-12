@@ -8,6 +8,7 @@ use App\Http\Requests\Credit\StoreCreditAccountRequest;
 use App\Http\Requests\Credit\UpdateCreditAccountRequest;
 use App\Models\CreditAccount;
 use App\Models\Installment;
+use App\Services\ActivityLogService;
 use App\Services\CreditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ use Illuminate\View\View;
 class CreditAccountController extends Controller
 {
     public function __construct(
-        protected CreditService $creditService
+        protected CreditService $creditService,
+        protected ActivityLogService $activityLog
     ) {}
 
     public function index(Request $request): View
@@ -232,6 +234,15 @@ class CreditAccountController extends Controller
 
         $creditAccount->archive();
 
+        $this->activityLog->log(
+            module: 'credit',
+            action: 'archived',
+            description: "Mengarsipkan akun kredit \"{$creditAccount->name}\"",
+            space: app('currentSpace'),
+            subject: $creditAccount,
+            subjectLabel: $creditAccount->name,
+        );
+
         return redirect()->route('credit.index', ['tab' => 'accounts'])
             ->with('status', 'Akun kredit berhasil diarsipkan.');
     }
@@ -241,6 +252,15 @@ class CreditAccountController extends Controller
         Gate::authorize('update', $creditAccount);
 
         $creditAccount->unarchive();
+
+        $this->activityLog->log(
+            module: 'credit',
+            action: 'unarchived',
+            description: "Mengaktifkan kembali akun kredit \"{$creditAccount->name}\"",
+            space: app('currentSpace'),
+            subject: $creditAccount,
+            subjectLabel: $creditAccount->name,
+        );
 
         return redirect()->route('credit.index', ['tab' => 'accounts'])
             ->with('status', 'Akun kredit berhasil diaktifkan kembali.');

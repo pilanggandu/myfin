@@ -8,6 +8,7 @@ use App\Http\Requests\Auth\VerifyPasswordResetOtpRequest;
 use App\Mail\PasswordResetOtpMail;
 use App\Models\PasswordResetOtp;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +17,10 @@ use Illuminate\View\View;
 
 class ForgotPasswordController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function showLinkRequestForm(): View
     {
         return view('auth.forgot-password');
@@ -124,6 +129,17 @@ class ForgotPasswordController extends Controller
 
         $resetOtp->delete();
         $request->session()->forget(['password_reset_email', 'password_reset_otp_sent_at']);
+
+        $this->activityLog->log(
+            module: 'auth',
+            action: 'password_reset',
+            description: 'Mereset kata sandi akun melalui kode OTP email',
+            space: null,
+            actor: $user,
+            subject: $user,
+            subjectLabel: $user->email,
+            request: $request,
+        );
 
         return redirect()->route('login')
             ->with('success', 'Kata sandi berhasil diperbarui! Silakan masuk dengan kata sandi baru Anda.');

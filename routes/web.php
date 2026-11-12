@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Accounts\AccountController;
+use App\Http\Controllers\ActivityLogs\ActivityLogController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -120,6 +121,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])->name('reports.export-csv');
+
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::get('/activity-logs/export-csv', [ActivityLogController::class, 'exportCsv'])->name('activity-logs.export-csv');
 
     Route::get('/currencies', [CurrencyController::class, 'index'])->name('currencies.index');
     Route::post('/currencies', [CurrencyController::class, 'store'])->name('currencies.store');

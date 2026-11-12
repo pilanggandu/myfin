@@ -20,6 +20,10 @@ use Illuminate\Validation\ValidationException;
 
 class TransactionService
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function recordIncome(Space $space, User $actor, array $data): FinancialTransaction
     {
         $requestKey = $data['request_key'] ?? null;
@@ -89,6 +93,25 @@ class TransactionService
                     'account_id' => $account->id,
                     'amount_signed' => $amount,
                 ]);
+
+                if (empty($data['skip_activity_log'])) {
+                    $this->activityLog->log(
+                        module: 'transaction',
+                        action: 'created',
+                        description: "Mencatat pemasukan '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." ke {$account->name}",
+                        space: $space,
+                        actor: $actor,
+                        subject: $transaction,
+                        subjectLabel: "#{$transaction->id} {$transaction->description}",
+                        properties: [
+                            'type' => 'income',
+                            'amount' => $amount,
+                            'account' => $account->name,
+                            'category' => $category->name,
+                            'date' => $transaction->transaction_date->toDateString(),
+                        ],
+                    );
+                }
 
                 return $transaction;
             });
@@ -176,6 +199,25 @@ class TransactionService
                     'account_id' => $account->id,
                     'amount_signed' => -$amount,
                 ]);
+
+                if (empty($data['skip_activity_log'])) {
+                    $this->activityLog->log(
+                        module: 'transaction',
+                        action: 'created',
+                        description: "Mencatat pengeluaran '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." dari {$account->name}",
+                        space: $space,
+                        actor: $actor,
+                        subject: $transaction,
+                        subjectLabel: "#{$transaction->id} {$transaction->description}",
+                        properties: [
+                            'type' => 'expense',
+                            'amount' => $amount,
+                            'account' => $account->name,
+                            'category' => $category->name,
+                            'date' => $transaction->transaction_date->toDateString(),
+                        ],
+                    );
+                }
 
                 return $transaction;
             });
@@ -318,6 +360,27 @@ class TransactionService
                     'account_id' => $destAccount->id,
                     'amount_signed' => $amount,
                 ]);
+
+                if (empty($data['skip_activity_log'])) {
+                    $feeText = $feeAmount > 0 ? ' (biaya admin '.$this->activityLog->formatCurrency($feeAmount).')' : '';
+                    $this->activityLog->log(
+                        module: 'transaction',
+                        action: 'created',
+                        description: "Mencatat transfer '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." dari {$sourceAccount->name} ke {$destAccount->name}{$feeText}",
+                        space: $space,
+                        actor: $actor,
+                        subject: $transaction,
+                        subjectLabel: "#{$transaction->id} {$transaction->description}",
+                        properties: [
+                            'type' => 'transfer',
+                            'amount' => $amount,
+                            'fee_amount' => $feeAmount,
+                            'source_account' => $sourceAccount->name,
+                            'destination_account' => $destAccount->name,
+                            'date' => $transaction->transaction_date->toDateString(),
+                        ],
+                    );
+                }
 
                 return $transaction;
             });
@@ -463,6 +526,21 @@ class TransactionService
                 'created_at' => now(),
             ]);
 
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'updated',
+                description: "Mengoreksi transaksi #{$lockedTransaction->id} '{$lockedTransaction->description}' (v{$lockedTransaction->version})",
+                space: $space,
+                actor: $actor,
+                subject: $lockedTransaction,
+                subjectLabel: "#{$lockedTransaction->id} {$lockedTransaction->description}",
+                properties: array_filter([
+                    'reason' => $reason,
+                    'before' => $beforeSnapshot,
+                    'after' => $afterSnapshot,
+                ], fn (mixed $v): bool => $v !== null),
+            );
+
             return $lockedTransaction;
         });
     }
@@ -537,16 +615,48 @@ class TransactionService
             }
 
             if ($action === 'void') {
-                return $lockedTransactions->map(
+                $voided = $lockedTransactions->map(
                     fn (FinancialTransaction $tx): FinancialTransaction => $this->applyVoidToLockedTransaction(
                         $tx,
                         $actor,
                         $reason ?? 'Pembatalan massal transaksi (void)'
                     )
                 );
+
+                $this->activityLog->log(
+                    module: 'transaction',
+                    action: 'bulk_voided',
+                    description: "Membatalkan (void) {$voided->count()} transaksi secara massal",
+                    space: $space,
+                    actor: $actor,
+                    subjectLabel: "{$voided->count()} transaksi",
+                    properties: array_filter([
+                        'count' => $voided->count(),
+                        'transaction_ids' => $voided->pluck('id')->all(),
+                        'reason' => $reason,
+                    ], fn (mixed $v): bool => $v !== null),
+                );
+
+                return $voided;
             }
 
-            return $this->applyBulkFieldUpdates($space, $actor, $lockedTransactions, $data, $reason);
+            $updated = $this->applyBulkFieldUpdates($space, $actor, $lockedTransactions, $data, $reason);
+
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'bulk_updated',
+                description: "Mengoreksi {$updated->count()} transaksi secara massal",
+                space: $space,
+                actor: $actor,
+                subjectLabel: "{$updated->count()} transaksi",
+                properties: array_filter([
+                    'count' => $updated->count(),
+                    'transaction_ids' => $updated->pluck('id')->all(),
+                    'reason' => $reason,
+                ], fn (mixed $v): bool => $v !== null),
+            );
+
+            return $updated;
         });
     }
 
@@ -563,7 +673,23 @@ class TransactionService
 
             $lockedTransaction->load(['entries.account', 'category', 'feeCategory']);
 
-            return $this->applyVoidToLockedTransaction($lockedTransaction, $actor, $reason);
+            $voided = $this->applyVoidToLockedTransaction($lockedTransaction, $actor, $reason);
+
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'voided',
+                description: "Membatalkan (void) transaksi #{$voided->id} '{$voided->description}' sebesar ".$this->activityLog->formatCurrency($voided->totalAmount()),
+                space: $voided->space,
+                actor: $actor,
+                subject: $voided,
+                subjectLabel: "#{$voided->id} {$voided->description}",
+                properties: array_filter([
+                    'amount' => $voided->totalAmount(),
+                    'reason' => $reason,
+                ], fn (mixed $v): bool => $v !== null),
+            );
+
+            return $voided;
         });
     }
 

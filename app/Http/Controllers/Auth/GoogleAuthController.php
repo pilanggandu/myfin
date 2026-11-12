@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,10 @@ use Laravel\Socialite\Facades\Socialite;
 
 class GoogleAuthController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function redirect(Request $request): RedirectResponse
     {
         if (empty(config('services.google.client_id')) || empty(config('services.google.client_secret'))) {
@@ -72,6 +77,17 @@ class GoogleAuthController extends Controller
                 'avatar' => $currentUser->avatar ?: $googleUser->getAvatar(),
             ]);
 
+            $this->activityLog->log(
+                module: 'profile',
+                action: 'google_linked',
+                description: 'Menautkan akun Google ke profil akun',
+                space: null,
+                actor: $currentUser,
+                subject: $currentUser,
+                subjectLabel: $email,
+                request: $request,
+            );
+
             return redirect()->route('profile.edit')->with('success', 'Akun Google berhasil ditautkan ke profil Anda.');
         }
 
@@ -99,6 +115,18 @@ class GoogleAuthController extends Controller
             $request->session()->regenerate();
             session(['active_space_id' => $personalSpace->id]);
 
+            $this->activityLog->log(
+                module: 'auth',
+                action: 'login',
+                description: 'Masuk ke akun menggunakan Google SSO',
+                space: null,
+                actor: $user,
+                subject: $user,
+                subjectLabel: $user->email,
+                properties: ['method' => 'google'],
+                request: $request,
+            );
+
             return redirect()->intended(route('dashboard'))->with('success', 'Berhasil masuk dengan akun Google.');
         }
 
@@ -121,6 +149,18 @@ class GoogleAuthController extends Controller
         $request->session()->regenerate();
         session(['active_space_id' => $personalSpace->id]);
 
+        $this->activityLog->log(
+            module: 'auth',
+            action: 'registered',
+            description: 'Mendaftarkan akun baru melalui Google SSO',
+            space: null,
+            actor: $newUser,
+            subject: $newUser,
+            subjectLabel: $newUser->email,
+            properties: ['method' => 'google'],
+            request: $request,
+        );
+
         return redirect()->route('dashboard')->with('success', 'Selamat datang di ARUS! Akun Anda berhasil didaftarkan melalui Google.');
     }
 
@@ -133,6 +173,17 @@ class GoogleAuthController extends Controller
         }
 
         $user->update(['google_id' => null]);
+
+        $this->activityLog->log(
+            module: 'profile',
+            action: 'google_unlinked',
+            description: 'Memutuskan tautan akun Google dari profil',
+            space: null,
+            actor: $user,
+            subject: $user,
+            subjectLabel: $user->email,
+            request: $request,
+        );
 
         return redirect()->route('profile.edit')->with('success', 'Tautan akun Google berhasil diputuskan.');
     }

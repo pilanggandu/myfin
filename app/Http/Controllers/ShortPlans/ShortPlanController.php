@@ -10,6 +10,7 @@ use App\Http\Requests\ShortPlan\UpdateShortPlanRequest;
 use App\Models\ShortPlan;
 use App\Models\ShortPlanItem;
 use App\Models\Space;
+use App\Services\ActivityLogService;
 use App\Services\TransactionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +24,8 @@ use Illuminate\View\View;
 class ShortPlanController extends Controller
 {
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected ActivityLogService $activityLog
     ) {}
 
     public function index(Request $request): View
@@ -212,6 +214,21 @@ class ShortPlanController extends Controller
                 ]);
             }
 
+            $this->activityLog->log(
+                module: 'short_plan',
+                action: 'created',
+                description: "Membuat Short Plan '{$plan->title}' dengan estimasi ".$this->activityLog->formatCurrency($plan->planned_amount),
+                space: $space,
+                actor: $user,
+                subject: $plan,
+                subjectLabel: $plan->title,
+                properties: [
+                    'planned_amount' => (float) $plan->planned_amount,
+                    'priority' => $plan->priority,
+                    'items_count' => count($items),
+                ],
+            );
+
             return $plan;
         });
 
@@ -315,7 +332,39 @@ class ShortPlanController extends Controller
             }
         }
 
+        $before = [
+            'title' => $shortPlan->title,
+            'planned_amount' => (float) $shortPlan->planned_amount,
+            'priority' => $shortPlan->priority,
+            'status' => $shortPlan->status,
+        ];
+
         $shortPlan->update($updateData);
+
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'updated',
+            description: "Memperbarui Short Plan '{$shortPlan->title}'",
+            space: $shortPlan->space,
+            actor: $user,
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+            properties: $this->activityLog->buildDiff(
+                $before,
+                [
+                    'title' => $shortPlan->title,
+                    'planned_amount' => (float) $shortPlan->planned_amount,
+                    'priority' => $shortPlan->priority,
+                    'status' => $shortPlan->status,
+                ],
+                [
+                    'title' => 'Judul',
+                    'planned_amount' => 'Estimasi Biaya',
+                    'priority' => 'Prioritas',
+                    'status' => 'Status',
+                ]
+            ),
+        );
 
         return redirect()->route('short-plans.show', $shortPlan)
             ->with('success', 'Rencana "'.$shortPlan->title.'" berhasil diperbarui.');
@@ -323,10 +372,20 @@ class ShortPlanController extends Controller
 
     public function destroy(ShortPlan $shortPlan): RedirectResponse
     {
-        $this->authorizePlan($shortPlan, 'delete');
+        $space = $this->authorizePlan($shortPlan, 'delete');
 
         $title = $shortPlan->title;
+        $planId = $shortPlan->id;
         $shortPlan->delete();
+
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'deleted',
+            description: "Menghapus Short Plan '{$title}'",
+            space: $space,
+            subjectLabel: $title,
+            properties: ['deleted_short_plan_id' => $planId],
+        );
 
         return redirect()->route('short-plans.index')
             ->with('success', 'Rencana "'.$title.'" berhasil dihapus.');
@@ -363,6 +422,7 @@ class ShortPlanController extends Controller
                     'description' => $description,
                     'member_id' => $validated['member_id'] ?? $shortPlan->member_id,
                     'request_key' => $validated['request_key'] ?? (string) Str::uuid(),
+                    'skip_activity_log' => true,
                 ]);
 
                 $shortPlan->update([
@@ -389,6 +449,23 @@ class ShortPlanController extends Controller
                 ]);
             }
 
+            $realizedAmount = (float) ($shortPlan->actual_amount ?? $shortPlan->planned_amount);
+            $txSuffix = $recordedTx ? " dan mencatat transaksi #{$recordedTx->id}" : ' tanpa mencatat mutasi kas';
+            $this->activityLog->log(
+                module: 'short_plan',
+                action: 'realized',
+                description: "Merealisasikan Short Plan '{$shortPlan->title}' sebesar ".$this->activityLog->formatCurrency($realizedAmount).$txSuffix,
+                space: $space,
+                actor: $user,
+                subject: $shortPlan,
+                subjectLabel: $shortPlan->title,
+                properties: array_filter([
+                    'actual_amount' => $realizedAmount,
+                    'record_transaction' => $recordTransaction,
+                    'transaction_id' => $recordedTx?->id,
+                ], fn (mixed $v): bool => $v !== null),
+            );
+
             return $recordedTx;
         });
 
@@ -405,7 +482,7 @@ class ShortPlanController extends Controller
 
     public function cancel(Request $request, ShortPlan $shortPlan): RedirectResponse
     {
-        $this->authorizePlan($shortPlan, 'update');
+        $space = $this->authorizePlan($shortPlan, 'update');
 
         if ($shortPlan->isDone()) {
             return back()->with('warning', 'Rencana yang sudah terealisasi tidak dapat dibatalkan langsung. Buka kembali terlebih dahulu jika diperlukan.');
@@ -416,12 +493,22 @@ class ShortPlanController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'cancelled',
+            description: "Membatalkan Short Plan '{$shortPlan->title}'",
+            space: $space,
+            actor: $request->user(),
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+        );
+
         return back()->with('success', 'Rencana "'.$shortPlan->title.'" dibatalkan.');
     }
 
     public function reopen(Request $request, ShortPlan $shortPlan): RedirectResponse
     {
-        $this->authorizePlan($shortPlan, 'update');
+        $space = $this->authorizePlan($shortPlan, 'update');
 
         $hadLinkedTx = $shortPlan->financial_transaction_id !== null;
 
@@ -432,6 +519,16 @@ class ShortPlanController extends Controller
             'financial_transaction_id' => null,
             'updated_by' => $request->user()->id,
         ]);
+
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'reopened',
+            description: "Membuka kembali Short Plan '{$shortPlan->title}'",
+            space: $space,
+            actor: $request->user(),
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+        );
 
         $msg = 'Rencana "'.$shortPlan->title.'" diaktifkan kembali.';
         if ($hadLinkedTx) {
@@ -448,7 +545,7 @@ class ShortPlanController extends Controller
 
         $nextOrder = ((int) $shortPlan->items()->max('sort_order')) + 1;
 
-        ShortPlanItem::create([
+        $item = ShortPlanItem::create([
             'space_id' => $space->id,
             'short_plan_id' => $shortPlan->id,
             'title' => $validated['title'],
@@ -457,13 +554,24 @@ class ShortPlanController extends Controller
             'sort_order' => $nextOrder,
         ]);
 
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'item_added',
+            description: "Menambahkan item rincian '{$item->title}' pada Short Plan '{$shortPlan->title}'",
+            space: $space,
+            actor: $request->user(),
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+            properties: ['item_title' => $item->title, 'estimated_amount' => (float) $item->estimated_amount],
+        );
+
         return redirect()->route('short-plans.show', $shortPlan)
             ->with('success', 'Item rincian berhasil ditambahkan.');
     }
 
     public function toggleItem(Request $request, ShortPlan $shortPlan, ShortPlanItem $item): RedirectResponse|JsonResponse
     {
-        $this->authorizePlan($shortPlan, 'update');
+        $space = $this->authorizePlan($shortPlan, 'update');
 
         if ((int) $item->short_plan_id !== (int) $shortPlan->id) {
             abort(403);
@@ -472,6 +580,18 @@ class ShortPlanController extends Controller
         $item->update([
             'is_checked' => ! $item->is_checked,
         ]);
+
+        $stateLabel = $item->is_checked ? 'Menandai selesai' : 'Membatalkan centang';
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'item_toggled',
+            description: "{$stateLabel} item '{$item->title}' pada Short Plan '{$shortPlan->title}'",
+            space: $space,
+            actor: $request->user(),
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+            properties: ['item_title' => $item->title, 'is_checked' => (bool) $item->is_checked],
+        );
 
         if ($request->expectsJson() || $request->wantsJson()) {
             $items = $shortPlan->items()->get();
@@ -492,17 +612,29 @@ class ShortPlanController extends Controller
 
     public function syncAmountFromItems(Request $request, ShortPlan $shortPlan): RedirectResponse
     {
-        $this->authorizePlan($shortPlan, 'update');
+        $space = $this->authorizePlan($shortPlan, 'update');
 
         $total = $shortPlan->itemsTotalAmount();
         if ($total < 1) {
             return back()->with('warning', 'Total nominal item rincian minimal Rp 1 untuk disinkronkan ke estimasi rencana.');
         }
 
+        $oldPlanned = (float) $shortPlan->planned_amount;
         $shortPlan->update([
             'planned_amount' => $total,
             'updated_by' => $request->user()->id,
         ]);
+
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'amount_synced',
+            description: "Menyinkronkan estimasi Short Plan '{$shortPlan->title}' menjadi ".$this->activityLog->formatCurrency($total),
+            space: $space,
+            actor: $request->user(),
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+            properties: ['previous_amount' => $oldPlanned, 'planned_amount' => (float) $total],
+        );
 
         return redirect()->route('short-plans.show', $shortPlan)
             ->with('success', 'Estimasi biaya rencana disinkronkan menjadi Rp '.number_format($total, 0, ',', '.').'.');
@@ -510,13 +642,24 @@ class ShortPlanController extends Controller
 
     public function destroyItem(ShortPlan $shortPlan, ShortPlanItem $item): RedirectResponse
     {
-        $this->authorizePlan($shortPlan, 'update');
+        $space = $this->authorizePlan($shortPlan, 'update');
 
         if ((int) $item->short_plan_id !== (int) $shortPlan->id) {
             abort(403);
         }
 
+        $itemTitle = $item->title;
         $item->delete();
+
+        $this->activityLog->log(
+            module: 'short_plan',
+            action: 'item_deleted',
+            description: "Menghapus item rincian '{$itemTitle}' dari Short Plan '{$shortPlan->title}'",
+            space: $space,
+            subject: $shortPlan,
+            subjectLabel: $shortPlan->title,
+            properties: ['item_title' => $itemTitle],
+        );
 
         return redirect()->route('short-plans.show', $shortPlan)
             ->with('success', 'Item rincian dihapus.');

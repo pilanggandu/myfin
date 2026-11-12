@@ -177,6 +177,12 @@
                     </svg>
                     <span>Pengingat</span>
                 </a>
+                <a href="{{ route('activity-logs.index') }}" class="sidebar-nav-item {{ request()->routeIs('activity-logs.*') ? 'active' : '' }}">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <span>Log Aktivitas</span>
+                </a>
                 @if ($currentSpace && !$currentSpace->isPersonal())
                     <a href="{{ route('members.index') }}" class="sidebar-nav-item {{ request()->routeIs('members.*') ? 'active' : '' }}">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

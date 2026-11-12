@@ -7,6 +7,7 @@ use App\Http\Requests\Profile\CleanDataRequest;
 use App\Http\Requests\Profile\UpdatePasswordRequest;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Models\Space;
+use App\Services\ActivityLogService;
 use App\Services\DataCleanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function edit(Request $request): View
     {
         $user = $request->user();
@@ -27,8 +32,30 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $before = [
+            'name' => $user->name,
+            'email' => $user->email,
+        ];
         $user->fill($request->validated());
         $user->save();
+
+        $this->activityLog->log(
+            module: 'profile',
+            action: 'updated',
+            description: 'Memperbarui informasi profil akun',
+            space: null,
+            actor: $user,
+            subject: $user,
+            subjectLabel: $user->name,
+            properties: $this->activityLog->buildDiff($before, [
+                'name' => $user->name,
+                'email' => $user->email,
+            ], [
+                'name' => 'Nama Lengkap',
+                'email' => 'Email',
+            ]),
+            request: $request,
+        );
 
         return redirect()->route('profile.edit')->with('success', 'Profil Anda berhasil diperbarui.');
     }
@@ -42,6 +69,17 @@ class ProfileController extends Controller
             'password' => Hash::make($request->validated('password')),
             'has_password' => true,
         ]);
+
+        $this->activityLog->log(
+            module: 'profile',
+            action: 'password_updated',
+            description: $isFirstTime ? 'Membuat kata sandi akun baru' : 'Mengubah kata sandi akun',
+            space: null,
+            actor: $user,
+            subject: $user,
+            subjectLabel: $user->name,
+            request: $request,
+        );
 
         $message = $isFirstTime
             ? 'Kata sandi akun berhasil dibuat. Sekarang Anda dapat masuk menggunakan email dan kata sandi.'
@@ -79,6 +117,18 @@ class ProfileController extends Controller
         }
 
         $detailText = ! empty($details) ? ' ('.implode(', ', $details).')' : '';
+
+        $this->activityLog->log(
+            module: 'space',
+            action: 'data_cleaned',
+            description: "Membersihkan data ruang \"{$space->name}\"{$detailText}",
+            space: $space,
+            actor: $request->user(),
+            subject: $space,
+            subjectLabel: $space->name,
+            properties: ['summary' => $summary],
+            request: $request,
+        );
 
         return redirect()->route('profile.edit')->with('success', "Data ruang \"{$space->name}\" berhasil dibersihkan{$detailText}.");
     }

@@ -19,7 +19,8 @@ class RecurringService
 {
     public function __construct(
         protected TransactionService $transactionService,
-        protected CreditService $creditService
+        protected CreditService $creditService,
+        protected ActivityLogService $activityLog
     ) {}
 
     public function createSchedule(Space $space, User $actor, array $data): RecurringSchedule
@@ -176,6 +177,24 @@ class RecurringService
                 'amount' => $amount,
             ]);
 
+            $this->activityLog->log(
+                module: 'recurring',
+                action: 'created',
+                description: "Membuat jadwal berulang \"{$schedule->name}\""
+                    .($schedule->amount ? ' ('.$this->activityLog->formatCurrency($schedule->amount).')' : ' (nominal fleksibel)'),
+                space: $space,
+                actor: $actor,
+                subject: $schedule,
+                subjectLabel: $schedule->name,
+                properties: [
+                    'type' => $schedule->type,
+                    'frequency' => $schedule->frequency,
+                    'amount' => $schedule->amount,
+                    'is_variable_amount' => (bool) $schedule->is_variable_amount,
+                    'next_due_date' => $schedule->next_due_date->toDateString(),
+                ],
+            );
+
             return $schedule;
         });
     }
@@ -184,6 +203,13 @@ class RecurringService
     {
         $space = $schedule->space;
         $type = $schedule->type;
+        $before = [
+            'name' => $schedule->name,
+            'amount' => $schedule->amount,
+            'frequency' => $schedule->frequency,
+            'next_due_date' => $schedule->next_due_date?->toDateString(),
+            'status' => $schedule->status,
+        ];
 
         $sourceAccount = null;
         $creditAccount = null;
@@ -377,7 +403,7 @@ class RecurringService
             ? ($schedule->archived_at ?? now())
             : null;
 
-        return DB::transaction(function () use ($schedule, $data, $memberId, $category, $sourceAccount, $destAccount, $creditAccount, $newFrequency, $anchorDay, $startDate, $endDateStr, $newNextDueDate, $amount, $isVariable, $newStatus, $archivedAt, $oldNextDue, $oldStartDate, $oldFrequency) {
+        return DB::transaction(function () use ($schedule, $space, $actor, $before, $data, $memberId, $category, $sourceAccount, $destAccount, $creditAccount, $newFrequency, $anchorDay, $startDate, $endDateStr, $newNextDueDate, $amount, $isVariable, $newStatus, $archivedAt, $oldNextDue, $oldStartDate, $oldFrequency) {
             $schedule->update([
                 'name' => $data['name'],
                 'member_id' => $memberId,
@@ -423,6 +449,31 @@ class RecurringService
                     'amount' => $amount,
                 ]);
             }
+
+            $diff = $this->activityLog->buildDiff($before, [
+                'name' => $schedule->name,
+                'amount' => $schedule->amount,
+                'frequency' => $schedule->frequency,
+                'next_due_date' => $schedule->next_due_date?->toDateString(),
+                'status' => $schedule->status,
+            ], [
+                'name' => 'Nama Jadwal',
+                'amount' => 'Nominal',
+                'frequency' => 'Frekuensi',
+                'next_due_date' => 'Jatuh Tempo Berikutnya',
+                'status' => 'Status',
+            ]);
+
+            $this->activityLog->log(
+                module: 'recurring',
+                action: 'updated',
+                description: "Memperbarui jadwal berulang \"{$schedule->name}\"",
+                space: $space,
+                actor: $actor,
+                subject: $schedule,
+                subjectLabel: $schedule->name,
+                properties: $diff,
+            );
 
             return $schedule;
         });
@@ -516,6 +567,7 @@ class RecurringService
                             'start_date' => $txDate,
                             'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
                             'notes' => $overrideData['notes'] ?? "Dicatat dari Jadwal Berulang: {$lockedSchedule->name}",
+                            'skip_activity_log' => true,
                         ]);
                     } catch (ValidationException $e) {
                         $errors = $e->errors();
@@ -541,6 +593,7 @@ class RecurringService
                         'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
                         'description' => $description,
                         'member_id' => $lockedSchedule->member_id,
+                        'skip_activity_log' => true,
                     ]);
                 }
             } elseif ($lockedSchedule->isCreditPayment()) {
@@ -563,6 +616,7 @@ class RecurringService
                     'payment_date' => $txDate,
                     'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
                     'notes' => $overrideData['notes'] ?? "Pembayaran terjadwal dari Jadwal Berulang: {$lockedSchedule->name}",
+                    'skip_activity_log' => true,
                 ]);
 
                 $transaction = $payment->transaction;
@@ -601,6 +655,7 @@ class RecurringService
                     'transaction_time' => $overrideData['transaction_time'] ?? now()->format('H:i:s'),
                     'description' => $description,
                     'member_id' => $lockedSchedule->member_id,
+                    'skip_activity_log' => true,
                 ]);
             }
 
@@ -654,6 +709,22 @@ class RecurringService
                     ]);
                 }
             }
+
+            $this->activityLog->log(
+                module: 'recurring',
+                action: 'confirmed',
+                description: "Mengonfirmasi jadwal berulang \"{$lockedSchedule->name}\" ({$dueDateStr}) sebesar ".$this->activityLog->formatCurrency($amount),
+                space: $space,
+                actor: $actor,
+                subject: $lockedSchedule,
+                subjectLabel: $lockedSchedule->name,
+                properties: [
+                    'due_date' => $dueDateStr,
+                    'transaction_date' => $txDate,
+                    'amount' => $amount,
+                    'transaction_id' => $transaction->id,
+                ],
+            );
 
             return $transaction->load('entries');
         });
@@ -731,6 +802,20 @@ class RecurringService
                 }
             }
 
+            $this->activityLog->log(
+                module: 'recurring',
+                action: 'skipped',
+                description: "Melewati jadwal berulang \"{$lockedSchedule->name}\" untuk jatuh tempo {$dueDateStr}",
+                space: $space,
+                actor: $actor,
+                subject: $lockedSchedule,
+                subjectLabel: $lockedSchedule->name,
+                properties: [
+                    'due_date' => $dueDateStr,
+                    'notes' => $notes,
+                ],
+            );
+
             return $occurrence;
         });
     }
@@ -738,11 +823,31 @@ class RecurringService
     public function archiveSchedule(RecurringSchedule $schedule, User $actor): void
     {
         $schedule->archive();
+
+        $this->activityLog->log(
+            module: 'recurring',
+            action: 'archived',
+            description: "Mengarsipkan jadwal berulang \"{$schedule->name}\"",
+            space: $schedule->space,
+            actor: $actor,
+            subject: $schedule,
+            subjectLabel: $schedule->name,
+        );
     }
 
     public function unarchiveSchedule(RecurringSchedule $schedule, User $actor): void
     {
         $schedule->unarchive();
+
+        $this->activityLog->log(
+            module: 'recurring',
+            action: 'unarchived',
+            description: "Mengaktifkan kembali jadwal berulang \"{$schedule->name}\"",
+            space: $schedule->space,
+            actor: $actor,
+            subject: $schedule,
+            subjectLabel: $schedule->name,
+        );
     }
 
     public function getDashboardSummary(Space $space): array

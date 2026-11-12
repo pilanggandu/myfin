@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Space\StoreSpaceRequest;
 use App\Http\Requests\Space\UpdateSpaceRequest;
 use App\Models\Space;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,10 @@ use Illuminate\View\View;
 
 class SpaceController extends Controller
 {
+    public function __construct(
+        private readonly ActivityLogService $activityLog
+    ) {}
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -56,6 +61,17 @@ class SpaceController extends Controller
 
         session(['active_space_id' => $space->id]);
 
+        $this->activityLog->log(
+            module: 'space',
+            action: 'created',
+            description: "Membuat ruang bersama '{$space->name}'",
+            space: $space,
+            actor: $user,
+            subject: $space,
+            subjectLabel: $space->name,
+            properties: ['timezone' => $space->timezone],
+        );
+
         return redirect()->route('spaces.index')->with('success', "Ruang bersama '{$space->name}' berhasil dibuat dan aktif.");
     }
 
@@ -79,7 +95,23 @@ class SpaceController extends Controller
     {
         Gate::authorize('update', $space);
 
+        $before = ['name' => $space->name, 'timezone' => $space->timezone];
         $space->update($request->validated());
+
+        $this->activityLog->log(
+            module: 'space',
+            action: 'updated',
+            description: "Memperbarui pengaturan ruang '{$space->name}'",
+            space: $space,
+            actor: $request->user(),
+            subject: $space,
+            subjectLabel: $space->name,
+            properties: $this->activityLog->buildDiff(
+                $before,
+                ['name' => $space->name, 'timezone' => $space->timezone],
+                ['name' => 'Nama Ruang', 'timezone' => 'Zona Waktu']
+            ),
+        );
 
         return redirect()->route('spaces.index')->with('success', 'Pengaturan ruang berhasil diperbarui.');
     }
@@ -89,12 +121,24 @@ class SpaceController extends Controller
         Gate::authorize('delete', $space);
 
         $spaceName = $space->name;
+        $spaceId = $space->id;
 
         DB::transaction(function () use ($space) {
             $space->delete();
         });
 
         $user = auth()->user();
+
+        $this->activityLog->log(
+            module: 'space',
+            action: 'deleted',
+            description: "Menghapus ruang bersama '{$spaceName}'",
+            space: null,
+            actor: $user,
+            subjectLabel: $spaceName,
+            properties: ['deleted_space_id' => $spaceId],
+        );
+
         $activeSpaceId = session('active_space_id');
 
         if ((int) $activeSpaceId === (int) $space->id) {

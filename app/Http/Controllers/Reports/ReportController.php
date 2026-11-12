@@ -7,6 +7,7 @@ use App\Models\FinancialTransaction;
 use App\Models\Installment;
 use App\Models\RecurringSchedule;
 use App\Models\Space;
+use App\Services\ActivityLogService;
 use App\Services\AdvancedAnalyticsService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -17,6 +18,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    public function __construct(
+        protected ActivityLogService $activityLog
+    ) {}
+
     public function index(Request $request): View
     {
         $space = app('currentSpace');
@@ -331,6 +336,21 @@ class ReportController extends Controller
         $dailyCashflows = $dailyData['dailyCashflows'];
 
         $filename = 'ARUS_Cashflow_RawData_'.$filenameLabel.'.csv';
+
+        $this->activityLog->log(
+            module: 'report',
+            action: 'exported_csv',
+            description: "Mengekspor laporan arus kas CSV ({$startDate} s.d. {$endDate})",
+            space: $space,
+            actor: $request->user(),
+            subjectLabel: $filename,
+            properties: [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'account_id' => $selectedAccountId,
+            ],
+            request: $request,
+        );
 
         return response()->streamDownload(function () use ($dailyCashflows) {
             $handle = fopen('php://output', 'w');

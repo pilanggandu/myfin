@@ -9,6 +9,7 @@ use App\Http\Requests\Account\UpdateAccountRequest;
 use App\Models\Account;
 use App\Models\Space;
 use App\Models\TransactionEntry;
+use App\Services\ActivityLogService;
 use App\Services\TransactionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ use Illuminate\View\View;
 class AccountController extends Controller
 {
     public function __construct(
-        private readonly TransactionService $transactionService
+        private readonly TransactionService $transactionService,
+        private readonly ActivityLogService $activityLog
     ) {}
 
     public function index(Request $request): View
@@ -86,6 +88,21 @@ class AccountController extends Controller
             $account->makeDefault();
         }
 
+        $this->activityLog->log(
+            module: 'account',
+            action: 'created',
+            description: "Menambahkan rekening '{$account->name}' (".Account::labelForType($account->type).') dengan saldo awal '.$this->activityLog->formatCurrency($account->opening_balance),
+            space: $space,
+            actor: $request->user(),
+            subject: $account,
+            subjectLabel: $account->name,
+            properties: [
+                'type' => $account->type,
+                'opening_balance' => (int) $account->opening_balance,
+                'is_default' => (bool) $account->is_default,
+            ],
+        );
+
         return redirect()->route('accounts.index')
             ->with('success', "Rekening '{$account->name}' berhasil ditambahkan.");
     }
@@ -120,6 +137,12 @@ class AccountController extends Controller
         Gate::authorize('update', $account);
 
         $validated = $request->validated();
+        $before = [
+            'name' => $account->name,
+            'type' => $account->type,
+            'opening_balance' => (int) $account->opening_balance,
+            'opened_on' => $account->opened_on->format('Y-m-d'),
+        ];
         $oldBalance = (int) $account->opening_balance;
         $newBalance = (int) $validated['opening_balance'];
         $oldOpenedOn = $account->opened_on->format('Y-m-d');
@@ -142,6 +165,33 @@ class AccountController extends Controller
             $account->makeDefault();
         }
 
+        $after = [
+            'name' => $account->name,
+            'type' => $account->type,
+            'opening_balance' => (int) $account->opening_balance,
+            'opened_on' => $account->opened_on->format('Y-m-d'),
+        ];
+        $diffProps = $this->activityLog->buildDiff($before, $after, [
+            'name' => 'Nama Rekening',
+            'type' => 'Tipe',
+            'opening_balance' => 'Saldo Awal',
+            'opened_on' => 'Tanggal Pembukaan',
+        ]);
+        if (! empty($validated['reason'])) {
+            $diffProps['reason'] = $validated['reason'];
+        }
+
+        $this->activityLog->log(
+            module: 'account',
+            action: 'updated',
+            description: "Memperbarui rekening '{$account->name}'",
+            space: $account->space,
+            actor: $request->user(),
+            subject: $account,
+            subjectLabel: $account->name,
+            properties: $diffProps,
+        );
+
         return redirect()->route('accounts.index')
             ->with('success', "Rekening '{$account->name}' berhasil diperbarui.");
     }
@@ -152,6 +202,15 @@ class AccountController extends Controller
 
         $account->archive();
 
+        $this->activityLog->log(
+            module: 'account',
+            action: 'archived',
+            description: "Mengarsipkan rekening '{$account->name}'",
+            space: $account->space,
+            subject: $account,
+            subjectLabel: $account->name,
+        );
+
         return redirect()->route('accounts.index')
             ->with('success', "Rekening '{$account->name}' berhasil diarsipkan.");
     }
@@ -161,6 +220,15 @@ class AccountController extends Controller
         Gate::authorize('update', $account);
 
         $account->unarchive();
+
+        $this->activityLog->log(
+            module: 'account',
+            action: 'unarchived',
+            description: "Mengaktifkan kembali rekening '{$account->name}'",
+            space: $account->space,
+            subject: $account,
+            subjectLabel: $account->name,
+        );
 
         return redirect()->route('accounts.index')
             ->with('success', "Rekening '{$account->name}' berhasil diaktifkan kembali.");
@@ -176,6 +244,15 @@ class AccountController extends Controller
         }
 
         $account->makeDefault();
+
+        $this->activityLog->log(
+            module: 'account',
+            action: 'set_default',
+            description: "Menetapkan rekening '{$account->name}' sebagai default transaksi",
+            space: $account->space,
+            subject: $account,
+            subjectLabel: $account->name,
+        );
 
         return redirect()->route('accounts.index')
             ->with('success', "Rekening '{$account->name}' telah ditetapkan sebagai rekening default transaksi.");
@@ -213,13 +290,14 @@ class AccountController extends Controller
                     ['name' => 'Penyesuaian Saldo', 'type' => 'income']
                 );
 
-                $this->transactionService->recordIncome($space, $user, [
+                $tx = $this->transactionService->recordIncome($space, $user, [
                     'account_id' => $lockedAccount->id,
                     'category_id' => $category->id,
                     'amount' => $difference,
                     'transaction_date' => $adjDate,
                     'transaction_time' => $adjTime,
                     'description' => 'Penyesuaian Saldo: '.($reason ?: 'Koreksi saldo riil kas/bank'),
+                    'skip_activity_log' => true,
                 ]);
             } else {
                 $category = $space->categories()->firstOrCreate(
@@ -227,15 +305,33 @@ class AccountController extends Controller
                     ['name' => 'Penyesuaian Saldo', 'type' => 'expense']
                 );
 
-                $this->transactionService->recordExpense($space, $user, [
+                $tx = $this->transactionService->recordExpense($space, $user, [
                     'account_id' => $lockedAccount->id,
                     'category_id' => $category->id,
                     'amount' => abs($difference),
                     'transaction_date' => $adjDate,
                     'transaction_time' => $adjTime,
                     'description' => 'Penyesuaian Saldo: '.($reason ?: 'Koreksi saldo riil kas/bank'),
+                    'skip_activity_log' => true,
                 ]);
             }
+
+            $this->activityLog->log(
+                module: 'account',
+                action: 'adjusted',
+                description: "Menyesuaikan saldo rekening '{$lockedAccount->name}' dari ".$this->activityLog->formatCurrency($currentBalance).' menjadi '.$this->activityLog->formatCurrency($targetBalance),
+                space: $space,
+                actor: $user,
+                subject: $lockedAccount,
+                subjectLabel: $lockedAccount->name,
+                properties: array_filter([
+                    'previous_balance' => $currentBalance,
+                    'target_balance' => $targetBalance,
+                    'difference' => $difference,
+                    'transaction_id' => $tx->id,
+                    'reason' => $reason,
+                ], fn (mixed $v): bool => $v !== null),
+            );
 
             return $difference;
         });

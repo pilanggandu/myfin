@@ -9,6 +9,7 @@ use App\Http\Requests\Goal\UpdateGoalRequest;
 use App\Http\Requests\Goal\WithdrawGoalRequest;
 use App\Models\Goal;
 use App\Models\GoalContribution;
+use App\Services\ActivityLogService;
 use App\Services\TransactionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,8 @@ use Illuminate\View\View;
 class GoalController extends Controller
 {
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected ActivityLogService $activityLog
     ) {}
 
     public function index(Request $request): View
@@ -125,6 +127,7 @@ class GoalController extends Controller
                             'transaction_time' => now()->format('H:i:s'),
                             'description' => 'Setoran Awal Target: '.$goal->name,
                             'request_key' => (string) Str::uuid(),
+                            'skip_activity_log' => true,
                         ]);
                         $financialTxId = $tx->id;
                     }
@@ -145,6 +148,20 @@ class GoalController extends Controller
 
                 $goal->syncAmount();
             }
+
+            $this->activityLog->log(
+                module: 'goal',
+                action: 'created',
+                description: "Membuat target tabungan '{$goal->name}' dengan target ".$this->activityLog->formatCurrency($goal->target_amount),
+                space: $space,
+                actor: $user,
+                subject: $goal,
+                subjectLabel: $goal->name,
+                properties: [
+                    'target_amount' => (float) $goal->target_amount,
+                    'initial_deposit' => $initialDeposit,
+                ],
+            );
 
             return $goal;
         });
@@ -232,6 +249,11 @@ class GoalController extends Controller
 
         $validated = $request->validated();
         $user = $request->user();
+        $before = [
+            'name' => $goal->name,
+            'target_amount' => (float) $goal->target_amount,
+            'status' => $goal->status,
+        ];
 
         $goal->update([
             'account_id' => $validated['account_id'] ?? null,
@@ -249,6 +271,21 @@ class GoalController extends Controller
 
         $goal->syncAmount();
 
+        $this->activityLog->log(
+            module: 'goal',
+            action: 'updated',
+            description: "Memperbarui target tabungan '{$goal->name}'",
+            space: $space,
+            actor: $user,
+            subject: $goal,
+            subjectLabel: $goal->name,
+            properties: $this->activityLog->buildDiff(
+                $before,
+                ['name' => $goal->name, 'target_amount' => (float) $goal->target_amount, 'status' => $goal->status],
+                ['name' => 'Nama Target', 'target_amount' => 'Nominal Target', 'status' => 'Status']
+            ),
+        );
+
         return redirect()->route('goals.show', $goal)->with('success', 'Target tabungan berhasil diperbarui.');
     }
 
@@ -260,7 +297,17 @@ class GoalController extends Controller
         }
 
         $name = $goal->name;
+        $goalId = $goal->id;
         $goal->delete();
+
+        $this->activityLog->log(
+            module: 'goal',
+            action: 'deleted',
+            description: "Menghapus target tabungan '{$name}'",
+            space: $space,
+            subjectLabel: $name,
+            properties: ['deleted_goal_id' => $goalId],
+        );
 
         return redirect()->route('goals.index')->with('success', 'Target tabungan "'.$name.'" berhasil dihapus.');
     }
@@ -292,6 +339,7 @@ class GoalController extends Controller
                         'description' => 'Setoran Target: '.$goal->name,
                         'member_id' => $validated['member_id'] ?? null,
                         'request_key' => (string) Str::uuid(),
+                        'skip_activity_log' => true,
                     ]);
                     $financialTxId = $tx->id;
                 }
@@ -311,6 +359,20 @@ class GoalController extends Controller
             ]);
 
             $goal->syncAmount();
+
+            $this->activityLog->log(
+                module: 'goal',
+                action: 'contributed',
+                description: 'Menambahkan setoran '.$this->activityLog->formatCurrency($amount)." ke target '{$goal->name}'",
+                space: $space,
+                actor: $user,
+                subject: $goal,
+                subjectLabel: $goal->name,
+                properties: array_filter([
+                    'amount' => $amount,
+                    'transaction_id' => $financialTxId,
+                ], fn (mixed $v): bool => $v !== null),
+            );
         });
 
         $goal->refresh();
@@ -355,6 +417,7 @@ class GoalController extends Controller
                         'description' => 'Pencairan Target: '.$goal->name,
                         'member_id' => $validated['member_id'] ?? null,
                         'request_key' => (string) Str::uuid(),
+                        'skip_activity_log' => true,
                     ]);
                     $financialTxId = $tx->id;
                 }
@@ -374,6 +437,20 @@ class GoalController extends Controller
             ]);
 
             $goal->syncAmount();
+
+            $this->activityLog->log(
+                module: 'goal',
+                action: 'withdrawn',
+                description: 'Mencairkan dana '.$this->activityLog->formatCurrency($amount)." dari target '{$goal->name}'",
+                space: $space,
+                actor: $user,
+                subject: $goal,
+                subjectLabel: $goal->name,
+                properties: array_filter([
+                    'amount' => $amount,
+                    'transaction_id' => $financialTxId,
+                ], fn (mixed $v): bool => $v !== null),
+            );
         });
 
         return redirect()->route('goals.show', $goal)->with('success', 'Berhasil mencairkan Rp '.number_format($amount, 0, ',', '.').' dari target "'.$goal->name.'".');
@@ -386,6 +463,7 @@ class GoalController extends Controller
             abort(403);
         }
 
+        $previousStatus = $goal->status;
         if ($goal->status === 'paused') {
             $goal->status = $goal->current_amount >= $goal->target_amount ? 'achieved' : 'active';
             $msg = 'Target tabungan diaktifkan kembali.';
@@ -398,6 +476,16 @@ class GoalController extends Controller
         }
 
         $goal->save();
+
+        $this->activityLog->log(
+            module: 'goal',
+            action: 'status_toggled',
+            description: "Mengubah status target '{$goal->name}' dari {$previousStatus} menjadi {$goal->status}",
+            space: $space,
+            subject: $goal,
+            subjectLabel: $goal->name,
+            properties: ['previous_status' => $previousStatus, 'status' => $goal->status],
+        );
 
         return redirect()->route('goals.show', $goal)->with('success', $msg);
     }
