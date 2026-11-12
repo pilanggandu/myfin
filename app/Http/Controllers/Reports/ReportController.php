@@ -7,6 +7,7 @@ use App\Models\FinancialTransaction;
 use App\Models\Installment;
 use App\Models\RecurringSchedule;
 use App\Models\Space;
+use App\Services\AdvancedAnalyticsService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,7 +23,7 @@ class ReportController extends Controller
         $now = $space ? $space->now() : Carbon::now('Asia/Jakarta');
 
         $validated = $request->validate([
-            'tab' => ['nullable', 'string', 'in:daily,analytics'],
+            'tab' => ['nullable', 'string', 'in:daily,analytics,advanced'],
             'view' => ['nullable', 'string', 'in:list,calendar'],
             'period_type' => ['nullable', 'string', 'in:month,custom'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
@@ -30,6 +31,7 @@ class ReportController extends Controller
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date'],
             'account_id' => ['nullable', 'integer'],
+            'horizon' => ['nullable', 'integer', 'in:6,12'],
             'sort_order' => ['nullable', 'string', 'in:asc,desc'],
             'show_bills' => ['nullable', 'string', 'in:0,1,true,false'],
         ]);
@@ -40,6 +42,10 @@ class ReportController extends Controller
         $year = (int) ($validated['year'] ?? $now->year);
         $month = (int) ($validated['month'] ?? $now->month);
         $selectedAccountId = ! empty($validated['account_id']) ? (int) $validated['account_id'] : null;
+        if ($selectedAccountId !== null && $space && ! $space->accounts()->where('id', $selectedAccountId)->exists()) {
+            $selectedAccountId = null;
+        }
+        $horizonMonths = (int) ($validated['horizon'] ?? 6);
         $sortOrder = $validated['sort_order'] ?? 'desc';
         $showBills = $request->has('show_bills') ? $request->boolean('show_bills') : true;
 
@@ -232,6 +238,23 @@ class ReportController extends Controller
 
         $calendarWeeks = $this->buildCalendarGrid($year, $month, $dailyData['dailyCashflows'], $space);
 
+        $allFilterAccounts = $space
+            ? $space->activeAccounts()->orderBy('name')->get()
+            : collect();
+
+        $advancedAnalytics = $activeTab === 'advanced'
+            ? app(AdvancedAnalyticsService::class)->build(
+                $space,
+                $startDate,
+                $endDate,
+                $year,
+                $month,
+                $periodType,
+                $horizonMonths,
+                $selectedAccountId
+            )
+            : null;
+
         return view('reports.index', array_merge([
             'space' => $space,
             'activeTab' => $activeTab,
@@ -254,6 +277,9 @@ class ReportController extends Controller
             'categoryBreakdown' => $categoryBreakdown,
             'monthlyTrend' => $monthlyTrend,
             'selectedAccountId' => $selectedAccountId,
+            'horizonMonths' => $horizonMonths,
+            'allFilterAccounts' => $allFilterAccounts,
+            'advancedAnalytics' => $advancedAnalytics,
             'sortOrder' => $sortOrder,
             'calendarWeeks' => $calendarWeeks,
             'showBills' => $showBills,
