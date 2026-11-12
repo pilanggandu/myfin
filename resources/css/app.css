@@ -624,6 +624,44 @@ input[type=number] {
   box-shadow: 0 3px 6px rgba(11, 74, 139, 0.05);
 }
 
+.stat-folder-card.dark {
+  background: #0B4A8B;
+  color: #ffffff;
+  border-color: #0B4A8B;
+}
+
+.stat-folder-card.dark:hover {
+  border-color: #08396D;
+  box-shadow: 0 4px 10px rgba(11, 74, 139, 0.16);
+}
+
+.dark .stat-folder-card.dark {
+  background: #1E334A;
+  border-color: #273E57;
+}
+
+.dark .stat-folder-card.dark:hover {
+  border-color: #3B5B7D;
+}
+
+.stat-folder-card.dark > * {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-folder-card.dark::after {
+  content: '';
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  width: 170px;
+  height: 170px;
+  right: -45px;
+  top: -55px;
+  box-shadow: 0 0 0 25px rgba(255, 255, 255, 0.03), 0 0 0 50px rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
 .stat-card-notch {
   height: 28px;
   width: 100%;

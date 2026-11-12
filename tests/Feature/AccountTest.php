@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\CreditService;
 use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Tests\TestCase;
 
 class AccountTest extends TestCase
@@ -745,5 +746,31 @@ class AccountTest extends TestCase
             ['e-wallet', 'bank'],
             $reverseResponse->viewData('accountGroups')->pluck('type')->all()
         );
+    }
+
+    public function test_dark_metric_card_renders_high_contrast_classes_and_css_rule_in_light_mode(): void
+    {
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('accounts.index'));
+
+        $response->assertOk();
+        $response->assertSee('stat-folder-card dark', false);
+        $response->assertSee('TOTAL SALDO TERSEDIA');
+        $response->assertSee('border border-white/25 text-white hover:bg-white/15 bg-white/10', false);
+
+        $renderedWithProgress = Blade::render(
+            '<x-metric-card label="Target" value="Rp 100" :dark="true" :progress="50" :toggle="true" />'
+        );
+
+        $this->assertStringContainsString('stat-folder-card dark', $renderedWithProgress);
+        $this->assertStringContainsString('text-[11px] font-semibold text-blue-100', $renderedWithProgress);
+        $this->assertStringContainsString('text-xs font-bold text-white font-mono', $renderedWithProgress);
+        $this->assertStringNotContainsString('text-forest dark:text-blue-400', $renderedWithProgress);
+
+        $css = file_get_contents(resource_path('css/app.css'));
+        $this->assertNotFalse($css);
+        $this->assertMatchesRegularExpression('/\.stat-folder-card\.dark\s*\{[^}]*background:\s*#0B4A8B/s', $css);
+        $this->assertMatchesRegularExpression('/\.dark\s+\.stat-folder-card\.dark\s*\{[^}]*background:\s*#1E334A/s', $css);
     }
 }

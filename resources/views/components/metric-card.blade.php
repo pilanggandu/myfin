@@ -23,7 +23,7 @@
                     <button 
                         type="button" 
                         onclick="toggleCardPrivacy(this)" 
-                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -mr-2 -mt-2 sm:mr-0 sm:mt-0 rounded-lg sm:rounded {{ $dark ? 'border border-white/20 text-white/80 hover:text-white bg-white/10' : 'border border-line text-muted hover:text-forest bg-panel' }} transition inline-flex items-center justify-center cursor-pointer text-[10px] shrink-0" 
+                        class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -mr-2 -mt-2 sm:mr-0 sm:mt-0 rounded-lg sm:rounded {{ $dark ? 'border border-white/25 text-white hover:bg-white/15 bg-white/10' : 'border border-line text-muted hover:text-forest bg-panel' }} transition inline-flex items-center justify-center cursor-pointer text-[10px] shrink-0" 
                         title="Sembunyikan / Tampilkan Angka Metrik Ini"
                         aria-label="Sembunyikan atau tampilkan angka metrik"
                     >
@@ -34,8 +34,8 @@
 
             @if ($progress !== null)
                 <div class="mt-2.5 flex items-center justify-between gap-2">
-                    <span class="text-[11px] font-semibold text-muted">Progress</span>
-                    <span class="text-xs font-bold text-forest dark:text-blue-400 font-mono">{{ $progress }}%</span>
+                    <span class="text-[11px] font-semibold {{ $dark ? 'text-blue-100' : 'text-muted' }}">Progress</span>
+                    <span class="text-xs font-bold {{ $dark ? 'text-white' : 'text-forest dark:text-blue-400' }} font-mono">{{ $progress }}%</span>
                 </div>
                 <div class="segmented-progress mt-1.5" aria-hidden="true">
                     @php
