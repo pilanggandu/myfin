@@ -60,21 +60,21 @@
             <x-metric-card 
                 label="SISA LIMIT TERSEDIA" 
                 :value="'Rp ' . number_format($availableLimit, 0, ',', '.')" 
-                :dark="true" 
+                dark="green" 
                 :sub="'Terpakai: Rp ' . number_format($account->liabilityAmount(), 0, ',', '.') . ($account->creditAccount?->credit_limit ? ' • Limit: Rp ' . number_format($account->creditAccount->credit_limit, 0, ',', '.') : '')" 
             />
         @elseif ($account->isLoan())
             <x-metric-card 
                 label="KEWAJIBAN / SISA HUTANG" 
                 :value="'Rp ' . number_format(abs($account->currentBalance()), 0, ',', '.')" 
-                :dark="true" 
+                dark="red" 
                 :sub="'Tipe: ' . $typeLabel" 
             />
         @else
             <x-metric-card 
                 label="SALDO SAAT INI" 
                 :value="'Rp ' . number_format($account->currentBalance(), 0, ',', '.')" 
-                :dark="true" 
+                :dark="$account->currentBalance() >= 0 ? 'green' : 'red'" 
                 :sub="'Tipe: ' . $typeLabel" 
             />
         @endif
@@ -131,7 +131,7 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="text-right font-bold text-sm font-mono shrink-0 {{ $isPositive ? 'text-forest' : 'text-red' }}">
+                            <div class="text-right font-bold text-sm font-mono shrink-0 {{ $isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                                 <span class="privacy-balance" data-raw-value="{{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}">
                                     {{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}
                                 </span>
@@ -199,7 +199,7 @@
                                         <span class="text-forest font-bold text-[11px]">POSTED</span>
                                     @endif
                                 </td>
-                                <td class="py-4 px-6 whitespace-nowrap text-right font-bold text-sm font-mono {{ $isPositive ? 'text-forest' : 'text-red' }}">
+                                <td class="py-4 px-6 whitespace-nowrap text-right font-bold text-sm font-mono {{ $isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                                     <span class="privacy-balance" data-raw-value="{{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}">
                                         {{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}
                                     </span>

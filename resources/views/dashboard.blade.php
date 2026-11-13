@@ -150,7 +150,7 @@
 
         <div data-privacy-scope="dashboard-metrics" class="privacy-scope grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
             <x-metric-card 
-                notch="blue"
+                :notch="$totalBalance >= 0 ? 'green' : 'pink'"
                 label="TOTAL SALDO" 
                 :value="'Rp ' . number_format($totalBalance, 0, ',', '.')" 
                 :sub="$accounts->count() . ' rekening aktif terdaftar'" 
@@ -175,7 +175,7 @@
             />
 
             <x-metric-card 
-                notch="pink"
+                :notch="$netCashFlow >= 0 ? 'green' : 'pink'"
                 label="ARUS KAS BERSIH" 
                 :value="($netCashFlow >= 0 ? '+' : '') . 'Rp ' . number_format($netCashFlow, 0, ',', '.')" 
                 :sub="$netCashFlow >= 0 ? 'Surplus kas periode ini' : 'Defisit kas periode ini'" 
@@ -389,7 +389,7 @@
                                             </a>
                                         </div>
                                     @else
-                                        <span class="text-xs font-bold font-mono text-charcoal block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($accBal, 0, ',', '.') }}">
+                                        <span class="text-xs font-bold font-mono {{ $accBal < 0 ? 'text-red dark:text-rose-400' : ($accBal > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-charcoal') }} block privacy-balance" data-raw-value="{{ 'Rp ' . number_format($accBal, 0, ',', '.') }}">
                                             Rp {{ number_format($accBal, 0, ',', '.') }}
                                         </span>
                                         <a href="{{ route('accounts.show', $acc) }}" class="text-[10.5px] text-forest hover:underline">
@@ -413,7 +413,7 @@
 
                 <div class="px-4 sm:px-5 py-2.5 bg-sidebar/50 border-t border-line text-[11px] text-muted flex items-center justify-between">
                     <span>Total Saldo Terdaftar:</span>
-                    <strong class="font-mono text-forest dark:text-blue-400 privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalBalance, 0, ',', '.') }}">
+                    <strong class="font-mono {{ $totalBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }} privacy-balance" data-raw-value="{{ 'Rp ' . number_format($totalBalance, 0, ',', '.') }}">
                         Rp {{ number_format($totalBalance, 0, ',', '.') }}
                     </strong>
                 </div>

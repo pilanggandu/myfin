@@ -567,8 +567,8 @@
                             default => $trx->type,
                         };
                         $amountColor = match($trx->type) {
-                            'income' => 'text-forest',
-                            'expense' => 'text-red',
+                            'income' => 'text-emerald-600 dark:text-emerald-400',
+                            'expense' => 'text-red dark:text-rose-400',
                             'transfer' => 'text-charcoal',
                             default => 'text-charcoal',
                         };
@@ -608,7 +608,17 @@
                                             {{ $trx->member->name }}
                                         </span>
                                     @endif
-                                    <x-badge variant="default">{{ $typeBadge }}</x-badge>
+                                    @if ($trx->type === 'income')
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">
+                                            {{ $typeBadge }}
+                                        </span>
+                                    @elseif ($trx->type === 'expense')
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900">
+                                            {{ $typeBadge }}
+                                        </span>
+                                    @else
+                                        <x-badge variant="default">{{ $typeBadge }}</x-badge>
+                                    @endif
                                 </div>
                                 <div class="text-xs text-muted mt-1 flex items-center gap-1.5 flex-wrap">
                                     <span>{{ $trx->transaction_date->format('d M Y') }}</span>
@@ -731,8 +741,8 @@
                                 $hasInstallmentPlan = $trx->installmentPlan !== null;
                                 $amount = $trx->totalAmount();
                                 $amountColor = match($trx->type) {
-                                    'income' => 'text-forest',
-                                    'expense' => 'text-red',
+                                    'income' => 'text-emerald-600 dark:text-emerald-400',
+                                    'expense' => 'text-red dark:text-rose-400',
                                     'transfer' => 'text-charcoal',
                                     default => 'text-charcoal',
                                 };
@@ -778,7 +788,7 @@
                                             </span>
                                         @endif
                                     </div>
-                                    <div class="text-xs text-muted uppercase tracking-wider text-[10px]">
+                                    <div class="text-xs uppercase tracking-wider text-[10px] font-bold {{ $trx->type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : ($trx->type === 'expense' ? 'text-rose-600 dark:text-rose-400' : 'text-muted') }}">
                                         {{ strtoupper($trx->type) }}
                                     </div>
                                 </td>

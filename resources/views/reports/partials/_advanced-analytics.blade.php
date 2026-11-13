@@ -393,7 +393,7 @@
                 <p class="text-[11px] text-muted mt-0.5">Pemasukan, pengeluaran, net arus kas, dan persentase tabungan per bulan.</p>
             </div>
             <div class="flex flex-wrap items-center gap-3 text-[11px] text-muted">
-                <span>Rata-rata Masuk: <strong class="font-mono text-forest dark:text-blue-300 privacy-balance" data-raw-value="Rp {{ number_format($trend['avg_income'], 0, ',', '.') }}">Rp {{ number_format($trend['avg_income'], 0, ',', '.') }}</strong></span>
+                <span>Rata-rata Masuk: <strong class="font-mono text-emerald-600 dark:text-emerald-400 privacy-balance" data-raw-value="Rp {{ number_format($trend['avg_income'], 0, ',', '.') }}">Rp {{ number_format($trend['avg_income'], 0, ',', '.') }}</strong></span>
                 <span>Rata-rata Keluar: <strong class="font-mono text-red dark:text-rose-300 privacy-balance" data-raw-value="Rp {{ number_format($trend['avg_expense'], 0, ',', '.') }}">Rp {{ number_format($trend['avg_expense'], 0, ',', '.') }}</strong></span>
             </div>
         </div>
@@ -414,9 +414,9 @@
                             </span>
                         </div>
                         <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-                            <span class="text-forest dark:text-blue-300">+<span class="privacy-balance" data-raw-value="Rp {{ number_format($tm->income, 0, ',', '.') }}">Rp {{ number_format($tm->income, 0, ',', '.') }}</span></span>
+                            <span class="text-emerald-600 dark:text-emerald-400">+<span class="privacy-balance" data-raw-value="Rp {{ number_format($tm->income, 0, ',', '.') }}">Rp {{ number_format($tm->income, 0, ',', '.') }}</span></span>
                             <span class="text-red dark:text-rose-300">-<span class="privacy-balance" data-raw-value="Rp {{ number_format($tm->expense, 0, ',', '.') }}">Rp {{ number_format($tm->expense, 0, ',', '.') }}</span></span>
-                            <span class="font-bold {{ $tm->net >= 0 ? 'text-charcoal' : 'text-red dark:text-rose-300' }}">
+                            <span class="font-bold {{ $tm->net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-300' }}">
                                 <span class="privacy-balance" data-raw-value="{{ $tm->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($tm->net), 0, ',', '.') }}">{{ $tm->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($tm->net), 0, ',', '.') }}</span>
                             </span>
                         </div>
@@ -440,13 +440,13 @@
                         @foreach ($trend['months'] as $tm)
                             <tr class="hover:bg-cream/20 transition-colors">
                                 <td class="py-2 px-3 font-semibold text-charcoal">{{ $tm->label }}</td>
-                                <td class="py-2 px-3 text-right font-mono text-forest dark:text-blue-300">
+                                <td class="py-2 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($tm->income, 0, ',', '.') }}">Rp {{ number_format($tm->income, 0, ',', '.') }}</span>
                                 </td>
                                 <td class="py-2 px-3 text-right font-mono text-red dark:text-rose-300">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($tm->expense, 0, ',', '.') }}">Rp {{ number_format($tm->expense, 0, ',', '.') }}</span>
                                 </td>
-                                <td class="py-2 px-3 text-right font-mono font-bold {{ $tm->net >= 0 ? 'text-charcoal' : 'text-red dark:text-rose-300' }}">
+                                <td class="py-2 px-3 text-right font-mono font-bold {{ $tm->net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-300' }}">
                                     <span class="privacy-balance" data-raw-value="{{ $tm->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($tm->net), 0, ',', '.') }}">{{ $tm->net >= 0 ? '+' : '-' }}Rp {{ number_format(abs($tm->net), 0, ',', '.') }}</span>
                                 </td>
                                 <td class="py-2 px-3 text-right font-mono font-bold {{ $tm->savings_rate !== null && $tm->savings_rate >= 20 ? 'text-emerald-700 dark:text-emerald-300' : ($tm->savings_rate !== null && $tm->savings_rate < 0 ? 'text-rose-700 dark:text-rose-300' : 'text-muted') }}">
@@ -857,8 +857,9 @@
         const textColor = isDark ? '#CBD5E1' : '#526070';
         const gridColor = isDark ? 'rgba(52, 72, 61, 0.45)' : 'rgba(200, 215, 229, 0.55)';
         const primaryBlue = isDark ? '#60A5FA' : '#0B4A8B';
+        const incomeGreen = isDark ? '#34D399' : '#059669';
         const dangerRed = isDark ? '#F87171' : '#D14343';
-        const emeraldLine = isDark ? '#34D399' : '#047857';
+        const savingsRateLine = isDark ? '#38BDF8' : '#0284C7';
         const amberBar = isDark ? '#FBBF24' : '#D97706';
 
         function compactRp(value) {
@@ -879,7 +880,7 @@
                         {
                             label: 'Pemasukan',
                             data: @json(collect($trend['months'])->pluck('income')),
-                            backgroundColor: primaryBlue,
+                            backgroundColor: incomeGreen,
                             borderRadius: 4,
                             yAxisID: 'y',
                         },
@@ -894,8 +895,8 @@
                             label: 'Rasio Tabungan (%)',
                             data: @json(collect($trend['months'])->pluck('savings_rate')),
                             type: 'line',
-                            borderColor: emeraldLine,
-                            backgroundColor: emeraldLine,
+                            borderColor: savingsRateLine,
+                            backgroundColor: savingsRateLine,
                             borderWidth: 2,
                             pointRadius: 3,
                             tension: 0.25,

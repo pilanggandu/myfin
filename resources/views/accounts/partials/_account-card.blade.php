@@ -103,7 +103,7 @@
                 <div class="mt-1.5 text-xs text-charcoal/80">Total hutang berjalan</div>
             @else
                 <div class="text-[11px] font-bold uppercase tracking-wider text-charcoal/80">Saldo Saat Ini</div>
-                <div class="font-mono text-xl sm:text-2xl font-bold tracking-tight mt-1 {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
+                <div class="font-mono text-xl sm:text-2xl font-bold tracking-tight mt-1 {{ $balance < 0 ? 'text-red dark:text-rose-400' : ($balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-charcoal') }}">
                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
                         Rp {{ number_format($balance, 0, ',', '.') }}
                     </span>

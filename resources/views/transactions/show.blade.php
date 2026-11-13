@@ -62,7 +62,7 @@
         <x-metric-card 
             label="NOMINAL TRANSAKSI" 
             :value="'Rp ' . number_format($amount, 0, ',', '.')" 
-            :dark="true" 
+            :dark="$isIncome ? 'green' : ($isExpense ? 'red' : 'blue')" 
             :sub="'Tipe: ' . strtoupper($transaction->type)" 
         />
 
@@ -86,9 +86,19 @@
                 <div class="divide-y divide-line text-xs">
                     <div class="py-3 flex justify-between items-center">
                         <span class="text-muted">Jenis Transaksi</span>
-                        <x-badge variant="default">
-                            {{ strtoupper($transaction->type) }}
-                        </x-badge>
+                        @if ($transaction->isIncome())
+                            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">
+                                PEMASUKAN
+                            </span>
+                        @elseif ($transaction->isExpense())
+                            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900">
+                                PENGELUARAN
+                            </span>
+                        @else
+                            <x-badge variant="default">
+                                {{ strtoupper($transaction->type) }}
+                            </x-badge>
+                        @endif
                     </div>
 
                     <div class="py-3 flex justify-between items-center">
@@ -199,13 +209,13 @@
                                     <span class="uppercase text-muted">{{ $entry->account->type }}</span>
                                     <span class="text-line">&bull;</span>
                                     @if ($isPositive)
-                                        <span class="text-forest font-semibold">Kas Masuk (Debet)</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Kas Masuk (Debet)</span>
                                     @else
-                                        <span class="text-red font-semibold">Kas Keluar (Kredit)</span>
+                                        <span class="text-red dark:text-rose-400 font-semibold">Kas Keluar (Kredit)</span>
                                     @endif
                                 </div>
                             </div>
-                            <div class="text-right font-mono font-bold shrink-0 {{ $isPositive ? 'text-forest' : 'text-red' }}">
+                            <div class="text-right font-mono font-bold shrink-0 {{ $isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                                 <span class="privacy-balance" data-raw-value="{{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}">
                                     {{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}
                                 </span>
@@ -240,12 +250,12 @@
                                     </td>
                                     <td class="py-3 px-4">
                                         @if ($isPositive)
-                                            <span class="text-forest font-semibold">Kas Masuk (Debet)</span>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Kas Masuk (Debet)</span>
                                         @else
-                                            <span class="text-red font-semibold">Kas Keluar (Kredit)</span>
+                                            <span class="text-red dark:text-rose-400 font-semibold">Kas Keluar (Kredit)</span>
                                         @endif
                                     </td>
-                                    <td class="py-3 px-4 text-right font-mono font-bold {{ $isPositive ? 'text-forest' : 'text-red' }}">
+                                    <td class="py-3 px-4 text-right font-mono font-bold {{ $isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                                         <span class="privacy-balance" data-raw-value="{{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}">
                                             {{ $isPositive ? '+' : '' }} Rp {{ number_format($entry->amount_signed, 0, ',', '.') }}
                                         </span>

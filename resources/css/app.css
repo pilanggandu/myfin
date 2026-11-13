@@ -713,6 +713,54 @@ input[type="datetime-local"].field-input::-webkit-calendar-picker-indicator:hove
   border-color: #3B5B7D;
 }
 
+.stat-folder-card.dark.dark-green,
+.stat-folder-card.dark-green {
+  background: #064E3B;
+  color: #ffffff;
+  border-color: #064E3B;
+}
+
+.stat-folder-card.dark.dark-green:hover,
+.stat-folder-card.dark-green:hover {
+  border-color: #047857;
+  box-shadow: 0 4px 10px rgba(6, 78, 59, 0.2);
+}
+
+.dark .stat-folder-card.dark.dark-green,
+.dark .stat-folder-card.dark-green {
+  background: #062D23;
+  border-color: #0B4536;
+}
+
+.dark .stat-folder-card.dark.dark-green:hover,
+.dark .stat-folder-card.dark-green:hover {
+  border-color: #0F5B47;
+}
+
+.stat-folder-card.dark.dark-red,
+.stat-folder-card.dark-red {
+  background: #991B1B;
+  color: #ffffff;
+  border-color: #991B1B;
+}
+
+.stat-folder-card.dark.dark-red:hover,
+.stat-folder-card.dark-red:hover {
+  border-color: #B91C1C;
+  box-shadow: 0 4px 10px rgba(153, 27, 27, 0.2);
+}
+
+.dark .stat-folder-card.dark.dark-red,
+.dark .stat-folder-card.dark-red {
+  background: #450A0A;
+  border-color: #5C1D1D;
+}
+
+.dark .stat-folder-card.dark.dark-red:hover,
+.dark .stat-folder-card.dark-red:hover {
+  border-color: #7F1D1D;
+}
+
 .stat-folder-card.dark > * {
   position: relative;
   z-index: 1;

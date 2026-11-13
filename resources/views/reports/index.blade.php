@@ -115,9 +115,9 @@
 
             <!-- Kas Masuk (Inflow) -->
             <div class="panel-card p-4 flex flex-col justify-between">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-forest">Total Kas Masuk</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Kas Masuk</span>
                 <div class="mt-2">
-                    <div class="text-base sm:text-lg font-mono font-bold text-forest">
+                    <div class="text-base sm:text-lg font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         <span class="privacy-balance" data-raw-value="+Rp {{ number_format($totalPeriodInflow, 0, ',', '.') }}">
                             +Rp {{ number_format($totalPeriodInflow, 0, ',', '.') }}
                         </span>
@@ -143,7 +143,7 @@
             <div class="panel-card p-4 flex flex-col justify-between">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-charcoal">Net Arus Kas</span>
                 <div class="mt-2">
-                    <div class="text-base sm:text-lg font-mono font-bold {{ $totalPeriodNet >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
+                    <div class="text-base sm:text-lg font-mono font-bold {{ $totalPeriodNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                         <span class="privacy-balance" data-raw-value="{{ $totalPeriodNet >= 0 ? '+' : '' }}Rp {{ number_format($totalPeriodNet, 0, ',', '.') }}">
                             {{ $totalPeriodNet >= 0 ? '+' : '' }}Rp {{ number_format($totalPeriodNet, 0, ',', '.') }}
                         </span>
@@ -156,7 +156,7 @@
             <div class="panel-card p-4 flex flex-col justify-between min-[420px]:col-span-2 sm:col-span-1">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">Saldo Kas Akhir</span>
                 <div class="mt-2">
-                    <div class="text-base sm:text-lg font-mono font-bold text-forest">
+                    <div class="text-base sm:text-lg font-mono font-bold {{ $closingCashBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                         <span class="privacy-balance" data-raw-value="Rp {{ number_format($closingCashBalance, 0, ',', '.') }}">
                             Rp {{ number_format($closingCashBalance, 0, ',', '.') }}
                         </span>
@@ -362,7 +362,7 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <div class="text-right font-mono font-bold shrink-0 {{ $isInc ? 'text-forest' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
+                                        <div class="text-right font-mono font-bold shrink-0 {{ $isInc ? 'text-emerald-600 dark:text-emerald-400' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
                                             <span class="privacy-balance" data-raw-value="{{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}">
                                                 {{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}
                                             </span>
@@ -370,7 +370,7 @@
                                     </div>
                                     <div class="flex items-center flex-wrap gap-1.5 text-[10px]">
                                         @if ($isInc)
-                                            <span class="px-1.5 py-0.5 rounded font-bold bg-forest/10 dark:bg-forest/20 text-forest">MASUK</span>
+                                            <span class="px-1.5 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">MASUK</span>
                                         @elseif ($isExp)
                                             <span class="px-1.5 py-0.5 rounded font-bold bg-red/10 dark:bg-red/20 text-red dark:text-rose-400">KELUAR</span>
                                         @else
@@ -455,7 +455,7 @@
                                             <!-- Tipe -->
                                             <td class="py-2.5 px-3 whitespace-nowrap">
                                                 @if ($isInc)
-                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-forest/10 dark:bg-forest/20 text-forest">
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                                                         MASUK
                                                     </span>
                                                 @elseif ($isExp)
@@ -470,7 +470,7 @@
                                             </td>
 
                                             <!-- Nominal Arus Kas -->
-                                            <td class="py-2.5 px-4 sm:px-6 text-right font-mono font-bold whitespace-nowrap {{ $isInc ? 'text-forest' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
+                                            <td class="py-2.5 px-4 sm:px-6 text-right font-mono font-bold whitespace-nowrap {{ $isInc ? 'text-emerald-600 dark:text-emerald-400' : ($isExp ? 'text-red dark:text-rose-400' : 'text-charcoal') }}">
                                                 <span class="privacy-balance" data-raw-value="{{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}">
                                                     {{ $isInc ? '+' : ($isExp ? '-' : '') }} Rp {{ number_format($tx->totalAmount(), 0, ',', '.') }}
                                                 </span>
@@ -1021,7 +1021,7 @@
             <x-metric-card 
                 label="PEMASUKAN BERSIH" 
                 :value="'Rp ' . number_format($totalIncome, 0, ',', '.')" 
-                :dark="true" 
+                dark="green" 
                 :sub="$incomeCount . ' transaksi kas masuk'" 
             />
 
@@ -1142,12 +1142,12 @@
                                 <div class="py-2.5 space-y-1 text-xs">
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="font-bold text-charcoal">{{ $m->label }}</span>
-                                        <span class="font-mono font-bold {{ $m->net >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
+                                        <span class="font-mono font-bold {{ $m->net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                                             <span class="privacy-balance" data-raw-value="{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}">{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}</span>
                                         </span>
                                     </div>
                                     <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-                                        <span class="text-forest">+<span class="privacy-balance" data-raw-value="Rp {{ number_format($m->income, 0, ',', '.') }}">Rp {{ number_format($m->income, 0, ',', '.') }}</span></span>
+                                        <span class="text-emerald-600 dark:text-emerald-400">+<span class="privacy-balance" data-raw-value="Rp {{ number_format($m->income, 0, ',', '.') }}">Rp {{ number_format($m->income, 0, ',', '.') }}</span></span>
                                         <span class="text-red dark:text-rose-400">-<span class="privacy-balance" data-raw-value="Rp {{ number_format($m->expense, 0, ',', '.') }}">Rp {{ number_format($m->expense, 0, ',', '.') }}</span></span>
                                     </div>
                                 </div>
@@ -1160,7 +1160,7 @@
                                 <thead>
                                     <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
                                         <th class="py-2.5 px-3">Periode</th>
-                                        <th class="py-2.5 px-3 text-right text-forest">Pemasukan</th>
+                                        <th class="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400">Pemasukan</th>
                                         <th class="py-2.5 px-3 text-right text-red dark:text-rose-400">Pengeluaran</th>
                                         <th class="py-2.5 px-3 text-right">Net Cash Flow</th>
                                     </tr>
@@ -1171,13 +1171,13 @@
                                             <td class="py-2.5 px-3 font-semibold text-charcoal">
                                                 {{ $m->label }}
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono font-semibold text-forest">
+                                            <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($m->income, 0, ',', '.') }}">Rp {{ number_format($m->income, 0, ',', '.') }}</span>
                                             </td>
                                             <td class="py-2.5 px-3 text-right font-mono font-semibold text-red dark:text-rose-400">
                                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($m->expense, 0, ',', '.') }}">Rp {{ number_format($m->expense, 0, ',', '.') }}</span>
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono font-bold {{ $m->net >= 0 ? 'text-forest' : 'text-red dark:text-rose-400' }}">
+                                            <td class="py-2.5 px-3 text-right font-mono font-bold {{ $m->net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red dark:text-rose-400' }}">
                                                 <span class="privacy-balance" data-raw-value="{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}">{{ $m->net >= 0 ? '+' : '' }}Rp {{ number_format($m->net, 0, ',', '.') }}</span>
                                             </td>
                                         </tr>
@@ -1258,13 +1258,13 @@
                                 {
                                     label: 'Pemasukan',
                                     data: trendIncome,
-                                    backgroundColor: '#24483B',
+                                    backgroundColor: '#059669',
                                     borderRadius: 4
                                 },
                                 {
                                     label: 'Pengeluaran',
                                     data: trendExpense,
-                                    backgroundColor: '#C75C5C',
+                                    backgroundColor: '#E11D48',
                                     borderRadius: 4
                                 }
                             ]

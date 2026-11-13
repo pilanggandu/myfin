@@ -84,7 +84,7 @@
                         <!-- Live Spelled-out Preview -->
                         <div class="text-xs text-muted font-mono mt-2 pt-2 border-t border-line/50 flex items-center justify-between">
                             <span id="amountSpelledPreview">Rp {{ number_format($transaction->totalAmount(), 0, ',', '.') }}</span>
-                            <span id="amountSignPreview" class="text-[11px] font-bold text-rose-500">
+                            <span id="amountSignPreview" class="text-[11px] font-bold {{ $transaction->isExpense() ? 'text-rose-500' : ($transaction->isIncome() ? 'text-emerald-600 dark:text-emerald-400' : 'text-charcoal') }}">
                                 {{ $transaction->isExpense() ? 'Kas Keluar (-)' : ($transaction->isIncome() ? 'Kas Masuk (+)' : 'Rotasi Kas (⇄)') }}
                             </span>
                         </div>

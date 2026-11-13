@@ -62,7 +62,7 @@
         <x-metric-card
             label="TOTAL SALDO TERSEDIA"
             :value="'Rp ' . number_format($totalBalance, 0, ',', '.')"
-            :dark="true"
+            :dark="$totalBalance >= 0 ? 'green' : 'red'"
             sub="Seluruh rekening aktif & arsip"
             :toggle="true"
         />
@@ -503,7 +503,7 @@
                                                 Sisa Kewajiban
                                             </div>
                                         @else
-                                            <div class="font-bold text-sm {{ $balance < 0 ? 'text-red' : 'text-charcoal' }}">
+                                            <div class="font-bold text-sm {{ $balance < 0 ? 'text-red dark:text-rose-400' : ($balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-charcoal') }}">
                                                 <span class="privacy-balance" data-raw-value="Rp {{ number_format($balance, 0, ',', '.') }}">
                                                     Rp {{ number_format($balance, 0, ',', '.') }}
                                                 </span>

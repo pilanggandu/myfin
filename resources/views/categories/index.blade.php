@@ -12,13 +12,13 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <x-panel title="Kategori Pemasukan">
             <x-slot:header>
-                <x-badge variant="default">INCOME</x-badge>
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">INCOME</span>
             </x-slot:header>
 
             <form method="POST" action="{{ route('categories.store') }}" class="mb-6 p-4 rounded-xl bg-sidebar/50 border border-line" novalidate>
                 @csrf
                 <input type="hidden" name="type" value="income">
-                <div class="text-xs font-bold text-forest mb-2">+ Tambah Kategori Pemasukan</div>
+                <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2">+ Tambah Kategori Pemasukan</div>
                 <div class="flex flex-col min-[360px]:flex-row gap-2">
                     <div class="flex-1 min-w-0">
                         <input 
@@ -82,13 +82,13 @@
 
         <x-panel title="Kategori Pengeluaran">
             <x-slot:header>
-                <x-badge variant="default">EXPENSE</x-badge>
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900">EXPENSE</span>
             </x-slot:header>
 
             <form method="POST" action="{{ route('categories.store') }}" class="mb-6 p-4 rounded-xl bg-sidebar/50 border border-line" novalidate>
                 @csrf
                 <input type="hidden" name="type" value="expense">
-                <div class="text-xs font-bold text-forest mb-2">+ Tambah Kategori Pengeluaran</div>
+                <div class="text-xs font-bold text-rose-600 dark:text-rose-400 mb-2">+ Tambah Kategori Pengeluaran</div>
                 <div class="flex flex-col min-[360px]:flex-row gap-2">
                     <div class="flex-1 min-w-0">
                         <input 
