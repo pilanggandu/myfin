@@ -237,6 +237,16 @@ class Space extends Model
         return $this->shortPlans()->where('status', 'planned');
     }
 
+    public function plannedIncomes(): HasMany
+    {
+        return $this->hasMany(PlannedIncome::class);
+    }
+
+    public function activePlannedIncomes(): HasMany
+    {
+        return $this->plannedIncomes()->where('status', 'planned');
+    }
+
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);

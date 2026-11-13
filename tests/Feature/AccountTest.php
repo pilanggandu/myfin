@@ -764,7 +764,7 @@ class AccountTest extends TestCase
         );
 
         $this->assertStringContainsString('stat-folder-card dark', $renderedWithProgress);
-        $this->assertStringContainsString('text-[11px] font-semibold text-blue-100', $renderedWithProgress);
+        $this->assertStringContainsString('text-[11px] font-semibold text-emerald-100', $renderedWithProgress);
         $this->assertStringContainsString('text-xs font-bold text-white font-mono', $renderedWithProgress);
         $this->assertStringNotContainsString('text-forest dark:text-blue-400', $renderedWithProgress);
 

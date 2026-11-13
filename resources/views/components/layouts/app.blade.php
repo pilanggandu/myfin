@@ -173,6 +173,12 @@
                             </svg>
                             <span>Short Plan</span>
                         </a>
+                        <a href="{{ route('projections.index') }}" class="sidebar-nav-item {{ request()->routeIs('projections.*') ? 'active' : '' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+                            </svg>
+                            <span>Proyeksi Arus Kas</span>
+                        </a>
                     </div>
                 </div>
 

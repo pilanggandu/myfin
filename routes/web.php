@@ -14,7 +14,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Goals\GoalController;
 use App\Http\Controllers\Members\MemberController;
+use App\Http\Controllers\PlannedIncomes\PlannedIncomeController;
 use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\Projections\CashflowProjectionController;
 use App\Http\Controllers\Recurring\RecurringScheduleController;
 use App\Http\Controllers\Reminders\ReminderController;
 use App\Http\Controllers\Reports\ReportController;
@@ -120,6 +122,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/short-plans/{shortPlan}/items/{item}/toggle', [ShortPlanController::class, 'toggleItem'])->name('short-plans.items.toggle');
     Route::post('/short-plans/{shortPlan}/sync-amount', [ShortPlanController::class, 'syncAmountFromItems'])->name('short-plans.sync-amount');
     Route::delete('/short-plans/{shortPlan}/items/{item}', [ShortPlanController::class, 'destroyItem'])->name('short-plans.items.destroy');
+
+    Route::get('/projections', [CashflowProjectionController::class, 'index'])->name('projections.index');
+    Route::get('/projections/export-csv', [CashflowProjectionController::class, 'exportCsv'])->name('projections.export-csv');
+
+    Route::post('/planned-incomes', [PlannedIncomeController::class, 'store'])->name('planned-incomes.store');
+    Route::put('/planned-incomes/{plannedIncome}', [PlannedIncomeController::class, 'update'])->name('planned-incomes.update');
+    Route::delete('/planned-incomes/{plannedIncome}', [PlannedIncomeController::class, 'destroy'])->name('planned-incomes.destroy');
+    Route::post('/planned-incomes/{plannedIncome}/realize', [PlannedIncomeController::class, 'realize'])->name('planned-incomes.realize');
+    Route::post('/planned-incomes/{plannedIncome}/cancel', [PlannedIncomeController::class, 'cancel'])->name('planned-incomes.cancel');
+    Route::post('/planned-incomes/{plannedIncome}/reopen', [PlannedIncomeController::class, 'reopen'])->name('planned-incomes.reopen');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])->name('reports.export-csv');
