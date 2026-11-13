@@ -187,15 +187,15 @@
                         </select>
                     </div>
 
-                    @if ($viewMode === 'list')
+                    @if ($viewMode === 'list' || $viewMode === 'weekly')
                         <div>
-                            <label class="block text-[10px] font-bold uppercase text-muted mb-1">Urutan Hari</label>
+                            <label class="block text-[10px] font-bold uppercase text-muted mb-1">{{ $viewMode === 'weekly' ? 'Urutan Pekan' : 'Urutan Hari' }}</label>
                             <select name="sort_order" class="field-select h-9 py-1 text-xs min-w-[160px]" onchange="this.form.submit()">
                                 <option value="desc" {{ $sortOrder === 'desc' ? 'selected' : '' }}>
-                                    ⬇️ Terbaru ke Terlama
+                                    {{ $viewMode === 'weekly' ? '⬇️ Pekan Terbaru ke Terlama' : '⬇️ Terbaru ke Terlama' }}
                                 </option>
                                 <option value="asc" {{ $sortOrder === 'asc' ? 'selected' : '' }}>
-                                    ⬆️ Terlama ke Terbaru (Kronologis)
+                                    {{ $viewMode === 'weekly' ? '⬆️ Pekan Terlama ke Terbaru' : '⬆️ Terlama ke Terbaru (Kronologis)' }}
                                 </option>
                             </select>
                         </div>
@@ -212,6 +212,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                             </svg>
                             <span>Daftar</span>
+                        </a>
+                        <a 
+                            href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily', 'view' => 'weekly'])) }}" 
+                            class="min-h-[44px] sm:min-h-0 inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-semibold transition {{ $viewMode === 'weekly' ? 'bg-cream dark:bg-line/60 text-charcoal font-bold shadow-2xs' : 'text-muted hover:text-charcoal' }}"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
+                            </svg>
+                            <span>Mingguan</span>
                         </a>
                         <a 
                             href="{{ route('reports.index', array_merge(request()->query(), ['tab' => 'daily', 'view' => 'calendar'])) }}" 
@@ -484,6 +493,8 @@
                 @endforeach
             </div>
         @endif
+        @elseif ($viewMode === 'weekly')
+            @include('reports.partials._weekly-view')
         @else
             <div class="panel-card p-0 overflow-hidden border border-line shadow-2xs mb-6">
                 <div class="px-4 sm:px-6 py-3.5 bg-cream/40 dark:bg-line/25 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

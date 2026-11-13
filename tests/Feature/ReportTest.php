@@ -762,4 +762,75 @@ class ReportTest extends TestCase
             return true;
         });
     }
+
+    public function test_cash_flow_report_weekly_view_renders_successfully_with_weekly_aggregation(): void
+    {
+        $txService = app(TransactionService::class);
+
+        // Transaksi Pekan 1: 3 Nov 2026 (Expense 100.000)
+        $txService->recordExpense($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->foodCat->id,
+            'amount' => 100000,
+            'transaction_date' => '2026-11-03',
+            'description' => 'Makan Siang Pekan Satu',
+        ]);
+
+        // Transaksi Pekan 2: 10 Nov 2026 (Income 500.000)
+        $txService->recordIncome($this->spaceA, $this->userA, [
+            'account_id' => $this->bca->id,
+            'category_id' => $this->incomeCat->id,
+            'amount' => 500000,
+            'transaction_date' => '2026-11-10',
+            'description' => 'Bonus Freelance Pekan Dua',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=weekly&year=2026&month=11');
+
+        $response->assertStatus(200);
+        $response->assertSee('Mingguan');
+        $response->assertSee('Makan Siang Pekan Satu');
+        $response->assertSee('Bonus Freelance Pekan Dua');
+        $response->assertSee('Rata-Rata Keluar / Pekan');
+        $response->assertSee('Pengeluaran Tertinggi');
+
+        $response->assertViewHas('weeklyData', function ($weeklyData) {
+            $this->assertNotEmpty($weeklyData['weeks']);
+            $this->assertEquals(100000, $weeklyData['highestExpenseWeek']?->outflow);
+            $this->assertEquals(500000, $weeklyData['highestNetWeek']?->inflow);
+
+            return true;
+        });
+    }
+
+    public function test_cash_flow_report_weekly_view_supports_sort_order(): void
+    {
+        $responseDesc = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=weekly&year=2026&month=11&sort_order=desc');
+
+        $responseDesc->assertStatus(200);
+        $responseDesc->assertViewHas('weeklyData', function ($weeklyData) {
+            $weeks = $weeklyData['weeks'];
+            $this->assertGreaterThan(1, count($weeks));
+            $this->assertGreaterThan($weeks[count($weeks) - 1]->week_number, $weeks[0]->week_number);
+
+            return true;
+        });
+
+        $responseAsc = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=weekly&year=2026&month=11&sort_order=asc');
+
+        $responseAsc->assertStatus(200);
+        $responseAsc->assertViewHas('weeklyData', function ($weeklyData) {
+            $weeks = $weeklyData['weeks'];
+            $this->assertGreaterThan(1, count($weeks));
+            $this->assertEquals(1, $weeks[0]->week_number);
+
+            return true;
+        });
+    }
 }

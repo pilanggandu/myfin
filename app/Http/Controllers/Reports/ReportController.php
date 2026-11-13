@@ -29,7 +29,7 @@ class ReportController extends Controller
 
         $validated = $request->validate([
             'tab' => ['nullable', 'string', 'in:daily,analytics,advanced'],
-            'view' => ['nullable', 'string', 'in:list,calendar'],
+            'view' => ['nullable', 'string', 'in:list,calendar,weekly'],
             'period_type' => ['nullable', 'string', 'in:month,custom'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
             'month' => ['nullable', 'integer', 'between:1,12'],
@@ -243,6 +243,15 @@ class ReportController extends Controller
 
         $calendarWeeks = $this->buildCalendarGrid($year, $month, $dailyData['dailyCashflows'], $space);
 
+        $weeklyData = $this->buildWeeklyCashflowData(
+            $startDate,
+            $endDate,
+            $dailyData['dailyCashflows'],
+            $space,
+            $sortOrder,
+            $dailyData['startingCashBalance']
+        );
+
         $allFilterAccounts = $space
             ? $space->activeAccounts()->orderBy('name')->get()
             : collect();
@@ -287,6 +296,7 @@ class ReportController extends Controller
             'advancedAnalytics' => $advancedAnalytics,
             'sortOrder' => $sortOrder,
             'calendarWeeks' => $calendarWeeks,
+            'weeklyData' => $weeklyData,
             'showBills' => $showBills,
         ], $dailyData));
     }
@@ -757,5 +767,130 @@ class ReportController extends Controller
         }
 
         return $calendarWeeks;
+    }
+
+    /**
+     * Membangun data agregasi arus kas mingguan.
+     *
+     * @param  array<int, object>  $dailyCashflows
+     * @return array{
+     *     weeks: array<int, object>,
+     *     highestExpenseWeek: ?object,
+     *     highestNetWeek: ?object,
+     *     averageWeeklyOutflow: int,
+     *     activeWeeksCount: int,
+     *     totalWeeksCount: int
+     * }
+     */
+    private function buildWeeklyCashflowData(string $startDate, string $endDate, array $dailyCashflows, ?Space $space, string $sortOrder = 'desc', int $startingCashBalance = 0): array
+    {
+        $tz = $space?->timezone ?: 'Asia/Jakarta';
+        $start = Carbon::parse($startDate, $tz)->startOfDay();
+        $end = Carbon::parse($endDate, $tz)->endOfDay();
+        $todayStr = ($space ? $space->now() : Carbon::now($tz))->toDateString();
+
+        $cashflowByDate = [];
+        foreach ($dailyCashflows as $day) {
+            $cashflowByDate[$day->date] = $day;
+        }
+
+        $curr = $start->copy();
+        $weekNumber = 1;
+        $rawWeeks = [];
+        $currentRunningBalance = $startingCashBalance;
+
+        while ($curr->lte($end)) {
+            $weekEnd = $curr->copy()->endOfWeek(Carbon::SUNDAY);
+            if ($weekEnd->gt($end)) {
+                $weekEnd = $end->copy();
+            }
+
+            $weekDays = [];
+            $weekInflow = 0;
+            $weekOutflow = 0;
+            $weekTxCount = 0;
+            $isCurrentWeek = false;
+
+            $dayWalker = $curr->copy();
+            while ($dayWalker->lte($weekEnd)) {
+                $dStr = $dayWalker->toDateString();
+                if ($dStr === $todayStr) {
+                    $isCurrentWeek = true;
+                }
+
+                if (isset($cashflowByDate[$dStr])) {
+                    $dayData = $cashflowByDate[$dStr];
+                    $weekDays[] = $dayData;
+                    $weekInflow += $dayData->inflow;
+                    $weekOutflow += $dayData->outflow;
+                    $weekTxCount += $dayData->count;
+                    $currentRunningBalance = $dayData->closing_balance;
+                }
+                $dayWalker->addDay();
+            }
+
+            $weekNet = $weekInflow - $weekOutflow;
+
+            if ($curr->toDateString() === $weekEnd->toDateString()) {
+                $rangeLabel = $curr->translatedFormat('d M Y');
+            } elseif ($curr->month === $weekEnd->month && $curr->year === $weekEnd->year) {
+                $rangeLabel = $curr->translatedFormat('d').' - '.$weekEnd->translatedFormat('d M Y');
+            } else {
+                $rangeLabel = $curr->translatedFormat('d M').' - '.$weekEnd->translatedFormat('d M Y');
+            }
+
+            $rawWeeks[] = (object) [
+                'week_number' => $weekNumber,
+                'title' => 'Minggu '.$weekNumber,
+                'start_date' => $curr->toDateString(),
+                'end_date' => $weekEnd->toDateString(),
+                'range_label' => $rangeLabel,
+                'inflow' => $weekInflow,
+                'outflow' => $weekOutflow,
+                'net' => $weekNet,
+                'closing_balance' => $currentRunningBalance,
+                'tx_count' => $weekTxCount,
+                'active_days_count' => count($weekDays),
+                'days' => $sortOrder === 'desc' ? array_reverse($weekDays) : $weekDays,
+                'is_current_week' => $isCurrentWeek,
+            ];
+
+            $weekNumber++;
+            $curr = $weekEnd->copy()->addDay()->startOfDay();
+        }
+
+        $highestExpenseWeek = null;
+        $highestNetWeek = null;
+        $totalWeeklyOutflow = 0;
+        $activeWeeksCount = 0;
+
+        foreach ($rawWeeks as $w) {
+            $totalWeeklyOutflow += $w->outflow;
+            if ($w->tx_count > 0) {
+                $activeWeeksCount++;
+            }
+
+            if ($w->outflow > 0 && ($highestExpenseWeek === null || $w->outflow > $highestExpenseWeek->outflow)) {
+                $highestExpenseWeek = $w;
+            }
+
+            if ($w->tx_count > 0 && ($highestNetWeek === null || $w->net > $highestNetWeek->net)) {
+                $highestNetWeek = $w;
+            }
+        }
+
+        $totalWeeks = count($rawWeeks);
+        $averageWeeklyOutflow = $totalWeeks > 0 ? (int) round($totalWeeklyOutflow / $totalWeeks) : 0;
+
+        $sortedWeeks = $sortOrder === 'desc' ? array_reverse($rawWeeks) : $rawWeeks;
+
+        return [
+            'weeks' => $sortedWeeks,
+            'highestExpenseWeek' => $highestExpenseWeek,
+            'highestNetWeek' => $highestNetWeek,
+            'averageWeeklyOutflow' => $averageWeeklyOutflow,
+            'activeWeeksCount' => $activeWeeksCount,
+            'totalWeeksCount' => $totalWeeks,
+        ];
     }
 }
