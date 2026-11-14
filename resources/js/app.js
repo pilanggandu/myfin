@@ -1,8 +1,10 @@
 import $ from 'jquery';
+import Chart from 'chart.js/auto';
 import { initIndonesianDatePickers } from './date-picker-id.js';
 import { initSearchablePickers } from './category-picker.js';
 import { initAdvancedSearch } from './advanced-search.js';
 window.$ = window.jQuery = $;
+window.Chart = Chart;
 
 function applyTheme(theme) {
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -13,6 +15,7 @@ function applyTheme(theme) {
         document.documentElement.classList.remove('dark');
         document.documentElement.setAttribute('data-theme', 'light');
     }
+    window.dispatchEvent(new CustomEvent('themeChanged', { detail: { isDark } }));
 }
 
 function updateThemeUI(theme) {

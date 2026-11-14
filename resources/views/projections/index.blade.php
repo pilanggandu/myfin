@@ -1105,13 +1105,28 @@
     </div>
 
     <!-- Script Chart.js & Interaksi Modal -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Inisialisasi Grafik Chart.js
-        document.addEventListener('DOMContentLoaded', function () {
+        let cashflowChartInstance = null;
+
+        function initCashflowProjectionChart() {
             const chartCanvas = document.getElementById('cashflowProjectionChart');
             if (!chartCanvas) return;
 
-            const dailyData = @json($projection['daily_points']);
+            if (typeof Chart === 'undefined') {
+                setTimeout(initCashflowProjectionChart, 80);
+                return;
+            }
+
+            if (cashflowChartInstance) {
+                cashflowChartInstance.destroy();
+                cashflowChartInstance = null;
+            }
+
+            const dailyData = @json($projection['daily_points'] ?? []);
+            if (!dailyData || dailyData.length === 0) return;
+
             const labels = dailyData.map(d => d.label);
             const fullLabels = dailyData.map(d => d.full_label);
             const balances = dailyData.map(d => d.balance);
@@ -1123,7 +1138,7 @@
             const textColor = isDark ? '#94A3B8' : '#526070';
             const lineColor = isDark ? '#60A5FA' : '#0B4A8B';
 
-            new Chart(chartCanvas, {
+            cashflowChartInstance = new Chart(chartCanvas, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -1240,7 +1255,15 @@
                     }
                 }
             });
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initCashflowProjectionChart);
+        } else {
+            initCashflowProjectionChart();
+        }
+
+        window.addEventListener('themeChanged', initCashflowProjectionChart);
 
         // Modal Handlers
         function openCreatePlannedIncomeModal() {
