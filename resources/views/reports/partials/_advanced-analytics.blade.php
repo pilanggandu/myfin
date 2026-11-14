@@ -852,7 +852,19 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    const advCharts = {
+        trend: null,
+        cumulative: null,
+        weekday: null,
+        forecast: null,
+    };
+
+    function initAdvancedCharts() {
+        if (typeof Chart === 'undefined') {
+            setTimeout(initAdvancedCharts, 80);
+            return;
+        }
+
         const isDark = document.documentElement.classList.contains('dark');
         const textColor = isDark ? '#CBD5E1' : '#526070';
         const gridColor = isDark ? 'rgba(52, 72, 61, 0.45)' : 'rgba(200, 215, 229, 0.55)';
@@ -860,6 +872,7 @@
         const incomeGreen = isDark ? '#34D399' : '#059669';
         const dangerRed = isDark ? '#F87171' : '#D14343';
         const savingsRateLine = isDark ? '#38BDF8' : '#0284C7';
+        const emeraldLine = isDark ? '#34D399' : '#059669';
         const amberBar = isDark ? '#FBBF24' : '#D97706';
 
         function compactRp(value) {
@@ -872,7 +885,11 @@
         // 1. Tren Arus Kas & Savings Rate
         const trendCtx = document.getElementById('advancedTrendChart');
         if (trendCtx) {
-            new Chart(trendCtx, {
+            if (advCharts.trend) {
+                advCharts.trend.destroy();
+                advCharts.trend = null;
+            }
+            advCharts.trend = new Chart(trendCtx, {
                 type: 'bar',
                 data: {
                     labels: @json(collect($trend['months'])->pluck('short_label')),
@@ -918,7 +935,7 @@
                         },
                         y1: {
                             position: 'right',
-                            ticks: { color: emeraldLine, font: { size: 10 }, callback: (v) => v + '%' },
+                            ticks: { color: savingsRateLine, font: { size: 10 }, callback: (v) => v + '%' },
                             grid: { drawOnChartArea: false }
                         }
                     },
@@ -942,6 +959,10 @@
         // 2. Kurva Akumulasi Pengeluaran Harian
         const cumCtx = document.getElementById('cumulativeBurnChart');
         if (cumCtx) {
+            if (advCharts.cumulative) {
+                advCharts.cumulative.destroy();
+                advCharts.cumulative = null;
+            }
             const cumDatasets = [
                 {
                     label: 'Periode Ini',
@@ -977,7 +998,7 @@
                 });
             }
 
-            new Chart(cumCtx, {
+            advCharts.cumulative = new Chart(cumCtx, {
                 type: 'line',
                 data: {
                     labels: @json($pattern['cumulative']['labels']),
@@ -1006,14 +1027,18 @@
         // 3. Pola Pengeluaran per Hari (Senin - Minggu)
         const dowCtx = document.getElementById('weekdayPatternChart');
         if (dowCtx) {
-            new Chart(dowCtx, {
+            if (advCharts.weekday) {
+                advCharts.weekday.destroy();
+                advCharts.weekday = null;
+            }
+            advCharts.weekday = new Chart(dowCtx, {
                 type: 'bar',
                 data: {
                     labels: @json(collect($pattern['weekdays'])->pluck('short')),
                     datasets: [{
                         label: 'Total Pengeluaran',
                         data: @json(collect($pattern['weekdays'])->pluck('amount')),
-                        backgroundColor: @json(collect($pattern['weekdays'])->map(fn ($w) => $w->iso >= 6)->values()).map(isWeekend => isWeekend ? amberBar : primaryBlue),
+                        backgroundColor: @json(collect($pattern['weekdays'])->map(fn ($w) => (data_get($w, 'iso') ?? 0) >= 6)->values()).map(isWeekend => isWeekend ? amberBar : primaryBlue),
                         borderRadius: 4,
                     }]
                 },
@@ -1039,7 +1064,11 @@
         // 4. Proyeksi Kewajiban 6 Bulan
         const fcCtx = document.getElementById('commitmentsForecastChart');
         if (fcCtx) {
-            new Chart(fcCtx, {
+            if (advCharts.forecast) {
+                advCharts.forecast.destroy();
+                advCharts.forecast = null;
+            }
+            advCharts.forecast = new Chart(fcCtx, {
                 type: 'bar',
                 data: {
                     labels: @json(collect($forecast['months'])->pluck('label')),
@@ -1076,5 +1105,13 @@
                 }
             });
         }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAdvancedCharts);
+    } else {
+        initAdvancedCharts();
+    }
+
+    window.addEventListener('themeChanged', initAdvancedCharts);
 </script>

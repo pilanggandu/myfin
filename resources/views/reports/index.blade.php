@@ -1208,7 +1208,14 @@
         <!-- Script Chart.js Loaded Only on Analytics Tab -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            let reportCharts = { cat: null, trend: null };
+
+            function initReportAnalyticsCharts() {
+                if (typeof Chart === 'undefined') {
+                    setTimeout(initReportAnalyticsCharts, 80);
+                    return;
+                }
+
                 var isDark = document.documentElement.classList.contains('dark');
                 var textColor = isDark ? '#BAC8BC' : '#4A5B52';
                 var gridColor = isDark ? 'rgba(52, 72, 61, 0.4)' : 'rgba(226, 232, 227, 0.6)';
@@ -1223,7 +1230,11 @@
 
                     var ctxCat = document.getElementById('categoryChart');
                     if (ctxCat) {
-                        new Chart(ctxCat, {
+                        if (reportCharts.cat) {
+                            reportCharts.cat.destroy();
+                            reportCharts.cat = null;
+                        }
+                        reportCharts.cat = new Chart(ctxCat, {
                             type: 'doughnut',
                             data: {
                                 labels: catLabels,
@@ -1261,7 +1272,11 @@
 
                 var ctxTrend = document.getElementById('trendChart');
                 if (ctxTrend) {
-                    new Chart(ctxTrend, {
+                    if (reportCharts.trend) {
+                        reportCharts.trend.destroy();
+                        reportCharts.trend = null;
+                    }
+                    reportCharts.trend = new Chart(ctxTrend, {
                         type: 'bar',
                         data: {
                             labels: trendLabels,
@@ -1317,7 +1332,15 @@
                         }
                     });
                 }
-            });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initReportAnalyticsCharts);
+            } else {
+                initReportAnalyticsCharts();
+            }
+
+            window.addEventListener('themeChanged', initReportAnalyticsCharts);
         </script>
     @endif
 </x-layouts.app>
