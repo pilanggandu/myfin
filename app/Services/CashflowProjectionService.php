@@ -87,6 +87,10 @@ class CashflowProjectionService
             ? (bool) $options['include_short_plans']
             : false;
 
+        $includeOverdue = array_key_exists('include_overdue', $options)
+            ? (bool) $options['include_overdue']
+            : false;
+
         $events = [];
 
         // Breakdown aggregates
@@ -103,6 +107,7 @@ class CashflowProjectionService
             'installment_count' => 0,
             'planned_income_count' => 0,
             'short_plan_count' => 0,
+            'overdue_count' => 0,
         ];
 
         // 5. Ekstrak Transaksi Berulang (Recurring Schedules)
@@ -114,7 +119,8 @@ class CashflowProjectionService
                 selectedAccountId: $selectedAccountId,
                 events: $events,
                 breakdown: $breakdown,
-                counts: $counts
+                counts: $counts,
+                includeOverdue: $includeOverdue
             );
         }
 
@@ -127,7 +133,8 @@ class CashflowProjectionService
                 selectedAccountId: $selectedAccountId,
                 events: $events,
                 breakdown: $breakdown,
-                counts: $counts
+                counts: $counts,
+                includeOverdue: $includeOverdue
             );
         }
 
@@ -140,7 +147,8 @@ class CashflowProjectionService
                 selectedAccountId: $selectedAccountId,
                 events: $events,
                 breakdown: $breakdown,
-                counts: $counts
+                counts: $counts,
+                includeOverdue: $includeOverdue
             );
         }
 
@@ -153,7 +161,8 @@ class CashflowProjectionService
                 selectedAccountId: $selectedAccountId,
                 events: $events,
                 breakdown: $breakdown,
-                counts: $counts
+                counts: $counts,
+                includeOverdue: $includeOverdue
             );
         }
 
@@ -246,6 +255,7 @@ class CashflowProjectionService
             'deficit_date' => $deficitDate,
             'max_deficit_amount' => round($maxDeficit, 2),
             'timeline_events' => $events,
+            'overdue_count' => $counts['overdue_count'] ?? 0,
             'daily_points' => $dailyPoints,
             'breakdown' => [
                 'recurring_income' => round($breakdown['recurring_income'], 2),
@@ -260,6 +270,7 @@ class CashflowProjectionService
                 'include_installments' => $includeInstallments,
                 'include_planned_incomes' => $includePlannedIncomes,
                 'include_short_plans' => $includeShortPlans,
+                'include_overdue' => $includeOverdue,
             ],
         ];
     }
@@ -278,7 +289,8 @@ class CashflowProjectionService
         ?int $selectedAccountId,
         array &$events,
         array &$breakdown,
-        array &$counts
+        array &$counts,
+        bool $includeOverdue = false
     ): void {
         $schedules = RecurringSchedule::query()
             ->where('space_id', $space->id)
@@ -321,11 +333,21 @@ class CashflowProjectionService
             // Tentukan tanggal jatuh tempo pertama yang masuk ke rentang
             $cursor = Carbon::parse($schedule->next_due_date)->startOfDay();
 
-            // Bila next_due_date lampau, majukan hingga mencapai >= startDateStr
-            $loopLimit = 0;
-            while ($cursor->lt($startCarbon) && $loopLimit < 200) {
-                $cursor = $schedule->calculateNextDueDate($cursor);
-                $loopLimit++;
+            if (! $includeOverdue) {
+                // Bila next_due_date lampau, majukan hingga mencapai >= startDateStr
+                $loopLimit = 0;
+                while ($cursor->lt($startCarbon) && $loopLimit < 200) {
+                    $cursor = $schedule->calculateNextDueDate($cursor);
+                    $loopLimit++;
+                }
+            } else {
+                // Jika include_overdue aktif, batasi agar tidak mengambil yang terlampau lama (maks 90 hari lampau)
+                $maxPast = $startCarbon->copy()->subDays(90);
+                $loopLimit = 0;
+                while ($cursor->lt($maxPast) && $loopLimit < 200) {
+                    $cursor = $schedule->calculateNextDueDate($cursor);
+                    $loopLimit++;
+                }
             }
 
             $scheduleEnd = $schedule->end_date ? Carbon::parse($schedule->end_date)->endOfDay() : null;
@@ -336,7 +358,9 @@ class CashflowProjectionService
                     break;
                 }
 
-                if ($cursor->gte($startCarbon)) {
+                $isOverdue = $cursor->lt($startCarbon);
+
+                if ($cursor->gte($startCarbon) || $includeOverdue) {
                     $flow = 'out';
                     if ($isIncome) {
                         $flow = 'in';
@@ -349,13 +373,18 @@ class CashflowProjectionService
                         ? ($schedule->destinationAccount?->name ?? 'Kas / Bank')
                         : ($schedule->sourceAccount?->name ?? 'Kas / Bank');
 
+                    $sourceLabel = $isIncome ? 'Pemasukan Rutin' : 'Tagihan Rutin';
+                    if ($isOverdue) {
+                        $sourceLabel .= ' (Jatuh Tempo)';
+                    }
+
                     $events[] = [
                         'id' => 'rec_'.$schedule->id.'_'.$cursor->format('Ymd'),
                         'date' => $dateStr,
                         'date_formatted' => $cursor->translatedFormat('d M Y'),
                         'day_name' => $cursor->translatedFormat('l'),
                         'source_type' => 'recurring',
-                        'source_label' => $isIncome ? 'Pemasukan Rutin' : 'Tagihan Rutin',
+                        'source_label' => $sourceLabel,
                         'title' => $schedule->name,
                         'amount' => $amt,
                         'flow' => $flow,
@@ -363,6 +392,7 @@ class CashflowProjectionService
                         'account_name' => $accountLabel,
                         'raw_id' => $schedule->id,
                         'detail_url' => route('recurring.show', $schedule->id),
+                        'is_overdue' => $isOverdue,
                     ];
 
                     if ($flow === 'in') {
@@ -372,6 +402,9 @@ class CashflowProjectionService
                     }
 
                     $counts['recurring_count']++;
+                    if ($isOverdue) {
+                        $counts['overdue_count'] = ($counts['overdue_count'] ?? 0) + 1;
+                    }
                 }
 
                 $cursor = $schedule->calculateNextDueDate($cursor);
@@ -394,15 +427,24 @@ class CashflowProjectionService
         ?int $selectedAccountId,
         array &$events,
         array &$breakdown,
-        array &$counts
+        array &$counts,
+        bool $includeOverdue = false
     ): void {
-        $installments = Installment::query()
+        $startCarbon = Carbon::parse($startDateStr)->startOfDay();
+
+        $query = Installment::query()
             ->where('space_id', $space->id)
             ->active()
             ->pending()
-            ->whereBetween('due_date', [$startDateStr, $endDateStr])
-            ->with(['installmentPlan.creditAccount'])
-            ->get();
+            ->with(['installmentPlan.creditAccount']);
+
+        if ($includeOverdue) {
+            $query->where('due_date', '<=', $endDateStr);
+        } else {
+            $query->whereBetween('due_date', [$startDateStr, $endDateStr]);
+        }
+
+        $installments = $query->get();
 
         foreach ($installments as $inst) {
             $amt = (float) $inst->total_amount;
@@ -415,6 +457,7 @@ class CashflowProjectionService
             $accountName = $plan?->creditAccount?->name ?? 'Kartu / PayLater';
 
             $dueDate = Carbon::parse($inst->due_date);
+            $isOverdue = $dueDate->lt($startCarbon);
 
             $events[] = [
                 'id' => 'inst_'.$inst->id,
@@ -422,7 +465,7 @@ class CashflowProjectionService
                 'date_formatted' => $dueDate->translatedFormat('d M Y'),
                 'day_name' => $dueDate->translatedFormat('l'),
                 'source_type' => 'installment',
-                'source_label' => 'Cicilan Tempo',
+                'source_label' => $isOverdue ? 'Cicilan Jatuh Tempo' : 'Cicilan Tempo',
                 'title' => "Cicilan Ke-{$inst->installment_number} ({$planTitle})",
                 'amount' => $amt,
                 'flow' => 'out',
@@ -430,10 +473,14 @@ class CashflowProjectionService
                 'account_name' => $accountName,
                 'raw_id' => $inst->id,
                 'detail_url' => $plan ? route('credit.plans.show', $plan->id) : route('credit.index'),
+                'is_overdue' => $isOverdue,
             ];
 
             $breakdown['installments'] += $amt;
             $counts['installment_count']++;
+            if ($isOverdue) {
+                $counts['overdue_count'] = ($counts['overdue_count'] ?? 0) + 1;
+            }
         }
     }
 
@@ -451,13 +498,21 @@ class CashflowProjectionService
         ?int $selectedAccountId,
         array &$events,
         array &$breakdown,
-        array &$counts
+        array &$counts,
+        bool $includeOverdue = false
     ): void {
+        $startCarbon = Carbon::parse($startDateStr)->startOfDay();
+
         $query = PlannedIncome::query()
             ->where('space_id', $space->id)
             ->planned()
-            ->whereBetween('expected_date', [$startDateStr, $endDateStr])
             ->with(['account', 'category']);
+
+        if ($includeOverdue) {
+            $query->where('expected_date', '<=', $endDateStr);
+        } else {
+            $query->whereBetween('expected_date', [$startDateStr, $endDateStr]);
+        }
 
         if ($selectedAccountId !== null) {
             $query->where(function ($q) use ($selectedAccountId) {
@@ -475,6 +530,7 @@ class CashflowProjectionService
             }
 
             $expectedDate = Carbon::parse($plan->expected_date);
+            $isOverdue = $expectedDate->lt($startCarbon);
 
             $events[] = [
                 'id' => 'plan_in_'.$plan->id,
@@ -482,7 +538,7 @@ class CashflowProjectionService
                 'date_formatted' => $expectedDate->translatedFormat('d M Y'),
                 'day_name' => $expectedDate->translatedFormat('l'),
                 'source_type' => 'planned_income',
-                'source_label' => 'Rencana Pemasukan',
+                'source_label' => $isOverdue ? 'Rencana Pemasukan (Lewat Tempo)' : 'Rencana Pemasukan',
                 'title' => $plan->title,
                 'amount' => $amt,
                 'flow' => 'in',
@@ -490,10 +546,14 @@ class CashflowProjectionService
                 'account_name' => $plan->account?->name ?? 'Rekening Terpilih',
                 'raw_id' => $plan->id,
                 'detail_url' => null,
+                'is_overdue' => $isOverdue,
             ];
 
             $breakdown['planned_incomes'] += $amt;
             $counts['planned_income_count']++;
+            if ($isOverdue) {
+                $counts['overdue_count'] = ($counts['overdue_count'] ?? 0) + 1;
+            }
         }
     }
 
@@ -511,14 +571,22 @@ class CashflowProjectionService
         ?int $selectedAccountId,
         array &$events,
         array &$breakdown,
-        array &$counts
+        array &$counts,
+        bool $includeOverdue = false
     ): void {
+        $startCarbon = Carbon::parse($startDateStr)->startOfDay();
+
         $query = ShortPlan::query()
             ->where('space_id', $space->id)
             ->planned()
             ->whereNotNull('target_date')
-            ->whereBetween('target_date', [$startDateStr, $endDateStr])
             ->with(['account', 'category']);
+
+        if ($includeOverdue) {
+            $query->where('target_date', '<=', $endDateStr);
+        } else {
+            $query->whereBetween('target_date', [$startDateStr, $endDateStr]);
+        }
 
         if ($selectedAccountId !== null) {
             $query->where(function ($q) use ($selectedAccountId) {
@@ -536,6 +604,7 @@ class CashflowProjectionService
             }
 
             $targetDate = Carbon::parse($plan->target_date);
+            $isOverdue = $targetDate->lt($startCarbon);
 
             $events[] = [
                 'id' => 'sp_'.$plan->id,
@@ -543,7 +612,7 @@ class CashflowProjectionService
                 'date_formatted' => $targetDate->translatedFormat('d M Y'),
                 'day_name' => $targetDate->translatedFormat('l'),
                 'source_type' => 'short_plan',
-                'source_label' => 'Short Plan (Belanja)',
+                'source_label' => $isOverdue ? 'Short Plan (Lewat Target)' : 'Short Plan (Belanja)',
                 'title' => $plan->title,
                 'amount' => $amt,
                 'flow' => 'out',
@@ -551,10 +620,14 @@ class CashflowProjectionService
                 'account_name' => $plan->account?->name ?? 'Kas / Bank',
                 'raw_id' => $plan->id,
                 'detail_url' => route('short-plans.show', $plan->id),
+                'is_overdue' => $isOverdue,
             ];
 
             $breakdown['short_plans'] += $amt;
             $counts['short_plan_count']++;
+            if ($isOverdue) {
+                $counts['overdue_count'] = ($counts['overdue_count'] ?? 0) + 1;
+            }
         }
     }
 

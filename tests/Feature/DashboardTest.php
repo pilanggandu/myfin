@@ -378,4 +378,43 @@ class DashboardTest extends TestCase
         $response->assertSee('Timeline 30 Hari Mendatang', false);
         $response->assertSee('Tidak Ada Event Terjadwal', false);
     }
+
+    public function test_dashboard_displays_overdue_schedules_in_timeline(): void
+    {
+        $today = Carbon::today();
+
+        RecurringSchedule::create([
+            'space_id' => $this->space->id,
+            'type' => 'expense',
+            'name' => 'Spotify Telat Bayar',
+            'category_id' => $this->category->id,
+            'source_account_id' => $this->account->id,
+            'frequency' => 'monthly',
+            'start_date' => $today->copy()->subMonth()->toDateString(),
+            'next_due_date' => $today->copy()->subDays(4)->toDateString(),
+            'amount' => 55000,
+            'status' => 'active',
+            'created_by' => $this->user->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+
+        $overdueCount = $response->viewData('overdueScheduleCount');
+        $this->assertEquals(1, $overdueCount);
+
+        $events = $response->viewData('timelineEvents');
+        $this->assertNotEmpty($events);
+
+        $overdueEvents = array_filter($events, fn ($e) => ! empty($e['is_overdue']));
+        $this->assertCount(1, $overdueEvents);
+        $this->assertEquals('Spotify Telat Bayar', reset($overdueEvents)['title']);
+
+        $response->assertSee('Spotify Telat Bayar', false);
+        $response->assertSee('Jatuh Tempo', false);
+        $response->assertSee('Sudah Jatuh Tempo', false);
+    }
 }

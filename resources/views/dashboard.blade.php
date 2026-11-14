@@ -25,6 +25,12 @@
                         <span class="w-1.5 h-1.5 rounded-full {{ $netCashFlow >= 0 ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>
                         {{ $netCashFlow >= 0 ? 'Kondisi: Surplus' : 'Kondisi: Defisit' }}
                     </span>
+                    @if (($overdueScheduleCount ?? 0) > 0)
+                        <a href="#dashboard-timeline" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-rose-300 bg-rose-100 dark:bg-rose-950/60 text-[11px] font-bold text-rose-800 dark:text-rose-300 hover:opacity-90 transition text-decoration-none">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                            {{ $overdueScheduleCount }} Jadwal Jatuh Tempo
+                        </a>
+                    @endif
                 </div>
                 <p class="text-xs text-muted mt-1 leading-normal">
                     Berikut ringkasan kondisi keuangan ruang <strong class="text-charcoal font-semibold">{{ $space?->name }}</strong> ({{ $space?->isPersonal() ? 'Personal' : 'Bersama' }}) yang perlu diperhatikan hari ini.
@@ -421,8 +427,8 @@
         </div>
     </div>
 
-    {{-- Timeline Event 30 Hari Mendatang --}}
-    <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-timeline">
+    {{-- Timeline Event 30 Hari Mendatang & Jatuh Tempo --}}
+    <div id="dashboard-timeline" class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-timeline">
         <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2.5">
             <div class="flex items-center flex-wrap gap-2 min-w-0">
                 <span class="text-forest shrink-0">
@@ -430,15 +436,21 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.253 3.75h18M4.5 7.5h15a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 19.5 22.5h-15A2.25 2.25 0 0 1 2.25 20.25V9.75A2.25 2.25 0 0 1 4.5 7.5Z" />
                     </svg>
                 </span>
-                <h2 class="text-xs font-bold text-charcoal">Timeline 30 Hari Mendatang</h2>
+                <h2 class="text-xs font-bold text-charcoal">Timeline 30 Hari Mendatang &amp; Jatuh Tempo</h2>
                 @if (!empty($timelineEvents))
                     <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line shrink-0">
                         {{ count($timelineEvents) }}
                     </span>
                 @endif
-                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-forest-light text-forest uppercase">
-                    Agenda Kas
-                </span>
+                @if (($overdueScheduleCount ?? 0) > 0)
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 uppercase animate-pulse">
+                        🚨 {{ $overdueScheduleCount }} Jatuh Tempo
+                    </span>
+                @else
+                    <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-forest-light text-forest uppercase">
+                        Agenda Kas
+                    </span>
+                @endif
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
@@ -449,6 +461,11 @@
                 @if (!empty($timelineEvents))
                     <div class="inline-flex rounded-lg p-0.5 bg-cream dark:bg-line/40 border border-line text-[11px] font-semibold" role="tablist">
                         <button type="button" onclick="filterTimelineEvents('all', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md bg-forest text-white transition cursor-pointer">Semua ({{ count($timelineEvents) }})</button>
+                        @if (($overdueScheduleCount ?? 0) > 0)
+                            <button type="button" id="timelineBtnOverdue" onclick="filterTimelineEvents('overdue', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md text-rose-700 dark:text-rose-400 font-bold hover:bg-rose-100 dark:hover:bg-rose-950/50 transition cursor-pointer">
+                                🚨 Jatuh Tempo ({{ $overdueScheduleCount }})
+                            </button>
+                        @endif
                         <button type="button" onclick="filterTimelineEvents('in', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md text-muted hover:text-charcoal transition cursor-pointer">Masuk ({{ $timelineInflowCount }})</button>
                         <button type="button" onclick="filterTimelineEvents('out', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md text-muted hover:text-charcoal transition cursor-pointer">Keluar ({{ $timelineOutflowCount }})</button>
                     </div>
@@ -468,6 +485,20 @@
                 </a>
             </div>
         </div>
+
+        @if (($overdueScheduleCount ?? 0) > 0)
+            <div class="px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2 text-rose-800 dark:text-rose-200">
+                    <span class="text-base shrink-0">🚨</span>
+                    <span>
+                        <strong>Jadwal Sudah Jatuh Tempo:</strong> Terdapat <strong>{{ $overdueScheduleCount }} jadwal/transaksi</strong> yang telah melewati tanggal jatuh tempo dan belum diselesaikan.
+                    </span>
+                </div>
+                <button type="button" onclick="filterTimelineEvents('overdue', document.getElementById('timelineBtnOverdue'))" class="font-bold text-rose-700 dark:text-rose-300 hover:underline shrink-0 text-left sm:text-right cursor-pointer">
+                    Lihat Yang Jatuh Tempo &rarr;
+                </button>
+            </div>
+        @endif
 
         @if (!empty($timelineProjection))
             @php
@@ -526,7 +557,12 @@
                 @php
                     $eventDate = \Carbon\Carbon::parse($evt['date'])->startOfDay();
                     $diffDays = (int) $now->copy()->startOfDay()->diffInDays($eventDate, false);
-                    if ($diffDays === 0) {
+                    $isItemOverdue = !empty($evt['is_overdue']) || $diffDays < 0;
+
+                    if ($isItemOverdue) {
+                        $relativeLabel = 'Lewat ' . abs($diffDays) . ' hr (Jatuh Tempo)';
+                        $relativeClass = 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 font-bold border border-rose-300';
+                    } elseif ($diffDays === 0) {
                         $relativeLabel = 'Hari Ini';
                         $relativeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
                     } elseif ($diffDays === 1) {
@@ -535,12 +571,9 @@
                     } elseif ($diffDays === 2) {
                         $relativeLabel = 'Lusa';
                         $relativeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300';
-                    } elseif ($diffDays > 2) {
+                    } else {
                         $relativeLabel = $diffDays . ' hr lagi';
                         $relativeClass = 'bg-cream text-muted dark:bg-line/50';
-                    } else {
-                        $relativeLabel = 'Lewat';
-                        $relativeClass = 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
                     }
 
                     $badgeTheme = match($evt['source_type']) {
@@ -559,13 +592,14 @@
                     $isOverflow = $idx >= 6;
                 @endphp
                 <div 
-                    class="timeline-event-row px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-cream/40 transition {{ $isOverflow ? 'timeline-event-overflow hidden' : '' }}" 
+                    class="timeline-event-row px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition {{ $isOverflow ? 'timeline-event-overflow hidden' : '' }} {{ $isItemOverdue ? 'bg-rose-50/50 dark:bg-rose-950/20 border-l-4 border-rose-500 hover:bg-rose-50/80 dark:hover:bg-rose-950/40' : 'hover:bg-cream/40' }}" 
                     data-flow="{{ $evt['flow'] }}"
+                    data-is-overdue="{{ $isItemOverdue ? 'true' : 'false' }}"
                 >
                     <div class="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                         <div class="flex items-center gap-2 shrink-0">
-                            <div class="w-11 text-center py-1 px-1 rounded-md bg-panel border border-line shrink-0">
-                                <span class="block text-[11px] font-bold text-charcoal leading-none">{{ $eventDate->format('d') }}</span>
+                            <div class="w-11 text-center py-1 px-1 rounded-md bg-panel border {{ $isItemOverdue ? 'border-rose-300 bg-rose-50 dark:bg-rose-950/50' : 'border-line' }} shrink-0">
+                                <span class="block text-[11px] font-bold {{ $isItemOverdue ? 'text-rose-700 dark:text-rose-300' : 'text-charcoal' }} leading-none">{{ $eventDate->format('d') }}</span>
                                 <span class="block text-[9.5px] font-semibold text-muted uppercase leading-tight">{{ $eventDate->translatedFormat('M') }}</span>
                             </div>
                             <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 {{ $relativeClass }}">
@@ -575,6 +609,11 @@
 
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 flex-wrap">
+                                @if ($isItemOverdue)
+                                    <span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-rose-600 text-white uppercase shrink-0">
+                                        Sudah Jatuh Tempo
+                                    </span>
+                                @endif
                                 <span class="inline-flex items-center gap-1 px-2 py-0.2 rounded text-[10px] font-bold shrink-0 {{ $badgeTheme }}">
                                     <span>{{ $badgeIcon }}</span>
                                     <span>{{ $evt['source_label'] }}</span>
@@ -629,7 +668,7 @@
                     </div>
                     <div class="font-bold text-charcoal text-sm mb-1">Tidak Ada Event Terjadwal</div>
                     <p class="max-w-md mx-auto text-muted mb-3">
-                        Belum ada transaksi berulang, cicilan tempo, atau rencana pemasukan yang terjadwal dalam 30 hari ke depan.
+                        Belum ada transaksi berulang, cicilan tempo, atau rencana pemasukan yang terjadwal.
                     </p>
                     <div class="flex items-center justify-center gap-2 flex-wrap">
                         <a href="{{ route('recurring.create') }}" class="btn-arus-secondary text-xs py-1 px-3">
@@ -659,7 +698,7 @@
             </div>
         @elseif (!empty($timelineEvents))
             <div class="px-4 sm:px-5 py-2.5 bg-sidebar/50 border-t border-line flex items-center justify-between text-[11px] text-muted">
-                <span>Menampilkan seluruh {{ count($timelineEvents) }} event dalam 30 hari</span>
+                <span>Menampilkan seluruh {{ count($timelineEvents) }} jadwal &amp; event</span>
                 <a href="{{ route('projections.index', ['horizon' => 30]) }}" class="text-forest font-semibold hover:underline">
                     Buka Halaman Proyeksi &rarr;
                 </a>
@@ -1082,7 +1121,9 @@
             const currentFlow = window.currentTimelineFlow || 'all';
             document.querySelectorAll('.timeline-event-overflow').forEach(el => {
                 if (timelineExpanded) {
-                    if (currentFlow === 'all' || el.getAttribute('data-flow') === currentFlow) {
+                    if (currentFlow === 'all' || 
+                        (currentFlow === 'overdue' && el.getAttribute('data-is-overdue') === 'true') || 
+                        el.getAttribute('data-flow') === currentFlow) {
                         el.classList.remove('hidden');
                     }
                 } else {
@@ -1101,20 +1142,34 @@
         function filterTimelineEvents(flow, btn) {
             window.currentTimelineFlow = flow;
             document.querySelectorAll('.timeline-filter-btn').forEach(b => {
-                b.classList.remove('bg-forest', 'text-white');
+                b.classList.remove('bg-forest', 'text-white', 'bg-rose-600');
                 b.classList.add('text-muted');
             });
-            btn.classList.add('bg-forest', 'text-white');
-            btn.classList.remove('text-muted');
+            if (btn) {
+                if (flow === 'overdue') {
+                    btn.classList.add('bg-rose-600', 'text-white');
+                } else {
+                    btn.classList.add('bg-forest', 'text-white');
+                }
+                btn.classList.remove('text-muted');
+            }
 
             const allRows = document.querySelectorAll('.timeline-event-row');
             let matchCount = 0;
             allRows.forEach((row) => {
-                const matches = (flow === 'all' || row.getAttribute('data-flow') === flow);
+                let matches = false;
+                if (flow === 'all') {
+                    matches = true;
+                } else if (flow === 'overdue') {
+                    matches = row.getAttribute('data-is-overdue') === 'true';
+                } else {
+                    matches = row.getAttribute('data-flow') === flow;
+                }
+
                 const isOverflow = row.classList.contains('timeline-event-overflow');
                 if (matches) {
                     matchCount++;
-                    if (!isOverflow || timelineExpanded) {
+                    if (!isOverflow || timelineExpanded || flow === 'overdue') {
                         row.classList.remove('hidden');
                     } else {
                         row.classList.add('hidden');

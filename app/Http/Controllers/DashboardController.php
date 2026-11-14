@@ -146,9 +146,11 @@ class DashboardController extends Controller
                 'include_installments' => true,
                 'include_planned_incomes' => true,
                 'include_short_plans' => true,
+                'include_overdue' => true,
             ])
             : null;
         $timelineEvents = $timelineProjection['timeline_events'] ?? [];
+        $overdueScheduleCount = $timelineProjection['overdue_count'] ?? 0;
 
         return view('dashboard', [
             'space' => $currentSpace,
@@ -178,6 +180,7 @@ class DashboardController extends Controller
             'shortPlanUrgentCount' => $shortPlanUrgentCount,
             'timelineProjection' => $timelineProjection,
             'timelineEvents' => $timelineEvents,
+            'overdueScheduleCount' => $overdueScheduleCount,
             'now' => $now,
         ]);
     }
