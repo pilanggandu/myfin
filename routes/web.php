@@ -183,6 +183,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/credit/purchases/create', [InstallmentController::class, 'create'])->name('credit.purchases.create');
     Route::post('/credit/purchases', [InstallmentController::class, 'store'])->name('credit.purchases.store');
     Route::get('/credit/plans/{plan}', [InstallmentController::class, 'show'])->name('credit.plans.show');
+    Route::put('/credit/plans/{plan}/dates', [InstallmentController::class, 'updateDates'])->name('credit.plans.updateDates');
+    Route::put('/credit/installments/{installment}/due-date', [InstallmentController::class, 'updateDueDate'])->name('credit.installments.updateDueDate');
     Route::post('/credit/installments/{installment}/pay', [InstallmentController::class, 'pay'])->name('credit.installments.pay');
     Route::post('/credit/installments/{installment}/mark-paid', [InstallmentController::class, 'markPaidWithoutCash'])->name('credit.installments.markPaidWithoutCash');
     Route::post('/credit/installments/{installment}/reset-to-pending', [InstallmentController::class, 'resetToPending'])->name('credit.installments.resetToPending');

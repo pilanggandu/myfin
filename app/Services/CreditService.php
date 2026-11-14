@@ -1185,4 +1185,128 @@ class CreditService
             return $payment;
         });
     }
+
+    public function updatePlanDates(Space $space, User $actor, InstallmentPlan $plan, array $data): InstallmentPlan
+    {
+        if ($plan->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'plan' => 'Rencana cicilan bukan milik ruang aktif.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $plan, $data) {
+            $lockedPlan = InstallmentPlan::where('id', $plan->id)->lockForUpdate()->firstOrFail();
+            $changes = [];
+
+            if (! empty($data['start_date'])) {
+                $newStartDate = Carbon::parse($data['start_date'])->toDateString();
+                $oldStartDate = $lockedPlan->start_date ? $lockedPlan->start_date->toDateString() : null;
+
+                if ($newStartDate !== $oldStartDate) {
+                    $lockedPlan->update(['start_date' => $newStartDate]);
+                    $changes['start_date'] = ['from' => $oldStartDate, 'to' => $newStartDate];
+
+                    if ($lockedPlan->purchaseTransaction && ! $lockedPlan->purchaseTransaction->isVoid()) {
+                        $lockedPlan->purchaseTransaction->update([
+                            'transaction_date' => $newStartDate,
+                            'updated_by' => $actor->id,
+                        ]);
+                    }
+                }
+            }
+
+            $pendingInstallments = $lockedPlan->installments()
+                ->where('status', 'pending')
+                ->orderBy('installment_number', 'asc')
+                ->lockForUpdate()
+                ->get();
+
+            if ($pendingInstallments->isNotEmpty()) {
+                if (! empty($data['first_due_date'])) {
+                    $firstDueDate = Carbon::parse($data['first_due_date']);
+                    $targetDueDay = $firstDueDate->day;
+                    $updatedCount = 0;
+
+                    foreach ($pendingInstallments as $index => $inst) {
+                        if ($index === 0) {
+                            $dueDate = $firstDueDate->copy();
+                        } else {
+                            $dueDate = $firstDueDate->copy()->addMonthsNoOverflow($index);
+                            $dueDate->setDay(min($targetDueDay, $dueDate->daysInMonth));
+                        }
+
+                        $inst->update(['due_date' => $dueDate->toDateString()]);
+                        $updatedCount++;
+                    }
+                    $changes['due_dates_recalculated'] = $updatedCount;
+                } elseif (! empty($data['due_day'])) {
+                    $dueDay = (int) $data['due_day'];
+                    $updatedCount = 0;
+
+                    foreach ($pendingInstallments as $inst) {
+                        $currentDate = Carbon::parse($inst->due_date);
+                        $newDueDate = $currentDate->copy()->setDay(min($dueDay, $currentDate->daysInMonth));
+                        $inst->update(['due_date' => $newDueDate->toDateString()]);
+                        $updatedCount++;
+                    }
+                    $changes['due_day_shifted'] = ['day' => $dueDay, 'count' => $updatedCount];
+                }
+            }
+
+            if (! empty($changes)) {
+                $this->activityLog->log(
+                    module: 'credit',
+                    action: 'updated',
+                    description: "Memperbarui tanggal pada rencana cicilan \"{$lockedPlan->name}\"",
+                    space: $space,
+                    actor: $actor,
+                    subject: $lockedPlan,
+                    subjectLabel: $lockedPlan->name,
+                    properties: $changes,
+                );
+            }
+
+            return $lockedPlan;
+        });
+    }
+
+    public function updateInstallmentDueDate(Space $space, User $actor, Installment $installment, string $newDueDate): Installment
+    {
+        if ($installment->space_id !== $space->id) {
+            throw ValidationException::withMessages([
+                'installment' => 'Cicilan bukan milik ruang aktif.',
+            ]);
+        }
+
+        if (! $installment->isPending()) {
+            throw ValidationException::withMessages([
+                'due_date' => 'Hanya cicilan yang belum lunas (pending) yang dapat diubah tanggal jatuh temponya.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($space, $actor, $installment, $newDueDate) {
+            $locked = Installment::where('id', $installment->id)->lockForUpdate()->firstOrFail();
+            $oldDueDate = $locked->due_date ? $locked->due_date->toDateString() : null;
+            $parsedNewDueDate = Carbon::parse($newDueDate)->toDateString();
+
+            $locked->update(['due_date' => $parsedNewDueDate]);
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'updated',
+                description: "Memperbarui tanggal jatuh tempo cicilan ke-{$locked->installment_number} \"{$locked->installmentPlan->name}\" menjadi ".Carbon::parse($parsedNewDueDate)->format('d M Y'),
+                space: $space,
+                actor: $actor,
+                subject: $locked->installmentPlan,
+                subjectLabel: $locked->installmentPlan->name,
+                properties: [
+                    'installment_number' => $locked->installment_number,
+                    'old_due_date' => $oldDueDate,
+                    'new_due_date' => $parsedNewDueDate,
+                ],
+            );
+
+            return $locked;
+        });
+    }
 }

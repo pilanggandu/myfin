@@ -21,6 +21,14 @@
             @if ($plan->isActive())
                 <button 
                     type="button" 
+                    onclick="openEditDatesModal()" 
+                    class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
+                    title="Ubah tanggal transaksi atau tanggal jatuh tempo cicilan"
+                >
+                    <span>📅 Edit Tanggal</span>
+                </button>
+                <button 
+                    type="button" 
                     onclick="openNoteModal()" 
                     class="min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
                     title="Tambah Nota Kredit atau Nota Debit untuk penyesuaian selisih nominal/pembulatan"
@@ -108,8 +116,13 @@
 
             <div>
                 <span class="text-[11px] text-muted uppercase tracking-wider font-semibold block mb-1">Tanggal Transaksi</span>
-                <div class="font-semibold text-sm text-charcoal">
-                    {{ $plan->start_date->format('d M Y') }}
+                <div class="flex items-center gap-1.5 font-semibold text-sm text-charcoal">
+                    <span>{{ $plan->start_date->format('d M Y') }}</span>
+                    @if ($plan->isActive())
+                        <button type="button" onclick="openEditDatesModal('transaction')" class="text-muted hover:text-forest p-0.5 rounded hover:bg-cream transition cursor-pointer" title="Ubah tanggal transaksi pembelian">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
+                        </button>
+                    @endif
                 </div>
                 <span class="text-xs text-muted">Tenor: {{ $plan->tenor }} bulan</span>
             </div>
@@ -222,6 +235,16 @@
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-bold text-charcoal text-sm">#{{ $inst->installment_number }}</span>
                                 <span class="text-muted font-mono">{{ $inst->due_date->format('d M Y') }}</span>
+                                @if ($inst->isPending() && $plan->isActive())
+                                    <button 
+                                        type="button" 
+                                        onclick="openEditSingleDueDateModal({{ json_encode($inst) }})" 
+                                        class="text-muted hover:text-forest p-1 rounded hover:bg-cream transition cursor-pointer"
+                                        title="Ubah jatuh tempo cicilan ini"
+                                    >
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
+                                    </button>
+                                @endif
                             </div>
                             @if ($inst->isOverdue())
                                 <span class="text-[10px] text-red font-bold block mt-0.5">Terlambat {{ $inst->daysOverdue() }} hari</span>
@@ -342,7 +365,19 @@
                                 #{{ $inst->installment_number }}
                             </td>
                             <td class="py-3.5 px-3 text-muted whitespace-nowrap">
-                                <div>{{ $inst->due_date->format('d M Y') }}</div>
+                                <div class="flex items-center gap-1.5">
+                                    <span>{{ $inst->due_date->format('d M Y') }}</span>
+                                    @if ($inst->isPending() && $plan->isActive())
+                                        <button 
+                                            type="button" 
+                                            onclick="openEditSingleDueDateModal({{ json_encode($inst) }})" 
+                                            class="text-muted hover:text-forest p-1 rounded hover:bg-cream transition cursor-pointer"
+                                            title="Ubah jatuh tempo cicilan ini"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
+                                        </button>
+                                    @endif
+                                </div>
                                 @if ($inst->isOverdue())
                                     <span class="text-[10px] text-red font-bold">Terlambat {{ $inst->daysOverdue() }} hari</span>
                                 @elseif ($inst->isDueToday())
@@ -929,6 +964,188 @@
         </div>
     </div>
 
+    <!-- Modal Edit Tanggal Rencana & Jadwal Cicilan -->
+    <div id="editDatesModal" onclick="if (event.target === this) closeEditDatesModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-lg rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
+                    <h3 class="font-serif text-lg text-charcoal font-medium">Edit Tanggal</h3>
+                    <p class="text-xs text-muted truncate">{{ $plan->name }}</p>
+                </div>
+                <button type="button" onclick="closeEditDatesModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="flex border-b border-line mb-5 gap-2">
+                <button 
+                    type="button" 
+                    id="tabBtnTransactionDate" 
+                    onclick="switchEditDatesTab('transaction')" 
+                    class="pb-2.5 px-3 text-xs font-bold border-b-2 border-forest text-forest transition cursor-pointer"
+                >
+                    Tanggal Transaksi
+                </button>
+                <button 
+                    type="button" 
+                    id="tabBtnDueDates" 
+                    onclick="switchEditDatesTab('due_dates')" 
+                    class="pb-2.5 px-3 text-xs font-semibold border-b-2 border-transparent text-muted hover:text-charcoal transition cursor-pointer"
+                >
+                    Jatuh Tempo Cicilan (Pending)
+                </button>
+            </div>
+
+            <!-- Content Tab 1: Tanggal Transaksi -->
+            <div id="tabContentTransactionDate">
+                <form id="editTransactionDateForm" method="POST" action="{{ route('credit.plans.updateDates', $plan) }}" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+                    <div>
+                        <label for="plan_start_date" class="block text-xs font-semibold text-charcoal mb-1">
+                            Tanggal Transaksi Pembelian <span class="text-red">*</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            name="start_date" 
+                            id="plan_start_date" 
+                            value="{{ $plan->start_date ? $plan->start_date->format('Y-m-d') : '' }}" 
+                            required 
+                            class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                        >
+                        <p class="text-[11px] text-muted mt-1.5 leading-relaxed">
+                            Mengubah tanggal pembelian akan otomatis memperbarui tanggal mutasi transaksi pengeluaran pada akun kewajiban kartu kredit.
+                        </p>
+                    </div>
+
+                    <div class="pt-3 border-t border-line flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
+                        <button type="button" onclick="closeEditDatesModal()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-semibold text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer">
+                            Batal
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                        >
+                            <span>Simpan Tanggal Transaksi</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Content Tab 2: Jatuh Tempo Cicilan -->
+            <div id="tabContentDueDates" class="hidden">
+                <form id="editDueDatesForm" method="POST" action="{{ route('credit.plans.updateDates', $plan) }}" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="p-3 rounded-xl bg-forest/5 border border-forest/20 text-xs text-charcoal leading-relaxed">
+                        Perubahan ini akan diterapkan ke seluruh <strong>{{ $plan->pendingInstallments->count() }} cicilan</strong> yang saat ini masih berstatus menunggu pembayaran (pending).
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold text-charcoal">Metode Penyesuaian Jatuh Tempo:</label>
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-start gap-2.5 p-3 rounded-xl border border-line hover:border-forest/50 transition cursor-pointer bg-panel">
+                                <input type="radio" name="due_mode" value="due_day" checked onchange="toggleDueMode(this.value)" class="mt-0.5 text-forest focus:ring-forest">
+                                <div class="min-w-0 flex-1">
+                                    <span class="font-bold text-xs text-charcoal block">Ubah Hari Jatuh Tempo Bulanan</span>
+                                    <span class="text-[11px] text-muted block mb-2 leading-relaxed">Geser tanggal jatuh tempo di setiap bulan untuk semua cicilan pending (misal setiap tanggal 5).</span>
+                                    <div id="wrapperDueDay" class="flex items-center gap-2 pt-1">
+                                        <span class="text-xs text-muted">Jatuh tempo setiap tanggal:</span>
+                                        <input 
+                                            type="number" 
+                                            name="due_day" 
+                                            id="input_due_day" 
+                                            min="1" 
+                                            max="31" 
+                                            value="{{ $plan->pendingInstallments->first() ? $plan->pendingInstallments->first()->due_date->day : 25 }}" 
+                                            class="w-20 px-3 py-1.5 text-xs font-mono font-bold text-center border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                                        >
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="flex items-start gap-2.5 p-3 rounded-xl border border-line hover:border-forest/50 transition cursor-pointer bg-panel">
+                                <input type="radio" name="due_mode" value="first_due_date" onchange="toggleDueMode(this.value)" class="mt-0.5 text-forest focus:ring-forest">
+                                <div class="min-w-0 flex-1">
+                                    <span class="font-bold text-xs text-charcoal block">Atur Ulang Dari Tanggal Jatuh Tempo Pertama</span>
+                                    <span class="text-[11px] text-muted block mb-2 leading-relaxed">Tentukan tanggal jatuh tempo cicilan pending berikutnya, dan bulan-bulan berikutnya akan mengikuti secara berurutan.</span>
+                                    <div id="wrapperFirstDueDate" class="opacity-50 pointer-events-none pt-1">
+                                        <input 
+                                            type="date" 
+                                            name="first_due_date" 
+                                            id="input_first_due_date" 
+                                            value="{{ $plan->pendingInstallments->first() ? $plan->pendingInstallments->first()->due_date->format('Y-m-d') : '' }}" 
+                                            disabled
+                                            class="w-full px-3 py-1.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                                        >
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-line flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
+                        <button type="button" onclick="closeEditDatesModal()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-semibold text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer">
+                            Batal
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                        >
+                            <span>Terapkan Tanggal Jatuh Tempo</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Tanggal Jatuh Tempo Satu Cicilan -->
+    <div id="editSingleDueDateModal" onclick="if (event.target === this) closeEditSingleDueDateModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <div class="min-w-0">
+                    <h3 id="singleDueDateModalTitle" class="font-serif text-lg text-charcoal font-medium">Ubah Tanggal Jatuh Tempo</h3>
+                    <p id="singleDueDateModalSubtitle" class="text-xs text-muted truncate">{{ $plan->name }}</p>
+                </div>
+                <button type="button" onclick="closeEditSingleDueDateModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
+            </div>
+
+            <form id="editSingleDueDateForm" method="POST" action="" class="space-y-4">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label for="single_due_date" class="block text-xs font-semibold text-charcoal mb-1">
+                        Tanggal Jatuh Tempo Baru <span class="text-red">*</span>
+                    </label>
+                    <input 
+                        type="date" 
+                        name="due_date" 
+                        id="single_due_date" 
+                        required 
+                        class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                    >
+                    <p class="text-[11px] text-muted mt-1.5 leading-relaxed">
+                        Perubahan hanya berlaku untuk cicilan yang dipilih ini saja.
+                    </p>
+                </div>
+
+                <div class="pt-3 border-t border-line flex flex-col-reverse sm:flex-row items-center justify-end gap-2">
+                    <button type="button" onclick="closeEditSingleDueDateModal()" class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-semibold text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                    >
+                        <span>Simpan Jatuh Tempo</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentPayingInstallment = null;
 
@@ -1072,6 +1289,66 @@
             txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Menyimpan...';
         });
 
+        function openEditDatesModal(tab = 'transaction') {
+            document.getElementById('editDatesModal').classList.remove('hidden');
+            switchEditDatesTab(tab);
+        }
+
+        function closeEditDatesModal() {
+            document.getElementById('editDatesModal').classList.add('hidden');
+        }
+
+        function switchEditDatesTab(tab) {
+            const tabTx = document.getElementById('tabContentTransactionDate');
+            const tabDue = document.getElementById('tabContentDueDates');
+            const btnTx = document.getElementById('tabBtnTransactionDate');
+            const btnDue = document.getElementById('tabBtnDueDates');
+
+            if (tab === 'transaction') {
+                tabTx.classList.remove('hidden');
+                tabDue.classList.add('hidden');
+                btnTx.className = 'pb-2.5 px-3 text-xs font-bold border-b-2 border-forest text-forest transition cursor-pointer';
+                btnDue.className = 'pb-2.5 px-3 text-xs font-semibold border-b-2 border-transparent text-muted hover:text-charcoal transition cursor-pointer';
+            } else {
+                tabTx.classList.add('hidden');
+                tabDue.classList.remove('hidden');
+                btnDue.className = 'pb-2.5 px-3 text-xs font-bold border-b-2 border-forest text-forest transition cursor-pointer';
+                btnTx.className = 'pb-2.5 px-3 text-xs font-semibold border-b-2 border-transparent text-muted hover:text-charcoal transition cursor-pointer';
+            }
+        }
+
+        function toggleDueMode(mode) {
+            const wrapDay = document.getElementById('wrapperDueDay');
+            const inputDay = document.getElementById('input_due_day');
+            const wrapDate = document.getElementById('wrapperFirstDueDate');
+            const inputDate = document.getElementById('input_first_due_date');
+
+            if (mode === 'due_day') {
+                wrapDay.classList.remove('opacity-50', 'pointer-events-none');
+                inputDay.disabled = false;
+                wrapDate.classList.add('opacity-50', 'pointer-events-none');
+                inputDate.disabled = true;
+            } else {
+                wrapDay.classList.add('opacity-50', 'pointer-events-none');
+                inputDay.disabled = true;
+                wrapDate.classList.remove('opacity-50', 'pointer-events-none');
+                inputDate.disabled = false;
+            }
+        }
+
+        function openEditSingleDueDateModal(installment) {
+            document.getElementById('singleDueDateModalTitle').textContent = 'Ubah Jatuh Tempo Cicilan #' + installment.installment_number;
+            document.getElementById('editSingleDueDateForm').action = "/credit/installments/" + installment.id + "/due-date";
+            const dueDateStr = installment.due_date ? installment.due_date.substring(0, 10) : '';
+            document.getElementById('single_due_date').value = dueDateStr;
+            document.getElementById('editSingleDueDateModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('single_due_date').focus(), 50);
+        }
+
+        function closeEditSingleDueDateModal() {
+            document.getElementById('editSingleDueDateModal').classList.add('hidden');
+        }
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 if (!document.getElementById('paymentModal').classList.contains('hidden')) {
@@ -1085,6 +1362,12 @@
                 }
                 if (!document.getElementById('noteModal').classList.contains('hidden')) {
                     closeNoteModal();
+                }
+                if (!document.getElementById('editDatesModal').classList.contains('hidden')) {
+                    closeEditDatesModal();
+                }
+                if (!document.getElementById('editSingleDueDateModal').classList.contains('hidden')) {
+                    closeEditSingleDueDateModal();
                 }
             }
         });

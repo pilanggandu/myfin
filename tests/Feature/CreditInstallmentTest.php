@@ -1065,4 +1065,143 @@ class CreditInstallmentTest extends TestCase
         $this->assertEquals('2026-12-25', $installments[0]->due_date->toDateString());
         $this->assertEquals('2027-01-10', $installments[1]->due_date->toDateString());
     }
+
+    public function test_user_can_update_installment_plan_start_date(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Handphone',
+            'total_amount' => 1200000,
+            'tenor' => 3,
+            'start_date' => '2026-11-03',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_space_id' => $this->space->id])
+            ->put(route('credit.plans.updateDates', $plan), [
+                'start_date' => '2026-11-10',
+            ]);
+
+        $response->assertRedirect(route('credit.plans.show', $plan));
+        $response->assertSessionHas('status', 'Tanggal rencana cicilan berhasil diperbarui.');
+
+        $this->assertEquals('2026-11-10', $plan->fresh()->start_date->toDateString());
+        $this->assertEquals('2026-11-10', $plan->purchaseTransaction->fresh()->transaction_date->toDateString());
+    }
+
+    public function test_user_can_shift_due_day_for_pending_installments(): void
+    {
+        $this->creditCard->update(['due_day' => 25]);
+
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Meja Kerja',
+            'total_amount' => 600000,
+            'tenor' => 3,
+            'start_date' => '2026-11-01',
+            'first_due_date' => '2026-11-25',
+        ]);
+
+        $installments = $plan->installments()->orderBy('installment_number')->get();
+        $this->assertEquals('2026-11-25', $installments[0]->due_date->toDateString());
+        $this->assertEquals('2026-12-25', $installments[1]->due_date->toDateString());
+        $this->assertEquals('2027-01-25', $installments[2]->due_date->toDateString());
+
+        // Mark installment #1 as paid without cash
+        $this->creditService->markInstallmentPaidWithoutCash($this->space, $this->user, $installments[0]);
+
+        // Shift due day to 10 for pending installments
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_space_id' => $this->space->id])
+            ->put(route('credit.plans.updateDates', $plan), [
+                'due_day' => 10,
+            ]);
+
+        $response->assertRedirect(route('credit.plans.show', $plan));
+
+        $refreshed = $plan->installments()->orderBy('installment_number')->get();
+        // Cicilan #1 yang sudah lunas tidak terpengaruh
+        $this->assertEquals('2026-11-25', $refreshed[0]->due_date->toDateString());
+        // Cicilan #2 dan #3 yang pending bergeser ke tanggal 10
+        $this->assertEquals('2026-12-10', $refreshed[1]->due_date->toDateString());
+        $this->assertEquals('2027-01-10', $refreshed[2]->due_date->toDateString());
+    }
+
+    public function test_user_can_recalculate_due_dates_with_first_due_date(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Kursi Gaming',
+            'total_amount' => 600000,
+            'tenor' => 3,
+            'start_date' => '2026-11-01',
+            'first_due_date' => '2026-11-25',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_space_id' => $this->space->id])
+            ->put(route('credit.plans.updateDates', $plan), [
+                'first_due_date' => '2026-12-10',
+            ]);
+
+        $response->assertRedirect(route('credit.plans.show', $plan));
+
+        $refreshed = $plan->installments()->orderBy('installment_number')->get();
+        $this->assertEquals('2026-12-10', $refreshed[0]->due_date->toDateString());
+        $this->assertEquals('2027-01-10', $refreshed[1]->due_date->toDateString());
+        $this->assertEquals('2027-02-10', $refreshed[2]->due_date->toDateString());
+    }
+
+    public function test_user_can_update_single_installment_due_date(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Monitor',
+            'total_amount' => 400000,
+            'tenor' => 2,
+            'start_date' => '2026-11-01',
+            'first_due_date' => '2026-12-05',
+        ]);
+
+        $inst2 = $plan->installments()->where('installment_number', 2)->first();
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_space_id' => $this->space->id])
+            ->put(route('credit.installments.updateDueDate', $inst2), [
+                'due_date' => '2027-01-20',
+            ]);
+
+        $response->assertRedirect(route('credit.plans.show', $plan));
+        $response->assertSessionHas('status', 'Tanggal jatuh tempo cicilan ke-2 berhasil diperbarui.');
+
+        $this->assertEquals('2027-01-20', $inst2->fresh()->due_date->toDateString());
+    }
+
+    public function test_cannot_update_due_date_for_paid_installment(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Keyboard',
+            'total_amount' => 400000,
+            'tenor' => 2,
+            'start_date' => '2026-11-01',
+            'first_due_date' => '2026-12-05',
+        ]);
+
+        $inst1 = $plan->installments()->where('installment_number', 1)->first();
+        $this->creditService->markInstallmentPaidWithoutCash($this->space, $this->user, $inst1);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_space_id' => $this->space->id])
+            ->put(route('credit.installments.updateDueDate', $inst1), [
+                'due_date' => '2026-12-20',
+            ]);
+
+        $response->assertSessionHasErrors('due_date');
+    }
 }

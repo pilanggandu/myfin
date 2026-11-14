@@ -7,6 +7,8 @@ use App\Http\Requests\Credit\PayInstallmentRequest;
 use App\Http\Requests\Credit\PayoffPlanRequest;
 use App\Http\Requests\Credit\StoreCreditDebitNoteRequest;
 use App\Http\Requests\Credit\StoreCreditPurchaseRequest;
+use App\Http\Requests\Credit\UpdateInstallmentDueDateRequest;
+use App\Http\Requests\Credit\UpdateInstallmentPlanDatesRequest;
 use App\Models\Installment;
 use App\Models\InstallmentPlan;
 use App\Services\CreditService;
@@ -67,6 +69,28 @@ class InstallmentController extends Controller
         $cashAccounts = $space->accounts()->whereNull('archived_at')->whereIn('type', ['bank', 'cash', 'e-wallet'])->orderBy('name')->get();
 
         return view('credit.show-plan', compact('plan', 'cashAccounts'));
+    }
+
+    public function updateDates(UpdateInstallmentPlanDatesRequest $request, InstallmentPlan $plan): RedirectResponse
+    {
+        Gate::authorize('update', $plan);
+        $space = app('currentSpace');
+
+        $this->creditService->updatePlanDates($space, auth()->user(), $plan, $request->validated());
+
+        return redirect()->route('credit.plans.show', $plan)
+            ->with('status', 'Tanggal rencana cicilan berhasil diperbarui.');
+    }
+
+    public function updateDueDate(UpdateInstallmentDueDateRequest $request, Installment $installment): RedirectResponse
+    {
+        Gate::authorize('update', $installment->installmentPlan);
+        $space = app('currentSpace');
+
+        $this->creditService->updateInstallmentDueDate($space, auth()->user(), $installment, $request->validated()['due_date']);
+
+        return redirect()->route('credit.plans.show', $installment->installmentPlan)
+            ->with('status', 'Tanggal jatuh tempo cicilan ke-'.$installment->installment_number.' berhasil diperbarui.');
     }
 
     public function pay(PayInstallmentRequest $request, Installment $installment): RedirectResponse
