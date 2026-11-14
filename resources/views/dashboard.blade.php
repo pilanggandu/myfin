@@ -421,6 +421,252 @@
         </div>
     </div>
 
+    {{-- Timeline Event 30 Hari Mendatang --}}
+    <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-timeline">
+        <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center flex-wrap gap-2 min-w-0">
+                <span class="text-forest shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.253 3.75h18M4.5 7.5h15a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 19.5 22.5h-15A2.25 2.25 0 0 1 2.25 20.25V9.75A2.25 2.25 0 0 1 4.5 7.5Z" />
+                    </svg>
+                </span>
+                <h2 class="text-xs font-bold text-charcoal">Timeline 30 Hari Mendatang</h2>
+                @if (!empty($timelineEvents))
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-cream text-muted border border-line shrink-0">
+                        {{ count($timelineEvents) }}
+                    </span>
+                @endif
+                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-forest-light text-forest uppercase">
+                    Agenda Kas
+                </span>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                @php
+                    $timelineInflowCount = collect($timelineEvents)->where('flow', 'in')->count();
+                    $timelineOutflowCount = collect($timelineEvents)->where('flow', 'out')->count();
+                @endphp
+                @if (!empty($timelineEvents))
+                    <div class="inline-flex rounded-lg p-0.5 bg-cream dark:bg-line/40 border border-line text-[11px] font-semibold" role="tablist">
+                        <button type="button" onclick="filterTimelineEvents('all', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md bg-forest text-white transition cursor-pointer">Semua ({{ count($timelineEvents) }})</button>
+                        <button type="button" onclick="filterTimelineEvents('in', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md text-muted hover:text-charcoal transition cursor-pointer">Masuk ({{ $timelineInflowCount }})</button>
+                        <button type="button" onclick="filterTimelineEvents('out', this)" class="timeline-filter-btn px-2.5 py-1 rounded-md text-muted hover:text-charcoal transition cursor-pointer">Keluar ({{ $timelineOutflowCount }})</button>
+                    </div>
+                @endif
+
+                <button 
+                    type="button" 
+                    onclick="toggleCardPrivacy(this)" 
+                    class="privacy-card-toggle w-11 h-11 sm:w-6 sm:h-6 -my-2 sm:my-0 rounded-lg sm:rounded border border-line bg-panel text-muted hover:text-forest transition inline-flex items-center justify-center cursor-pointer text-[10.5px] shrink-0" 
+                    title="Sembunyikan / Tampilkan Nominal Timeline"
+                    aria-label="Sembunyikan atau tampilkan nominal timeline"
+                >
+                    <span class="privacy-toggle-icon"></span>
+                </button>
+                <a href="{{ route('projections.index', ['horizon' => 30]) }}" class="text-xs font-semibold text-forest hover:underline min-h-[40px] sm:min-h-0 inline-flex items-center">
+                    Simulasi &rarr;
+                </a>
+            </div>
+        </div>
+
+        @if (!empty($timelineProjection))
+            @php
+                $totInflows = $timelineProjection['total_inflows'] ?? 0;
+                $totOutflows = $timelineProjection['total_outflows'] ?? 0;
+                $netChange = $timelineProjection['net_change'] ?? 0;
+                $isDeficitRisk = $timelineProjection['is_deficit_risk'] ?? false;
+                $deficitDate = $timelineProjection['deficit_date'] ?? null;
+                $maxDeficit = $timelineProjection['max_deficit_amount'] ?? 0;
+            @endphp
+
+            @if ($isDeficitRisk && $deficitDate)
+                <div class="px-4 py-2.5 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-2 text-rose-800 dark:text-rose-200">
+                        <span class="text-base shrink-0">⚠️</span>
+                        <span>
+                            <strong>Perhatian Saldo:</strong> Diproyeksikan terjadi defisit kas pada <strong>{{ \Carbon\Carbon::parse($deficitDate)->translatedFormat('d M Y') }}</strong> (potensi minus <span class="font-mono font-bold privacy-balance" data-raw-value="Rp {{ number_format($maxDeficit, 0, ',', '.') }}">Rp {{ number_format($maxDeficit, 0, ',', '.') }}</span>).
+                        </span>
+                    </div>
+                    <a href="{{ route('projections.index', ['horizon' => 30]) }}" class="font-bold text-rose-700 dark:text-rose-300 hover:underline shrink-0 text-left sm:text-right">
+                        Cek Proyeksi &rarr;
+                    </a>
+                </div>
+            @endif
+
+            <div class="p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-4 gap-2 border-b border-line bg-cream/40 text-center">
+                <div class="p-2.5 rounded-lg bg-panel border border-line">
+                    <span class="block text-[10px] uppercase font-bold text-muted">Total Event</span>
+                    <span class="text-xs sm:text-sm font-bold text-charcoal block mt-0.5">
+                        {{ count($timelineEvents) }} Transaksi
+                    </span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-panel border border-line">
+                    <span class="block text-[10px] uppercase font-bold text-muted">Estimasi Masuk</span>
+                    <span class="text-xs sm:text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 block mt-0.5 privacy-balance" data-raw-value="{{ '+Rp ' . number_format($totInflows, 0, ',', '.') }}">
+                        +Rp {{ number_format($totInflows, 0, ',', '.') }}
+                    </span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-panel border border-line">
+                    <span class="block text-[10px] uppercase font-bold text-muted">Estimasi Keluar</span>
+                    <span class="text-xs sm:text-sm font-bold font-mono text-rose-600 dark:text-rose-400 block mt-0.5 privacy-balance" data-raw-value="{{ '-Rp ' . number_format($totOutflows, 0, ',', '.') }}">
+                        -Rp {{ number_format($totOutflows, 0, ',', '.') }}
+                    </span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-panel border border-line">
+                    <span class="block text-[10px] uppercase font-bold text-muted">Perubahan Bersih</span>
+                    <span class="text-xs sm:text-sm font-bold font-mono {{ $netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }} block mt-0.5 privacy-balance" data-raw-value="{{ ($netChange >= 0 ? '+' : '') . 'Rp ' . number_format($netChange, 0, ',', '.') }}">
+                        {{ ($netChange >= 0 ? '+' : '') . 'Rp ' . number_format($netChange, 0, ',', '.') }}
+                    </span>
+                </div>
+            </div>
+        @endif
+
+        <div class="divide-y divide-line" id="timelineEventsContainer">
+            @forelse ($timelineEvents as $idx => $evt)
+                @php
+                    $eventDate = \Carbon\Carbon::parse($evt['date'])->startOfDay();
+                    $diffDays = (int) $now->copy()->startOfDay()->diffInDays($eventDate, false);
+                    if ($diffDays === 0) {
+                        $relativeLabel = 'Hari Ini';
+                        $relativeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
+                    } elseif ($diffDays === 1) {
+                        $relativeLabel = 'Besok';
+                        $relativeClass = 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300';
+                    } elseif ($diffDays === 2) {
+                        $relativeLabel = 'Lusa';
+                        $relativeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300';
+                    } elseif ($diffDays > 2) {
+                        $relativeLabel = $diffDays . ' hr lagi';
+                        $relativeClass = 'bg-cream text-muted dark:bg-line/50';
+                    } else {
+                        $relativeLabel = 'Lewat';
+                        $relativeClass = 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
+                    }
+
+                    $badgeTheme = match($evt['source_type']) {
+                        'planned_income' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+                        'installment' => 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+                        'short_plan' => 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300',
+                        default => ($evt['flow'] === 'in' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'),
+                    };
+
+                    $badgeIcon = match($evt['source_type']) {
+                        'planned_income' => '💰',
+                        'installment' => '🛡️',
+                        'short_plan' => '📝',
+                        default => '📅',
+                    };
+                    $isOverflow = $idx >= 6;
+                @endphp
+                <div 
+                    class="timeline-event-row px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-cream/40 transition {{ $isOverflow ? 'timeline-event-overflow hidden' : '' }}" 
+                    data-flow="{{ $evt['flow'] }}"
+                >
+                    <div class="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div class="w-11 text-center py-1 px-1 rounded-md bg-panel border border-line shrink-0">
+                                <span class="block text-[11px] font-bold text-charcoal leading-none">{{ $eventDate->format('d') }}</span>
+                                <span class="block text-[9.5px] font-semibold text-muted uppercase leading-tight">{{ $eventDate->translatedFormat('M') }}</span>
+                            </div>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 {{ $relativeClass }}">
+                                {{ $relativeLabel }}
+                            </span>
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.2 rounded text-[10px] font-bold shrink-0 {{ $badgeTheme }}">
+                                    <span>{{ $badgeIcon }}</span>
+                                    <span>{{ $evt['source_label'] }}</span>
+                                </span>
+                                @if (!empty($evt['detail_url']))
+                                    <a href="{{ $evt['detail_url'] }}" class="text-xs font-bold text-charcoal hover:text-forest truncate">
+                                        {{ $evt['title'] }}
+                                    </a>
+                                @else
+                                    <span class="text-xs font-bold text-charcoal truncate">
+                                        {{ $evt['title'] }}
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-[11px] text-muted flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5">
+                                <span>{{ $evt['day_name'] }}, {{ $evt['date_formatted'] }}</span>
+                                <span>&bull;</span>
+                                <span class="truncate">{{ $evt['category_name'] }}</span>
+                                <span>&bull;</span>
+                                <span class="truncate">{{ $evt['account_name'] }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between sm:justify-end gap-3 text-left sm:text-right shrink-0 pl-14 sm:pl-0">
+                        <div class="sm:text-right">
+                            @if ($evt['flow'] === 'in')
+                                <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 block privacy-balance" data-raw-value="{{ '+Rp ' . number_format($evt['amount'], 0, ',', '.') }}">
+                                    +Rp {{ number_format($evt['amount'], 0, ',', '.') }}
+                                </span>
+                            @else
+                                <span class="text-xs font-bold font-mono text-rose-600 dark:text-rose-400 block privacy-balance" data-raw-value="{{ '-Rp ' . number_format($evt['amount'], 0, ',', '.') }}">
+                                    -Rp {{ number_format($evt['amount'], 0, ',', '.') }}
+                                </span>
+                            @endif
+                            <div class="text-[10px] text-muted font-mono flex items-center gap-1 sm:justify-end mt-0.5">
+                                <span>Proyeksi:</span>
+                                <span class="privacy-balance font-semibold {{ $evt['is_negative'] ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-charcoal' }}" data-raw-value="{{ 'Rp ' . number_format($evt['running_balance'], 0, ',', '.') }}">
+                                    Rp {{ number_format($evt['running_balance'], 0, ',', '.') }}
+                                </span>
+                                @if ($evt['is_negative'])
+                                    <span class="text-[9px] font-bold text-rose-700 dark:text-rose-400 uppercase">Defisit</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="p-8 text-center text-xs text-muted">
+                    <div class="w-10 h-10 mx-auto rounded-full bg-cream dark:bg-line/40 flex items-center justify-center text-lg mb-2">
+                        📅
+                    </div>
+                    <div class="font-bold text-charcoal text-sm mb-1">Tidak Ada Event Terjadwal</div>
+                    <p class="max-w-md mx-auto text-muted mb-3">
+                        Belum ada transaksi berulang, cicilan tempo, atau rencana pemasukan yang terjadwal dalam 30 hari ke depan.
+                    </p>
+                    <div class="flex items-center justify-center gap-2 flex-wrap">
+                        <a href="{{ route('recurring.create') }}" class="btn-arus-secondary text-xs py-1 px-3">
+                            + Jadwal Rutin
+                        </a>
+                        <a href="{{ route('projections.index', ['tab' => 'planned_incomes']) }}" class="btn-arus-primary text-xs py-1 px-3">
+                            + Rencana Pemasukan
+                        </a>
+                    </div>
+                </div>
+            @endforelse
+
+            <div id="timelineEmptyFilter" class="p-6 text-center text-xs text-muted hidden">
+                Tidak ada event yang sesuai dengan filter yang dipilih.
+            </div>
+        </div>
+
+        @if (count($timelineEvents) > 6)
+            <div id="timelineExpandWrapper" class="px-4 sm:px-5 py-2.5 bg-sidebar/50 border-t border-line flex items-center justify-between text-xs">
+                <button type="button" onclick="toggleTimelineExpand()" id="timelineExpandBtn" class="font-semibold text-forest hover:underline cursor-pointer inline-flex items-center gap-1">
+                    <span>Tampilkan {{ count($timelineEvents) - 6 }} Event Lainnya</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </button>
+                <a href="{{ route('projections.index', ['horizon' => 30]) }}" class="text-muted hover:text-charcoal transition">
+                    Lihat Selengkapnya di Proyeksi &rarr;
+                </a>
+            </div>
+        @elseif (!empty($timelineEvents))
+            <div class="px-4 sm:px-5 py-2.5 bg-sidebar/50 border-t border-line flex items-center justify-between text-[11px] text-muted">
+                <span>Menampilkan seluruh {{ count($timelineEvents) }} event dalam 30 hari</span>
+                <a href="{{ route('projections.index', ['horizon' => 30]) }}" class="text-forest font-semibold hover:underline">
+                    Buka Halaman Proyeksi &rarr;
+                </a>
+            </div>
+        @endif
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="panel-card p-0 overflow-hidden" data-privacy-scope="dashboard-recurring">
             <div class="px-4 sm:px-5 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
@@ -827,4 +1073,66 @@
             @endforelse
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        let timelineExpanded = false;
+        function toggleTimelineExpand() {
+            timelineExpanded = !timelineExpanded;
+            const currentFlow = window.currentTimelineFlow || 'all';
+            document.querySelectorAll('.timeline-event-overflow').forEach(el => {
+                if (timelineExpanded) {
+                    if (currentFlow === 'all' || el.getAttribute('data-flow') === currentFlow) {
+                        el.classList.remove('hidden');
+                    }
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+            const btn = document.getElementById('timelineExpandBtn');
+            if (btn) {
+                btn.innerHTML = timelineExpanded
+                    ? '<span>Sembunyikan Sebagian</span> <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>'
+                    : '<span>Tampilkan Selengkapnya</span> <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>';
+            }
+        }
+
+        window.currentTimelineFlow = 'all';
+        function filterTimelineEvents(flow, btn) {
+            window.currentTimelineFlow = flow;
+            document.querySelectorAll('.timeline-filter-btn').forEach(b => {
+                b.classList.remove('bg-forest', 'text-white');
+                b.classList.add('text-muted');
+            });
+            btn.classList.add('bg-forest', 'text-white');
+            btn.classList.remove('text-muted');
+
+            const allRows = document.querySelectorAll('.timeline-event-row');
+            let matchCount = 0;
+            allRows.forEach((row) => {
+                const matches = (flow === 'all' || row.getAttribute('data-flow') === flow);
+                const isOverflow = row.classList.contains('timeline-event-overflow');
+                if (matches) {
+                    matchCount++;
+                    if (!isOverflow || timelineExpanded) {
+                        row.classList.remove('hidden');
+                    } else {
+                        row.classList.add('hidden');
+                    }
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            const emptyNotice = document.getElementById('timelineEmptyFilter');
+            if (emptyNotice) {
+                if (matchCount === 0 && allRows.length > 0) {
+                    emptyNotice.classList.remove('hidden');
+                } else {
+                    emptyNotice.classList.add('hidden');
+                }
+            }
+        }
+    </script>
+    @endpush
 </x-layouts.app>

@@ -6,7 +6,9 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinancialTransaction;
 use App\Models\Goal;
+use App\Models\PlannedIncome;
 use App\Models\RecurringSchedule;
+use App\Models\ShortPlan;
 use App\Models\Space;
 use App\Models\User;
 use App\Services\CreditService;
@@ -274,5 +276,106 @@ class DashboardTest extends TestCase
         $response->assertSee('2.500.000', false);
         $response->assertSee('10.000.000', false);
         $response->assertSee('width: 25%', false);
+    }
+
+    public function test_dashboard_renders_upcoming_30_days_timeline_events(): void
+    {
+        $today = Carbon::now('Asia/Jakarta');
+
+        // 1. Recurring expense due in 5 days (inside 30 days window)
+        RecurringSchedule::create([
+            'space_id' => $this->space->id,
+            'type' => 'expense',
+            'name' => 'Langganan Netflix',
+            'category_id' => $this->category->id,
+            'source_account_id' => $this->account->id,
+            'frequency' => 'monthly',
+            'start_date' => $today->toDateString(),
+            'next_due_date' => $today->copy()->addDays(5)->toDateString(),
+            'amount' => 186000,
+            'status' => 'active',
+            'created_by' => $this->user->id,
+        ]);
+
+        // 2. Planned Income expected in 12 days (inside 30 days window)
+        PlannedIncome::create([
+            'space_id' => $this->space->id,
+            'title' => 'Project Freelance Desain',
+            'amount' => 3500000,
+            'expected_date' => $today->copy()->addDays(12)->toDateString(),
+            'account_id' => $this->account->id,
+            'category_id' => $this->category->id,
+            'status' => 'planned',
+            'created_by' => $this->user->id,
+        ]);
+
+        // 3. Short Plan planned in 20 days (inside 30 days window)
+        ShortPlan::create([
+            'space_id' => $this->space->id,
+            'account_id' => $this->account->id,
+            'category_id' => $this->category->id,
+            'title' => 'Beli Meja Ergonomis',
+            'planned_amount' => 1200000,
+            'target_date' => $today->copy()->addDays(20)->toDateString(),
+            'priority' => 'medium',
+            'status' => 'planned',
+            'created_by' => $this->user->id,
+            'updated_by' => $this->user->id,
+        ]);
+
+        // 4. Recurring expense due in 45 days (OUTSIDE 30 days window)
+        RecurringSchedule::create([
+            'space_id' => $this->space->id,
+            'type' => 'expense',
+            'name' => 'Tagihan Hosting Tahunan',
+            'category_id' => $this->category->id,
+            'source_account_id' => $this->account->id,
+            'frequency' => 'yearly',
+            'start_date' => $today->toDateString(),
+            'next_due_date' => $today->copy()->addDays(45)->toDateString(),
+            'amount' => 1500000,
+            'status' => 'active',
+            'created_by' => $this->user->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+
+        // View data assertions
+        $events = $response->viewData('timelineEvents');
+        $projection = $response->viewData('timelineProjection');
+
+        $this->assertNotEmpty($events);
+        $this->assertNotNull($projection);
+
+        $titles = array_column($events, 'title');
+        $this->assertContains('Langganan Netflix', $titles);
+        $this->assertContains('Project Freelance Desain', $titles);
+        $this->assertContains('Beli Meja Ergonomis', $titles);
+        $this->assertNotContains('Tagihan Hosting Tahunan', $titles);
+
+        // HTML assertions
+        $response->assertSee('Timeline 30 Hari Mendatang', false);
+        $response->assertSee('Langganan Netflix', false);
+        $response->assertSee('Project Freelance Desain', false);
+        $response->assertSee('Beli Meja Ergonomis', false);
+        $response->assertDontSee('Tagihan Hosting Tahunan', false);
+        $response->assertSee('Estimasi Masuk', false);
+        $response->assertSee('Estimasi Keluar', false);
+        $response->assertSee('Perubahan Bersih', false);
+    }
+
+    public function test_dashboard_displays_empty_state_when_no_upcoming_timeline_events(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Timeline 30 Hari Mendatang', false);
+        $response->assertSee('Tidak Ada Event Terjadwal', false);
     }
 }

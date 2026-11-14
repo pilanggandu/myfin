@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Installment;
 use App\Models\ShortPlan;
+use App\Services\CashflowProjectionService;
 use App\Services\RecurringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -11,6 +12,11 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        protected CashflowProjectionService $cashflowProjectionService,
+        protected RecurringService $recurringService
+    ) {}
+
     public function index(Request $request): View
     {
         $currentSpace = app('currentSpace');
@@ -133,6 +139,17 @@ class DashboardController extends Controller
         })->count();
         $activeShortPlans = $allPlannedShortPlans->take(4);
 
+        $timelineProjection = $currentSpace
+            ? $this->cashflowProjectionService->project($currentSpace, [
+                'horizon_days' => 30,
+                'include_recurring' => true,
+                'include_installments' => true,
+                'include_planned_incomes' => true,
+                'include_short_plans' => true,
+            ])
+            : null;
+        $timelineEvents = $timelineProjection['timeline_events'] ?? [];
+
         return view('dashboard', [
             'space' => $currentSpace,
             'user' => $request->user(),
@@ -159,6 +176,8 @@ class DashboardController extends Controller
             'shortPlanActiveCount' => $shortPlanActiveCount,
             'shortPlanActiveTotal' => $shortPlanActiveTotal,
             'shortPlanUrgentCount' => $shortPlanUrgentCount,
+            'timelineProjection' => $timelineProjection,
+            'timelineEvents' => $timelineEvents,
             'now' => $now,
         ]);
     }
