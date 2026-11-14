@@ -121,7 +121,7 @@
                 </div>
                 @if ($plan->hasInterestOrFees())
                     <span class="text-xs text-muted block mt-0.5">
-                        + Bunga: <strong class="text-amber-600 privacy-balance" data-raw-value="{{ $plan->formatted_interest }}">{{ $plan->formatted_interest }}</strong> | Admin: <strong class="privacy-balance" data-raw-value="{{ $plan->formatted_fee }}">{{ $plan->formatted_fee }}</strong>
+                        + Bunga: <strong class="text-amber-600 privacy-balance" data-raw-value="{{ $plan->formatted_interest }}">{{ $plan->formatted_interest }}</strong>@if ((float) $plan->interest_rate > 0) <span class="text-muted font-normal">({{ $plan->formatted_interest_rate }}/bln)</span>@endif | Admin: <strong class="privacy-balance" data-raw-value="{{ $plan->formatted_fee }}">{{ $plan->formatted_fee }}</strong>
                     </span>
                     <span class="text-xs text-muted block">
                         Grand Total: <strong class="text-forest privacy-balance" data-raw-value="{{ $plan->formatted_grand_total }}">{{ $plan->formatted_grand_total }}</strong>

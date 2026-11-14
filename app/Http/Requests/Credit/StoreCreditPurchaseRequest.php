@@ -24,7 +24,7 @@ class StoreCreditPurchaseRequest extends FormRequest
             $merged['admin_fee'] = $this->normalizeMonetaryInput($this->input('admin_fee'));
         }
         if ($this->has('interest_rate')) {
-            $merged['interest_rate'] = $this->normalizeMonetaryInput($this->input('interest_rate'));
+            $merged['interest_rate'] = $this->normalizeRateInput($this->input('interest_rate'), 5);
         }
         if (! empty($merged)) {
             $this->merge($merged);
@@ -64,6 +64,9 @@ class StoreCreditPurchaseRequest extends FormRequest
             'tenor.between' => 'Tenor cicilan harus antara 1 sampai 60 bulan.',
             'start_date.required' => 'Tanggal transaksi pembelian wajib diisi.',
             'start_date.date' => 'Format tanggal pembelian tidak valid.',
+            'interest_rate.numeric' => 'Suku bunga harus berupa angka.',
+            'interest_rate.min' => 'Suku bunga tidak boleh kurang dari 0%.',
+            'interest_rate.max' => 'Suku bunga tidak boleh lebih dari 100%.',
         ];
     }
 }

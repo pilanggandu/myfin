@@ -33,7 +33,7 @@ class InstallmentPlan extends Model
         return [
             'total_amount' => 'float',
             'tenor' => 'integer',
-            'interest_rate' => 'decimal:2',
+            'interest_rate' => 'decimal:5',
             'admin_fee' => 'float',
             'start_date' => 'date',
         ];
@@ -205,6 +205,14 @@ class InstallmentPlan extends Model
         $decimals = fmod((float) $amt, 1) == 0.0 ? 0 : 2;
 
         return 'Rp '.number_format($amt, $decimals, ',', '.');
+    }
+
+    public function getFormattedInterestRateAttribute(): string
+    {
+        $rate = (float) $this->interest_rate;
+        $formatted = rtrim(rtrim(number_format($rate, 5, ',', '.'), '0'), ',');
+
+        return $formatted.'%';
     }
 
     public function checkCompletion(): void

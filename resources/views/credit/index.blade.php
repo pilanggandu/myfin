@@ -536,6 +536,10 @@
                                     <span>Mulai: {{ $plan->start_date->format('d M Y') }}</span>
                                     <span>•</span>
                                     <span>Tenor: <strong>{{ $plan->tenor }} bulan</strong></span>
+                                    @if ((float) $plan->interest_rate > 0)
+                                        <span>•</span>
+                                        <span>Bunga: <strong>{{ $plan->formatted_interest_rate }}/bln</strong></span>
+                                    @endif
                                     <span>•</span>
                                     <span>Progress: <strong>{{ $paidCount }} / {{ $totalCount }} lunas</strong> ({{ $percent }}%)</span>
                                 </div>

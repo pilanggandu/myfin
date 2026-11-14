@@ -205,15 +205,15 @@
                                 type="number" 
                                 name="interest_rate" 
                                 id="interest_rate" 
-                                step="0.01" 
+                                step="any" 
                                 min="0" 
                                 max="100" 
                                 value="{{ old('interest_rate', 0) }}"
-                                placeholder="0 untuk promo cicilan 0%"
+                                placeholder="Contoh: 2.45125 atau 0 untuk 0%"
                                 oninput="updateSimulation()"
                                 class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal font-mono focus:outline-none focus:ring-1 focus:ring-forest"
                             >
-                            <span class="text-[10px] text-muted">Contoh: 1.5 untuk bunga 1.5%/bulan, atau 0 untuk 0%.</span>
+                            <span class="text-[10px] text-muted">Contoh: 1.5 atau 2.45125 untuk bunga per bulan, atau 0 untuk 0% (bisa hingga 5 digit di belakang koma).</span>
                         </div>
 
                         <div>
@@ -562,30 +562,31 @@
 
         function updateSimulation() {
             checkLimit();
-            const total = parseInt(document.getElementById('total_amount').value || '0', 10);
+            const total = parseFloat(document.getElementById('total_amount').value || '0');
             const tenor = Math.max(1, parseInt(document.getElementById('tenor').value || '1', 10));
             const interestRate = parseFloat(document.getElementById('interest_rate')?.value || '0');
-            const adminFee = parseInt(document.getElementById('admin_fee')?.value || '0', 10);
+            const adminFee = parseFloat(document.getElementById('admin_fee')?.value || '0');
             const startDateVal = document.getElementById('start_date').value;
             const firstDueVal = document.getElementById('first_due_date').value;
 
             const basePrincipal = Math.floor(total / tenor);
             const remainderPrincipal = total % tenor;
 
-            const monthlyInterest = Math.round(total * (interestRate / 100));
-            const totalInterest = monthlyInterest * tenor;
+            const monthlyInterest = Math.round((total * (interestRate / 100)) * 100) / 100;
+            const totalInterest = Math.round((monthlyInterest * tenor) * 100) / 100;
 
             const baseFee = Math.floor(adminFee / tenor);
             const remainderFee = adminFee % tenor;
 
-            const grandTotal = total + totalInterest + adminFee;
-            const avgMonthly = Math.round(grandTotal / tenor);
+            const grandTotal = Math.round((total + totalInterest + adminFee) * 100) / 100;
+            const avgMonthly = Math.round((grandTotal / tenor) * 100) / 100;
 
-            document.getElementById('monthlyEstimateText').textContent = 'Rp ' + avgMonthly.toLocaleString('id-ID') + ' / bln';
-            document.getElementById('previewTotalPrincipal').textContent = 'Rp ' + total.toLocaleString('id-ID');
-            document.getElementById('previewTotalInterest').textContent = 'Rp ' + totalInterest.toLocaleString('id-ID');
-            document.getElementById('previewTotalFee').textContent = 'Rp ' + adminFee.toLocaleString('id-ID');
-            document.getElementById('previewGrandTotal').textContent = 'Rp ' + grandTotal.toLocaleString('id-ID');
+            const numFmt = { minimumFractionDigits: 0, maximumFractionDigits: 2 };
+            document.getElementById('monthlyEstimateText').textContent = 'Rp ' + avgMonthly.toLocaleString('id-ID', numFmt) + ' / bln';
+            document.getElementById('previewTotalPrincipal').textContent = 'Rp ' + total.toLocaleString('id-ID', numFmt);
+            document.getElementById('previewTotalInterest').textContent = 'Rp ' + totalInterest.toLocaleString('id-ID', numFmt);
+            document.getElementById('previewTotalFee').textContent = 'Rp ' + adminFee.toLocaleString('id-ID', numFmt);
+            document.getElementById('previewGrandTotal').textContent = 'Rp ' + grandTotal.toLocaleString('id-ID', numFmt);
 
             const tbody = document.getElementById('simulationTableBody');
             tbody.innerHTML = '';
@@ -601,7 +602,7 @@
             for (let i = 1; i <= tenor; i++) {
                 const principal = basePrincipal + (i === 1 ? remainderPrincipal : 0);
                 const fee = baseFee + (i === 1 ? remainderFee : 0);
-                const totalInst = principal + monthlyInterest + fee;
+                const totalInst = Math.round((principal + monthlyInterest + fee) * 100) / 100;
 
                 let targetMonth = firstDue.getMonth() + (i - 1);
                 let tempDate = new Date(firstDue.getFullYear(), targetMonth, 1);
@@ -614,10 +615,10 @@
                 tr.innerHTML = `
                     <td class="py-2.5 px-3 font-semibold text-charcoal">Cicilan #${i}</td>
                     <td class="py-2.5 px-3 text-muted">${dueDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td class="py-2.5 px-3 text-right font-mono font-medium text-charcoal">Rp ${principal.toLocaleString('id-ID')}</td>
-                    <td class="py-2.5 px-3 text-right font-mono text-muted">Rp ${monthlyInterest.toLocaleString('id-ID')}</td>
-                    <td class="py-2.5 px-3 text-right font-mono text-muted">Rp ${fee.toLocaleString('id-ID')}</td>
-                    <td class="py-2.5 px-3 text-right font-mono font-bold text-forest">Rp ${totalInst.toLocaleString('id-ID')}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-medium text-charcoal">Rp ${principal.toLocaleString('id-ID', numFmt)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-muted">Rp ${monthlyInterest.toLocaleString('id-ID', numFmt)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-muted">Rp ${fee.toLocaleString('id-ID', numFmt)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-bold text-forest">Rp ${totalInst.toLocaleString('id-ID', numFmt)}</td>
                 `;
                 tbody.appendChild(tr);
             }

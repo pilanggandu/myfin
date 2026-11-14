@@ -399,6 +399,61 @@ class CreditInstallmentTest extends TestCase
         $this->assertEquals(429000, $firstInst->total_amount);
     }
 
+    public function test_credit_purchase_supports_up_to_five_decimal_places_interest_rate(): void
+    {
+        $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
+            'credit_account_id' => $this->creditCard->id,
+            'category_id' => $this->category->id,
+            'name' => 'Beli Gadget Bunga 5 Digit Koma',
+            'total_amount' => 1000000,
+            'tenor' => 3,
+            'interest_rate' => 2.45125, // 5 digit di belakang koma
+            'start_date' => '2026-11-03',
+        ]);
+
+        $this->assertEquals('2.45125', (string) $plan->interest_rate);
+        $this->assertEquals('2,45125%', $plan->formatted_interest_rate);
+        $this->assertEquals(24512.50, $plan->installments()->first()->interest_amount);
+        $this->assertEquals(73537.50, $plan->totalInterest());
+
+        // Test via HTTP POST with Indonesian comma format and 3-5 decimals
+        $responseDot = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.purchases.store'), [
+                'credit_account_id' => $this->creditCard->id,
+                'category_id' => $this->category->id,
+                'name' => 'Beli Barang Bunga 2.451',
+                'total_amount' => 124753,
+                'tenor' => 12,
+                'interest_rate' => '2.451',
+                'start_date' => '2026-11-03',
+            ]);
+
+        $responseDot->assertRedirect();
+        $this->assertDatabaseHas('installment_plans', [
+            'name' => 'Beli Barang Bunga 2.451',
+            'interest_rate' => 2.451,
+        ]);
+
+        $responseComma = $this->actingAs($this->user)
+            ->withSession(['active_space_id' => $this->space->id])
+            ->post(route('credit.purchases.store'), [
+                'credit_account_id' => $this->creditCard->id,
+                'category_id' => $this->category->id,
+                'name' => 'Beli Barang Bunga 2,45125',
+                'total_amount' => 2000000,
+                'tenor' => 6,
+                'interest_rate' => '2,45125',
+                'start_date' => '2026-11-03',
+            ]);
+
+        $responseComma->assertRedirect();
+        $this->assertDatabaseHas('installment_plans', [
+            'name' => 'Beli Barang Bunga 2,45125',
+            'interest_rate' => 2.45125,
+        ]);
+    }
+
     public function test_early_payoff_settles_all_installments_and_completes_plan(): void
     {
         $plan = $this->creditService->recordCreditPurchase($this->space, $this->user, [
