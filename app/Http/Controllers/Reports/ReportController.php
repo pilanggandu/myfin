@@ -664,6 +664,7 @@ class ReportController extends Controller
                             'status' => $inst->status,
                             'status_label' => $inst->status === 'paid' ? 'Lunas' : 'Belum Lunas',
                             'url' => $inst->installment_plan_id ? route('credit.plans.show', $inst->installment_plan_id) : route('credit.index'),
+                            'credit_account_id' => $inst->installmentPlan?->credit_account_id,
                         ];
                     }
                 }
@@ -705,14 +706,67 @@ class ReportController extends Controller
                             continue;
                         }
 
-                        $status = ($occ && $occ->status === 'confirmed') ? 'paid' : 'pending';
-                        $amount = (float) (($occ && ! is_null($occ->amount)) ? $occ->amount : ($sch->amount ?? 0));
+                        $linkedInstallments = false;
 
-                        $subtitle = match (true) {
-                            $sch->isCreditPayment() => ($sch->sourceAccount?->name ?? 'Rekening Fleksibel').' → '.($sch->creditAccount?->name ?? 'Kartu Kredit'),
-                            $sch->isTransfer() => ($sch->sourceAccount?->name ?? 'Kas').' → '.($sch->destinationAccount?->name ?? 'Tujuan'),
-                            default => ($sch->category?->name ?? 'Tagihan Rutin').' • '.($sch->creditAccount?->name ?? $sch->sourceAccount?->name ?? 'Rekening Fleksibel'),
-                        };
+                        if ($sch->isCreditPayment()) {
+                            $creditAccount = $sch->creditAccount;
+                            $cardInstallmentsOnDate = collect($dayBills)
+                                ->where('kind', 'installment')
+                                ->where('credit_account_id', $creditAccount?->id);
+
+                            $cardLiability = $creditAccount ? (float) max(0, $creditAccount->currentLiability()) : 0.0;
+
+                            if ($cardInstallmentsOnDate->isNotEmpty()) {
+                                $linkedInstallments = true;
+                                $allPaid = $cardInstallmentsOnDate->every(fn ($i) => $i['status'] === 'paid');
+                                $anyPaid = $cardInstallmentsOnDate->contains(fn ($i) => $i['status'] === 'paid');
+                                $pendingSum = (float) $cardInstallmentsOnDate->where('status', '!=', 'paid')->sum('amount');
+
+                                if ($allPaid || $cardLiability <= 0) {
+                                    $status = 'paid';
+                                    $statusLabel = 'Lunas';
+                                    $amount = 0.0;
+                                } elseif ($anyPaid) {
+                                    $status = 'partial';
+                                    $statusLabel = 'Sisa Tagihan';
+                                    $amount = $pendingSum > 0 ? $pendingSum : $cardLiability;
+                                } else {
+                                    $status = ($occ && $occ->status === 'confirmed') ? 'paid' : 'pending';
+                                    $statusLabel = $status === 'paid' ? 'Lunas' : 'Belum Lunas';
+                                    $amount = $pendingSum > 0 ? $pendingSum : $cardLiability;
+                                }
+
+                                $subtitle = ($sch->sourceAccount?->name ?? 'Rekening Fleksibel').' → '.($creditAccount?->name ?? 'Kartu Kredit').' ('.$cardInstallmentsOnDate->count().' cicilan)';
+                            } else {
+                                if ($occ && $occ->status === 'confirmed') {
+                                    $status = 'paid';
+                                    $statusLabel = 'Lunas';
+                                    $amount = (float) (($occ && ! is_null($occ->amount)) ? $occ->amount : ($sch->amount ?? 0));
+                                } elseif ($cardLiability <= 0) {
+                                    $status = 'paid';
+                                    $statusLabel = 'Lunas (Bebas Hutang)';
+                                    $amount = 0.0;
+                                } else {
+                                    $status = 'pending';
+                                    $statusLabel = 'Belum Lunas';
+                                    $statementDue = (float) ($creditAccount?->statement_due_amount ?? 0);
+                                    $amount = (float) ($sch->amount > 0 && ! $sch->is_variable_amount
+                                        ? $sch->amount
+                                        : ($statementDue > 0 ? $statementDue : $cardLiability));
+                                }
+
+                                $subtitle = ($sch->sourceAccount?->name ?? 'Rekening Fleksibel').' → '.($creditAccount?->name ?? 'Kartu Kredit');
+                            }
+                        } else {
+                            $status = ($occ && $occ->status === 'confirmed') ? 'paid' : 'pending';
+                            $statusLabel = $status === 'paid' ? 'Lunas' : 'Belum Lunas';
+                            $amount = (float) (($occ && ! is_null($occ->amount)) ? $occ->amount : ($sch->amount ?? 0));
+
+                            $subtitle = match (true) {
+                                $sch->isTransfer() => ($sch->sourceAccount?->name ?? 'Kas').' → '.($sch->destinationAccount?->name ?? 'Tujuan'),
+                                default => ($sch->category?->name ?? 'Tagihan Rutin').' • '.($sch->creditAccount?->name ?? $sch->sourceAccount?->name ?? 'Rekening Fleksibel'),
+                            };
+                        }
 
                         $dayBills[] = [
                             'id' => $sch->id,
@@ -722,8 +776,9 @@ class ReportController extends Controller
                             'subtitle' => $subtitle,
                             'amount' => $amount,
                             'status' => $status,
-                            'status_label' => $status === 'paid' ? 'Lunas' : 'Belum Lunas',
+                            'status_label' => $statusLabel,
                             'url' => route('recurring.show', $sch),
+                            'linked_installments' => $linkedInstallments,
                         ];
                     }
                 }
@@ -733,6 +788,10 @@ class ReportController extends Controller
                 $billsPendingAmount = 0;
 
                 foreach ($dayBills as $b) {
+                    if (! empty($b['linked_installments'])) {
+                        continue;
+                    }
+
                     $billsTotalAmount += $b['amount'];
                     if ($b['status'] !== 'paid') {
                         $billsPendingCount++;

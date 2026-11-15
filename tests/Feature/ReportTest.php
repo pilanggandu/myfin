@@ -833,4 +833,139 @@ class ReportTest extends TestCase
             return true;
         });
     }
+
+    public function test_calendar_credit_payment_schedule_reflects_outstanding_and_avoids_double_counting(): void
+    {
+        $creditCardAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'BCA Blibli Spend',
+            'type' => 'credit_card',
+            'opening_balance' => 0,
+            'currency' => 'IDR',
+            'is_active' => true,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $creditAcc = CreditAccount::create([
+            'space_id' => $this->spaceA->id,
+            'account_id' => $creditCardAccount->id,
+            'name' => 'BCA BLIBLI TIKET',
+            'type' => 'credit_card',
+            'credit_limit' => 20000000,
+        ]);
+
+        $planA = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAcc->id,
+            'category_id' => $this->foodCat->id,
+            'name' => 'Chatgpt Plus',
+            'total_amount' => 349000,
+            'tenor' => 1,
+            'start_date' => '2026-11-01',
+            'status' => 'active',
+        ]);
+        Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $planA->id,
+            'installment_number' => 1,
+            'due_date' => '2026-11-19',
+            'principal_amount' => 349000,
+            'total_amount' => 349000,
+            'status' => 'paid',
+        ]);
+
+        $planB = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAcc->id,
+            'category_id' => $this->foodCat->id,
+            'name' => 'Autopay PLN',
+            'total_amount' => 50000,
+            'tenor' => 1,
+            'start_date' => '2026-11-01',
+            'status' => 'active',
+        ]);
+        $instB = Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $planB->id,
+            'installment_number' => 1,
+            'due_date' => '2026-11-19',
+            'principal_amount' => 50000,
+            'total_amount' => 50000,
+            'status' => 'pending',
+        ]);
+
+        RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAcc->id,
+            'source_account_id' => $this->bca->id,
+            'type' => 'credit_payment',
+            'name' => 'Bayar Kartu Kredit BCA',
+            'frequency' => 'monthly',
+            'anchor_day' => 19,
+            'start_date' => '2026-01-01',
+            'next_due_date' => '2026-11-19',
+            'amount' => 0,
+            'is_variable_amount' => true,
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=11');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $targetDay = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-11-19') {
+                        $targetDay = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($targetDay);
+            $this->assertEquals(50000, $targetDay->bills_pending_amount);
+
+            $schBill = collect($targetDay->bills)->firstWhere('kind', 'recurring');
+            $this->assertNotNull($schBill);
+            $this->assertEquals('partial', $schBill['status']);
+            $this->assertEquals('Sisa Tagihan', $schBill['status_label']);
+            $this->assertEquals(50000, $schBill['amount']);
+
+            return true;
+        });
+
+        // Now mark second installment as paid too
+        $instB->update(['status' => 'paid']);
+
+        $responseAllPaid = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=11');
+
+        $responseAllPaid->assertStatus(200);
+        $responseAllPaid->assertViewHas('calendarWeeks', function ($weeks) {
+            $targetDay = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-11-19') {
+                        $targetDay = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($targetDay);
+            // All installments are paid, so pending amount is 0
+            $this->assertEquals(0, $targetDay->bills_pending_amount);
+
+            $schBill = collect($targetDay->bills)->firstWhere('kind', 'recurring');
+            $this->assertNotNull($schBill);
+            // When all installments are paid, schedule status is paid ("Lunas") with 0 amount
+            $this->assertEquals('paid', $schBill['status']);
+            $this->assertEquals('Lunas', $schBill['status_label']);
+            $this->assertEquals(0, $schBill['amount']);
+
+            return true;
+        });
+    }
 }

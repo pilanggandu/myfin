@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\CreditAccount;
 use App\Models\CreditPayment;
 use App\Models\FinancialTransaction;
 use App\Models\Installment;
@@ -1322,5 +1323,94 @@ class RecurringTest extends TestCase
             return ($subtitles['Spotify Family'] ?? '') === 'Internet & TV • BCA Platinum'
                 && ($subtitles['Pelunasan BCA Platinum'] ?? '') === 'Bank BCA → BCA Platinum';
         });
+    }
+
+    public function test_credit_payment_schedule_prevents_overpayment_and_shows_installments(): void
+    {
+        $creditSpendAccount = Account::create([
+            'space_id' => $this->spaceA->id,
+            'name' => 'BCA Blibli Card',
+            'type' => 'credit_card',
+            'opening_balance' => 0,
+            'currency' => 'IDR',
+            'is_active' => true,
+            'opened_on' => '2026-01-01',
+        ]);
+
+        $creditAccount = CreditAccount::create([
+            'space_id' => $this->spaceA->id,
+            'account_id' => $creditSpendAccount->id,
+            'name' => 'BCA Blibli Card',
+            'type' => 'credit_card',
+            'credit_limit' => 10000000,
+        ]);
+
+        $plan = InstallmentPlan::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAccount->id,
+            'category_id' => $this->internetCat->id,
+            'name' => 'Chatgpt Plus',
+            'total_amount' => 349000,
+            'tenor' => 1,
+            'start_date' => '2026-11-01',
+            'status' => 'active',
+        ]);
+        $inst = Installment::create([
+            'space_id' => $this->spaceA->id,
+            'installment_plan_id' => $plan->id,
+            'installment_number' => 1,
+            'due_date' => '2026-11-19',
+            'principal_amount' => 349000,
+            'total_amount' => 349000,
+            'status' => 'pending',
+        ]);
+
+        $schedule = RecurringSchedule::create([
+            'space_id' => $this->spaceA->id,
+            'credit_account_id' => $creditAccount->id,
+            'source_account_id' => $this->bca->id,
+            'type' => 'credit_payment',
+            'name' => 'Bayar Tagihan BCA Blibli',
+            'frequency' => 'monthly',
+            'anchor_day' => 19,
+            'start_date' => '2026-01-01',
+            'next_due_date' => '2026-11-19',
+            'amount' => 349000,
+            'status' => 'active',
+        ]);
+
+        // 1. Visit recurring.show: verify installments section is displayed
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get(route('recurring.show', $schedule));
+
+        $response->assertOk();
+        $response->assertSee('Rincian Cicilan: BCA Blibli Card', false);
+        $response->assertSee('Chatgpt Plus', false);
+
+        // 2. Try to pay more than current liability: should fail validation
+        $responseFail = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.confirm', $schedule), [
+                'due_date' => '2026-11-19',
+                'amount' => 500000,
+                'source_account_id' => $this->bca->id,
+            ]);
+
+        $responseFail->assertSessionHasErrors('amount');
+
+        // 3. Mark the installment as paid directly
+        $inst->update(['status' => 'paid']);
+
+        // Now liability is 0. Attempting to confirm payment should be prevented
+        $responseFailZero = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->post(route('recurring.confirm', $schedule), [
+                'due_date' => '2026-11-19',
+                'amount' => 349000,
+                'source_account_id' => $this->bca->id,
+            ]);
+
+        $responseFailZero->assertSessionHasErrors('amount');
     }
 }

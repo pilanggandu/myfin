@@ -610,6 +610,19 @@ class RecurringService
                     ]);
                 }
 
+                $currentLiability = (int) $creditAccount->currentLiability();
+                if ($currentLiability <= 0) {
+                    throw ValidationException::withMessages([
+                        'amount' => 'Kewajiban kartu kredit ini sudah lunas (tidak ada sisa hutang). Anda dapat melewati jadwal periode ini tanpa mencatat transaksi kas.',
+                    ]);
+                }
+
+                if ($amount > $currentLiability) {
+                    throw ValidationException::withMessages([
+                        'amount' => 'Nominal pembayaran (Rp '.number_format($amount, 0, ',', '.').') melebihi sisa kewajiban aktif kartu (Rp '.number_format($currentLiability, 0, ',', '.').'). Sebagian cicilan mungkin telah dibayar terpisah.',
+                    ]);
+                }
+
                 $payment = $this->creditService->payCreditAccountBill($space, $actor, $creditAccount, [
                     'source_account_id' => $sourceAccount->id,
                     'amount' => $amount,
@@ -869,11 +882,23 @@ class RecurringService
 
         foreach ($activeSchedules as $sch) {
             $dueDate = Carbon::parse($sch->next_due_date, $tz)->startOfDay();
+
+            if ($sch->isCreditPayment() && $sch->creditAccount && (int) $sch->creditAccount->currentLiability() <= 0) {
+                continue;
+            }
+
+            $amount = (int) ($sch->amount ?? 0);
+            if ($sch->isCreditPayment() && $sch->creditAccount && ($amount === 0 || $sch->is_variable_amount)) {
+                $statementDue = (int) $sch->creditAccount->statement_due_amount;
+                $liability = (int) $sch->creditAccount->currentLiability();
+                $amount = $statementDue > 0 ? $statementDue : $liability;
+            }
+
             $itemData = [
                 'id' => $sch->id,
                 'name' => $sch->name,
                 'due_date' => $sch->next_due_date instanceof Carbon ? $sch->next_due_date->toDateString() : (string) $sch->next_due_date,
-                'amount' => (int) ($sch->amount ?? 0),
+                'amount' => $amount,
                 'schedule' => $sch,
             ];
 

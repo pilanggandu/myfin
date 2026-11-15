@@ -9,6 +9,7 @@ use App\Http\Requests\Recurring\UpdateRecurringScheduleRequest;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\CreditAccount;
+use App\Models\Installment;
 use App\Models\Member;
 use App\Models\RecurringSchedule;
 use App\Services\RecurringService;
@@ -202,10 +203,31 @@ class RecurringScheduleController extends Controller
         $creditLiability = 0;
         $creditStatementDue = 0;
         $suggestedCreditAmount = 0;
+        $pendingInstallments = collect();
+        $paidInstallments = collect();
+        $hasPartiallyPaidInstallments = false;
+        $allInstallmentsPaid = false;
+
         if ($recurring->isCreditPayment() && $recurring->creditAccount) {
-            $creditLiability = (int) $recurring->creditAccount->currentLiability();
-            $creditStatementDue = (int) $recurring->creditAccount->statement_due_amount;
+            $creditAccount = $recurring->creditAccount;
+            $creditLiability = (int) $creditAccount->currentLiability();
+            $creditStatementDue = (int) $creditAccount->statement_due_amount;
             $suggestedCreditAmount = $creditStatementDue > 0 ? $creditStatementDue : $creditLiability;
+
+            $pendingInstallments = Installment::whereHas('installmentPlan', function ($q) use ($creditAccount) {
+                $q->where('credit_account_id', $creditAccount->id)->where('status', 'active');
+            })->where('status', 'pending')->with('installmentPlan')->orderBy('due_date', 'asc')->get();
+
+            $paidInstallments = Installment::whereHas('installmentPlan', function ($q) use ($creditAccount) {
+                $q->where('credit_account_id', $creditAccount->id);
+            })->where('status', 'paid')
+                ->with('installmentPlan')
+                ->orderBy('paid_at', 'desc')
+                ->take(10)
+                ->get();
+
+            $hasPartiallyPaidInstallments = $paidInstallments->isNotEmpty() && $pendingInstallments->isNotEmpty();
+            $allInstallmentsPaid = $pendingInstallments->isEmpty() && ($creditLiability <= 0);
         }
 
         return view('recurring.show', compact(
@@ -215,7 +237,11 @@ class RecurringScheduleController extends Controller
             'categories',
             'creditLiability',
             'creditStatementDue',
-            'suggestedCreditAmount'
+            'suggestedCreditAmount',
+            'pendingInstallments',
+            'paidInstallments',
+            'hasPartiallyPaidInstallments',
+            'allInstallmentsPaid'
         ));
     }
 
