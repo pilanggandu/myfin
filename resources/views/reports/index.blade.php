@@ -539,6 +539,18 @@
                             <span id="billsStatusDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                         </button>
 
+                        <button 
+                            type="button" 
+                            id="togglePlansBtn"
+                            onclick="toggleCalendarPlans()" 
+                            class="min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30"
+                            title="Tampilkan atau sembunyikan rencana belanja (short plan)"
+                        >
+                            <span>📋</span>
+                            <span>Short Plan</span>
+                            <span id="plansStatusDot" class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        </button>
+
                         <span class="inline-flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-forest"></span>
                             <span>Masuk (+)</span>
@@ -586,6 +598,9 @@
                                             @endif
                                             @if ($day->bills_count > 0)
                                                 <span class="calendar-bill-indicator w-1.5 h-1.5 rounded-full bg-amber-500" title="Tagihan jatuh tempo"></span>
+                                            @endif
+                                            @if ($day->short_plans_count > 0)
+                                                <span class="calendar-plan-indicator w-1.5 h-1.5 rounded-full bg-indigo-500" title="{{ $day->short_plans_count }} Rencana belanja"></span>
                                             @endif
                                         </div>
                                         <span class="text-[9px] font-mono text-muted leading-none">
@@ -660,6 +675,13 @@
                                                         <span class="font-mono text-[8px] shrink-0 ml-0.5">{{ $day->bills_pending_count > 0 ? $day->bills_pending_count . ' due' : '✓' }}</span>
                                                     </div>
                                                 @endif
+
+                                                @if ($day->short_plans_count > 0)
+                                                    <div class="calendar-plan-indicator mt-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 truncate flex items-center justify-between" title="{{ $day->short_plans_count }} Rencana Belanja (Rp {{ number_format($day->short_plans_total_amount, 0, ',', '.') }})">
+                                                        <span class="truncate">📋 {{ $day->short_plans_count }} Rencana</span>
+                                                        <span class="font-mono text-[8px] shrink-0 ml-0.5">{{ $day->short_plans_pending_count > 0 ? $day->short_plans_pending_count . ' plan' : '✓' }}</span>
+                                                    </div>
+                                                @endif
                                             </div>
 
                                             <div id="calDayData-{{ $day->date }}" class="hidden" 
@@ -671,7 +693,8 @@
                                                 data-count="{{ $day->count }}" 
                                                 data-create-url="{{ route('transactions.create', ['date' => $day->date, 'return_to' => url()->full()]) }}"
                                                 data-items="{{ json_encode($day->modal_items, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}"
-                                                data-bills="{{ json_encode($day->bills, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}">
+                                                data-bills="{{ json_encode($day->bills, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}"
+                                                data-plans="{{ json_encode($day->short_plans, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}">
                                             </div>
                                         </div>
                                     @endforeach
@@ -754,6 +777,19 @@
                                 </div>
 
                                 <div id="calModalBillsList" class="space-y-2 max-h-[220px] overflow-y-auto">
+                                </div>
+                            </div>
+
+                            <div id="calModalPlansSection" class="border-t border-line pt-4 hidden">
+                                <div class="flex items-center justify-between mb-2.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs">📋</span>
+                                        <h4 class="text-xs font-bold uppercase tracking-wider text-charcoal">Rencana Belanja (Short Plan)</h4>
+                                    </div>
+                                    <span id="calModalPlansCountBadge" class="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold"></span>
+                                </div>
+
+                                <div id="calModalPlansList" class="space-y-2 max-h-[220px] overflow-y-auto">
                                 </div>
                             </div>
                         </div>
@@ -975,6 +1011,63 @@
                         billsList.innerHTML = '';
                     }
 
+                    const plans = JSON.parse(dataEl.dataset.plans || '[]');
+                    const plansSection = document.getElementById('calModalPlansSection');
+                    const plansList = document.getElementById('calModalPlansList');
+                    const plansBadge = document.getElementById('calModalPlansCountBadge');
+
+                    if (plans && plans.length > 0) {
+                        plansSection.classList.remove('hidden');
+                        plansBadge.textContent = plans.length + ' rencana';
+                        plansList.innerHTML = '';
+
+                        plans.forEach(function(plan) {
+                            const itemEl = document.createElement('div');
+                            itemEl.className = 'p-3 rounded-xl border border-line bg-cream/20 dark:bg-line/20 flex items-center justify-between gap-3 text-xs';
+
+                            const isDone = plan.status === 'done';
+                            const badgeColor = isDone
+                                ? 'bg-forest/10 dark:bg-forest/20 text-forest border border-forest/30'
+                                : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+
+                            const priorityBadge = plan.priority === 'high'
+                                ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">Mendesak</span>`
+                                : (plan.priority === 'low'
+                                    ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 shrink-0">Santai</span>`
+                                    : `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 shrink-0">Normal</span>`);
+
+                            itemEl.innerHTML = `
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="text-base shrink-0">📋</span>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="font-bold text-charcoal truncate">${plan.title}</span>
+                                            ${priorityBadge}
+                                        </div>
+                                        <div class="text-[11px] text-muted truncate mt-0.5">${plan.subtitle}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <div class="text-right">
+                                        <div class="font-mono font-bold text-charcoal">
+                                            <span class="privacy-balance" data-raw-value="Rp ${Number(plan.amount).toLocaleString('id-ID')}">Rp ${Number(plan.amount).toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold ${badgeColor}">
+                                            ${plan.status_label}
+                                        </span>
+                                    </div>
+                                    <a href="${plan.url}" class="px-2.5 py-1.5 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 text-[11px] font-semibold text-charcoal transition">
+                                        Lihat &rarr;
+                                    </a>
+                                </div>
+                            `;
+                            plansList.appendChild(itemEl);
+                        });
+                    } else {
+                        plansSection.classList.add('hidden');
+                        plansList.innerHTML = '';
+                    }
+
                     const modal = document.getElementById('calendarDayModal');
                     if (typeof window.syncPrivacyContainer === 'function') {
                         window.syncPrivacyContainer(modal);
@@ -1005,6 +1098,27 @@
                         if (calendarBillsVisible) {
                             btn.className = 'min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
                             dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+                        } else {
+                            btn.className = 'min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-panel text-muted border-line hover:text-charcoal';
+                            dot.className = 'w-1.5 h-1.5 rounded-full bg-muted/40';
+                        }
+                    }
+                }
+
+                let calendarPlansVisible = true;
+                function toggleCalendarPlans() {
+                    calendarPlansVisible = !calendarPlansVisible;
+                    const badges = document.querySelectorAll('.calendar-plan-indicator');
+                    badges.forEach(function(el) {
+                        el.style.display = calendarPlansVisible ? '' : 'none';
+                    });
+
+                    const btn = document.getElementById('togglePlansBtn');
+                    const dot = document.getElementById('plansStatusDot');
+                    if (btn && dot) {
+                        if (calendarPlansVisible) {
+                            btn.className = 'min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30';
+                            dot.className = 'w-1.5 h-1.5 rounded-full bg-indigo-500';
                         } else {
                             btn.className = 'min-h-[44px] sm:min-h-0 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs bg-panel text-muted border-line hover:text-charcoal';
                             dot.className = 'w-1.5 h-1.5 rounded-full bg-muted/40';

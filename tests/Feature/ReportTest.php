@@ -10,6 +10,7 @@ use App\Models\Installment;
 use App\Models\InstallmentPlan;
 use App\Models\RecurringOccurrence;
 use App\Models\RecurringSchedule;
+use App\Models\ShortPlan;
 use App\Models\Space;
 use App\Models\User;
 use App\Services\CreditService;
@@ -964,6 +965,66 @@ class ReportTest extends TestCase
             $this->assertEquals('paid', $schBill['status']);
             $this->assertEquals('Lunas', $schBill['status_label']);
             $this->assertEquals(0, $schBill['amount']);
+
+            return true;
+        });
+    }
+
+    public function test_calendar_displays_short_plans(): void
+    {
+        $planPlanned = ShortPlan::create([
+            'space_id' => $this->spaceA->id,
+            'title' => 'Beli Meja Kerja',
+            'planned_amount' => 750000,
+            'target_date' => '2026-11-20',
+            'priority' => 'high',
+            'status' => 'planned',
+            'category_id' => $this->foodCat->id,
+            'created_by' => $this->userA->id,
+        ]);
+
+        $planDone = ShortPlan::create([
+            'space_id' => $this->spaceA->id,
+            'title' => 'Belanja Mingguan',
+            'planned_amount' => 300000,
+            'actual_amount' => 280000,
+            'target_date' => '2026-11-20',
+            'priority' => 'medium',
+            'status' => 'done',
+            'category_id' => $this->foodCat->id,
+            'created_by' => $this->userA->id,
+        ]);
+
+        $response = $this->actingAs($this->userA)
+            ->withSession(['active_space_id' => $this->spaceA->id])
+            ->get('/reports?tab=daily&view=calendar&year=2026&month=11');
+
+        $response->assertStatus(200);
+        $response->assertSee('Beli Meja Kerja');
+        $response->assertSee('Belanja Mingguan');
+        $response->assertSee('togglePlansBtn');
+        $response->assertSee('Short Plan');
+
+        $response->assertViewHas('calendarWeeks', function ($weeks) {
+            $targetDay = null;
+            foreach ($weeks as $week) {
+                foreach ($week as $day) {
+                    if ($day->date === '2026-11-20') {
+                        $targetDay = $day;
+                    }
+                }
+            }
+
+            $this->assertNotNull($targetDay);
+            $this->assertEquals(2, $targetDay->short_plans_count);
+            $this->assertEquals(1, $targetDay->short_plans_pending_count);
+            $this->assertEquals(750000, $targetDay->short_plans_pending_amount);
+            $this->assertEquals(1030000, $targetDay->short_plans_total_amount);
+
+            $this->assertCount(2, $targetDay->short_plans);
+            $titles = collect($targetDay->short_plans)->pluck('title')->all();
+            $this->assertContains('Beli Meja Kerja', $titles);
+            $this->assertContains('Belanja Mingguan', $titles);
 
             return true;
         });

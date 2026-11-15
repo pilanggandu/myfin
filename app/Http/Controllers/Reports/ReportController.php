@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FinancialTransaction;
 use App\Models\Installment;
 use App\Models\RecurringSchedule;
+use App\Models\ShortPlan;
 use App\Models\Space;
 use App\Services\ActivityLogService;
 use App\Services\AdvancedAnalyticsService;
@@ -618,6 +619,13 @@ class ReportController extends Controller
             }])
             ->get() : collect();
 
+        $shortPlans = $space ? ShortPlan::where('space_id', $space->id)
+            ->whereNotNull('target_date')
+            ->whereBetween('target_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
+            ->whereIn('status', ['planned', 'done'])
+            ->with(['account', 'category', 'member', 'items'])
+            ->get() : collect();
+
         $calendarWeeks = [];
         $currentDay = $calendarStart->copy();
 
@@ -799,6 +807,54 @@ class ReportController extends Controller
                     }
                 }
 
+                $dayPlans = [];
+                foreach ($shortPlans as $plan) {
+                    if ($plan->target_date && $plan->target_date->toDateString() === $dateStr) {
+                        $amount = (float) ($plan->status === 'done' && $plan->actual_amount !== null
+                            ? $plan->actual_amount
+                            : $plan->planned_amount);
+
+                        $subtitleParts = [];
+                        if ($plan->category) {
+                            $subtitleParts[] = $plan->category->name;
+                        }
+                        if ($plan->account) {
+                            $subtitleParts[] = $plan->account->name;
+                        }
+                        $checkedCount = $plan->checkedItemsCount();
+                        $totalItems = $plan->items->count();
+                        if ($totalItems > 0) {
+                            $subtitleParts[] = "{$checkedCount}/{$totalItems} item";
+                        }
+
+                        $subtitle = ! empty($subtitleParts) ? implode(' • ', $subtitleParts) : 'Rencana Belanja';
+
+                        $dayPlans[] = [
+                            'id' => $plan->id,
+                            'title' => $plan->title,
+                            'subtitle' => $subtitle,
+                            'amount' => $amount,
+                            'priority' => $plan->priority,
+                            'priority_label' => $plan->priorityLabel(),
+                            'status' => $plan->status,
+                            'status_label' => $plan->statusLabel(),
+                            'url' => route('short-plans.show', $plan),
+                        ];
+                    }
+                }
+
+                $plansPendingCount = 0;
+                $plansTotalAmount = 0;
+                $plansPendingAmount = 0;
+
+                foreach ($dayPlans as $p) {
+                    $plansTotalAmount += $p['amount'];
+                    if ($p['status'] !== 'done') {
+                        $plansPendingCount++;
+                        $plansPendingAmount += $p['amount'];
+                    }
+                }
+
                 $week[] = (object) [
                     'date' => $dateStr,
                     'day_number' => $currentDay->day,
@@ -818,6 +874,11 @@ class ReportController extends Controller
                     'bills_pending_count' => $billsPendingCount,
                     'bills_total_amount' => $billsTotalAmount,
                     'bills_pending_amount' => $billsPendingAmount,
+                    'short_plans' => $dayPlans,
+                    'short_plans_count' => count($dayPlans),
+                    'short_plans_pending_count' => $plansPendingCount,
+                    'short_plans_total_amount' => $plansTotalAmount,
+                    'short_plans_pending_amount' => $plansPendingAmount,
                 ];
 
                 $currentDay->addDay();
