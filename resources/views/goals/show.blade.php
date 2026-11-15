@@ -12,9 +12,7 @@
     <!-- Top Action Bar & Breadcrumb -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-center gap-3">
-            <a href="{{ route('goals.index') }}" class="w-11 h-11 sm:w-9 sm:h-9 shrink-0 rounded-lg border border-line bg-panel hover:bg-cream dark:hover:bg-line/40 flex items-center justify-center text-muted hover:text-charcoal transition" title="Kembali ke Daftar Target">
-                &larr;
-            </a>
+            <x-back-link :fallback="route('goals.index')" variant="icon" label="Kembali ke Daftar Target" />
             <div>
                 <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET FINANSIAL</div>
                 <div class="flex items-center flex-wrap gap-2 mt-0.5">

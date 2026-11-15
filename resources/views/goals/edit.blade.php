@@ -2,6 +2,7 @@
     <div class="w-full">
         <!-- Breadcrumb & Header -->
         <div class="mb-6">
+            <x-back-link :fallback="route('goals.show', $goal)" label="Kembali ke Detail Target" class="mb-3" />
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET & BERSAMA / EDIT</div>
             <h1 class="font-serif text-3xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Edit Target: {{ $goal->name }}
@@ -228,9 +229,9 @@
                     </button>
 
                     <div class="flex flex-col-reverse sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-                        <a href="{{ route('goals.show', $goal) }}" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[40px] px-5 w-full sm:w-auto justify-center">
+                        <x-back-link :fallback="route('goals.show', $goal)" variant="button" class="text-xs min-h-[44px] sm:min-h-[40px] px-5 w-full sm:w-auto justify-center">
                             Batal
-                        </a>
+                        </x-back-link>
                         <button type="submit" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[40px] px-6 w-full sm:w-auto justify-center">
                             Simpan Perubahan
                         </button>

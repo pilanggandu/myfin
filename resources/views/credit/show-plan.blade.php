@@ -2,10 +2,7 @@
     <!-- Back Link & Action Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-            <a href="{{ route('credit.index', ['tab' => $plan->isActive() ? 'plans' : 'history']) }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-charcoal transition mb-2">
-                <span>←</span>
-                <span>Kembali ke Daftar Kredit & Cicilan</span>
-            </a>
+            <x-back-link :fallback="route('credit.index', ['tab' => $plan->isActive() ? 'plans' : 'history'])" label="Kembali ke Daftar Kredit & Cicilan" class="mb-2" />
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <span class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {{ $plan->isCompleted() ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : ($plan->isActive() ? 'bg-forest/10 text-forest' : 'bg-red/10 text-red') }}">
                     {{ $plan->isCompleted() ? 'Lunas Selesai' : ($plan->isActive() ? 'Cicilan Berjalan' : 'Dibatalkan') }}

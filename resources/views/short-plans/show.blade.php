@@ -10,14 +10,12 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-start sm:items-center gap-3 min-w-0">
-            <a
-                href="{{ route('short-plans.index') }}"
-                class="min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded-lg border border-line bg-panel hover:bg-cream flex items-center justify-center text-muted hover:text-charcoal transition shrink-0"
-                title="Kembali ke Daftar Short Plan"
-                aria-label="Kembali ke daftar short plan"
-            >
-                &larr;
-            </a>
+            <x-back-link 
+                :fallback="route('short-plans.index')" 
+                variant="icon" 
+                label="Kembali ke Daftar Short Plan" 
+                class="min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded-lg" 
+            />
             <div class="min-w-0">
                 <span class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase block">ARUS / SHORT PLAN</span>
                 <div class="flex items-center flex-wrap gap-2 mt-0.5">

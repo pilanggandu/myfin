@@ -1,9 +1,7 @@
 <x-layouts.app title="Mutasi Rekening: {{ $account->name }}">
     <div class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-            <a href="{{ route('accounts.index') }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1">
-                &larr; Kembali ke daftar rekening
-            </a>
+            <x-back-link :fallback="route('accounts.index')" label="Kembali ke daftar rekening" />
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase mt-3">ARUS / MUTASI REKENING</div>
             <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 {{ $account->name }}
@@ -22,7 +20,7 @@
                 <span class="privacy-toggle-icon text-muted"></span>
                 <span class="privacy-toggle-text">Saldo Rekening</span>
             </button>
-            <a href="{{ route('transactions.create') }}" class="btn-arus-primary min-h-[44px] sm:min-h-[38px]">
+            <a href="{{ route('transactions.create', ['account_id' => $account->id, 'return_to' => url()->full()]) }}" class="btn-arus-primary min-h-[44px] sm:min-h-[38px]">
                 + Catat Transaksi
             </a>
             @if (! $account->isArchived())

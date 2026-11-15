@@ -2,10 +2,7 @@
     <div class="w-full">
         <!-- Back Link & Heading -->
         <div class="mb-6">
-            <a href="{{ route('credit.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-charcoal transition mb-3">
-                <span>←</span>
-                <span>Kembali ke Kredit & Cicilan</span>
-            </a>
+            <x-back-link :fallback="route('credit.index')" label="Kembali ke Kredit & Cicilan" class="mb-3" />
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TRANSAKSI KREDIT</div>
             <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Catat Belanja &amp; Tagihan Kredit
@@ -364,12 +361,13 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-2">
-                    <a 
-                        href="{{ route('credit.index') }}" 
+                    <x-back-link 
+                        :fallback="route('credit.index')" 
+                        variant="button"
                         class="w-full sm:w-auto min-h-[44px] px-5 py-2.5 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition flex items-center justify-center"
                     >
                         Batal
-                    </a>
+                    </x-back-link>
                     <button 
                         type="submit" 
                         id="btnSubmitPurchase"

@@ -1,11 +1,6 @@
 <x-layouts.app title="Ubah Jadwal Berulang">
     <div class="mb-6">
-        <a href="{{ route('recurring.show', $recurring) }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Kembali ke detail jadwal
-        </a>
+        <x-back-link :fallback="route('recurring.show', $recurring)" label="Kembali ke detail jadwal" />
         <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase mt-3">ARUS / RECURRING / EDIT</div>
         <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-1">
             Ubah Jadwal: {{ $recurring->name }}
@@ -390,9 +385,9 @@
                 <button type="submit" class="btn-arus-primary min-h-[44px] px-6 text-xs font-bold cursor-pointer">
                     Simpan Perubahan
                 </button>
-                <a href="{{ route('recurring.show', $recurring) }}" class="btn-arus-secondary min-h-[44px] px-5 text-xs font-bold">
+                <x-back-link :fallback="route('recurring.show', $recurring)" variant="button" class="btn-arus-secondary min-h-[44px] px-5 text-xs font-bold">
                     Batal
-                </a>
+                </x-back-link>
             </div>
         </div>
     </form>

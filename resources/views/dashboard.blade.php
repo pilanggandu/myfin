@@ -130,7 +130,7 @@
             </button>
 
             <a 
-                href="{{ route('transactions.create') }}" 
+                href="{{ route('transactions.create', ['return_to' => route('dashboard')]) }}" 
                 class="btn-arus-secondary text-xs font-semibold min-h-[44px] sm:min-h-0 sm:h-8.5 py-2 sm:py-1"
             >
                 + Transaksi Baru
@@ -291,7 +291,7 @@
 
                 <div class="px-4 sm:px-5 py-2.5 bg-sidebar/50 border-t border-line text-[11px] text-muted flex items-center justify-between">
                     <span>Menampilkan {{ $recentTransactions->count() }} transaksi terakhir</span>
-                    <a href="{{ route('transactions.create') }}" class="text-forest font-semibold hover:underline">
+                    <a href="{{ route('transactions.create', ['return_to' => route('dashboard')]) }}" class="text-forest font-semibold hover:underline">
                         + Tambah Transaksi
                     </a>
                 </div>

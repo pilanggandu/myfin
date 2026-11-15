@@ -103,6 +103,14 @@ class AccountController extends Controller
             ],
         );
 
+        $returnTo = $request->input('return_to');
+        if (! empty($returnTo) && is_string($returnTo)) {
+            if ((str_starts_with($returnTo, '/') && ! str_starts_with($returnTo, '//')) || str_starts_with($returnTo, url('/'))) {
+                return redirect()->to($returnTo)
+                    ->with('success', "Rekening '{$account->name}' berhasil ditambahkan.");
+            }
+        }
+
         return redirect()->route('accounts.index')
             ->with('success', "Rekening '{$account->name}' berhasil ditambahkan.");
     }
@@ -192,7 +200,15 @@ class AccountController extends Controller
             properties: $diffProps,
         );
 
-        return redirect()->route('accounts.index')
+        $returnTo = $request->input('return_to');
+        if (! empty($returnTo) && is_string($returnTo)) {
+            if ((str_starts_with($returnTo, '/') && ! str_starts_with($returnTo, '//')) || str_starts_with($returnTo, url('/'))) {
+                return redirect()->to($returnTo)
+                    ->with('success', "Rekening '{$account->name}' berhasil diperbarui.");
+            }
+        }
+
+        return redirect()->route('accounts.show', $account)
             ->with('success', "Rekening '{$account->name}' berhasil diperbarui.");
     }
 

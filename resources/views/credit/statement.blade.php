@@ -2,10 +2,7 @@
     <!-- Back Link & Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-            <a href="{{ route('credit.index', ['tab' => 'accounts']) }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-charcoal transition mb-2">
-                <span>←</span>
-                <span>Kembali ke Daftar Akun Kredit & Kartu</span>
-            </a>
+            <x-back-link :fallback="route('credit.index', ['tab' => 'accounts'])" label="Kembali ke Daftar Akun Kredit & Kartu" class="mb-2" />
             <div class="flex items-center gap-2">
                 <span class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider {{ $statement['is_fully_paid'] ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : ($statement['total_pending'] > 0 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-muted/10 text-muted') }}">
                     {{ $statement['is_fully_paid'] ? 'Tagihan Lunas' : ($statement['total_pending'] > 0 ? 'Menunggu Pembayaran' : 'Tidak Ada Tagihan') }}

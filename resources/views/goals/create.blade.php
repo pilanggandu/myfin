@@ -2,6 +2,7 @@
     <div class="w-full">
         <!-- Breadcrumb & Header -->
         <div class="mb-6">
+            <x-back-link :fallback="route('goals.index')" label="Kembali ke Daftar Target" class="mb-3" />
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase">ARUS / TARGET & BERSAMA</div>
             <h1 class="font-serif text-3xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Buat Target Tabungan Baru
@@ -207,9 +208,9 @@
 
                 <!-- Submit Buttons -->
                 <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-2">
-                    <a href="{{ route('goals.index') }}" class="btn-arus-secondary text-xs min-h-[44px] sm:min-h-[40px] px-5 w-full sm:w-auto justify-center">
+                    <x-back-link :fallback="route('goals.index')" variant="button" class="text-xs min-h-[44px] sm:min-h-[40px] px-5 w-full sm:w-auto justify-center">
                         Batal
-                    </a>
+                    </x-back-link>
                     <button type="submit" class="btn-arus-primary text-xs min-h-[44px] sm:min-h-[40px] px-6 w-full sm:w-auto justify-center">
                         Simpan Target Tabungan
                     </button>

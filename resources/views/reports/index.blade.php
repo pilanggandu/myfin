@@ -669,7 +669,7 @@
                                                 data-outflow="{{ $day->outflow }}" 
                                                 data-net="{{ $day->net }}" 
                                                 data-count="{{ $day->count }}" 
-                                                data-create-url="{{ route('transactions.create', ['date' => $day->date]) }}"
+                                                data-create-url="{{ route('transactions.create', ['date' => $day->date, 'return_to' => url()->full()]) }}"
                                                 data-items="{{ json_encode($day->modal_items, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}"
                                                 data-bills="{{ json_encode($day->bills, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }}">
                                             </div>
@@ -930,9 +930,13 @@
                             itemEl.className = 'p-3 rounded-xl border border-line bg-cream/20 dark:bg-line/20 flex items-center justify-between gap-3 text-xs';
 
                             const isPaid = bill.status === 'paid';
-                            const badgeColor = isPaid
-                                ? 'bg-forest/10 dark:bg-forest/20 text-forest'
-                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+                            const isPartial = bill.status === 'partial';
+                            let badgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+                            if (isPaid) {
+                                badgeColor = 'bg-forest/10 dark:bg-forest/20 text-forest border border-forest/30';
+                            } else if (isPartial) {
+                                badgeColor = 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+                            }
                             const icon = bill.kind === 'installment' ? '💳' : '🔔';
                             const kindLabel = bill.kind_label || (bill.kind === 'installment' ? 'Kredit & Cicilan' : 'Jadwal Rutin');
                             const kindBadge = bill.kind === 'installment'

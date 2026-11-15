@@ -1,9 +1,7 @@
 <x-layouts.app title="Rincian Transaksi #{{ $transaction->id }}">
     <div class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-            <a href="{{ route('transactions.index') }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1">
-                &larr; Kembali ke daftar transaksi
-            </a>
+            <x-back-link :fallback="route('transactions.index')" label="Kembali ke daftar transaksi" />
             <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase mt-3">ARUS / TRANSAKSI</div>
             <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
                 Rincian Transaksi #{{ $transaction->id }}

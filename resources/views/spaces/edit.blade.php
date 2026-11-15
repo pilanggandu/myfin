@@ -1,8 +1,6 @@
 <x-layouts.app title="Ubah Pengaturan Ruang">
     <div class="mb-6">
-        <a href="{{ route('spaces.index') }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1">
-            &larr; Kembali ke daftar ruang
-        </a>
+        <x-back-link :fallback="route('spaces.index')" label="Kembali ke daftar ruang" />
         <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase mt-3">ARUS / PENGATURAN RUANG</div>
         <h1 class="font-serif text-3xl sm:text-4xl text-forest font-normal tracking-tight mt-1 mb-0.5">
             Ubah Pengaturan Ruang
@@ -39,9 +37,9 @@
                     <x-button type="submit" variant="primary" class="min-h-[44px] sm:min-h-[38px]">
                         Simpan Perubahan
                     </x-button>
-                    <a href="{{ route('spaces.index') }}" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px]">
+                    <x-back-link :fallback="route('spaces.index')" variant="button" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px]">
                         Batal
-                    </a>
+                    </x-back-link>
                 </div>
             </form>
         </x-panel>

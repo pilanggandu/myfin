@@ -262,8 +262,20 @@ class FinancialTransactionController extends Controller
                 $redirectParams['source_account_id'] = $validated['source_account_id'];
             }
 
+            if ($request->filled('return_to')) {
+                $redirectParams['return_to'] = $request->input('return_to');
+            }
+
             return redirect()->route('transactions.create', $redirectParams)
                 ->with('success', 'Transaksi berhasil dicatat. Silakan input transaksi berikutnya.');
+        }
+
+        $returnTo = $request->input('return_to');
+        if (! empty($returnTo) && is_string($returnTo)) {
+            if ((str_starts_with($returnTo, '/') && ! str_starts_with($returnTo, '//')) || str_starts_with($returnTo, url('/'))) {
+                return redirect()->to($returnTo)
+                    ->with('success', 'Transaksi berhasil dicatat.');
+            }
         }
 
         return redirect()->route('transactions.index')

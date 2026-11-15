@@ -1,12 +1,7 @@
 <x-layouts.app title="Buat Short Plan Baru">
     <div class="w-full">
         <div class="mb-6">
-            <a href="{{ route('short-plans.index') }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-                Kembali ke Short Plan
-            </a>
+            <x-back-link :fallback="route('short-plans.index')" label="Kembali ke Short Plan" class="min-h-[44px] sm:min-h-0" />
             <h1 class="font-serif text-3xl text-forest font-normal tracking-tight mt-2 mb-0.5">
                 Buat Short Plan Baru
             </h1>
@@ -305,12 +300,13 @@
                         >
                             Simpan Short Plan
                         </button>
-                        <a
-                            href="{{ route('short-plans.index') }}"
-                            class="btn-arus-secondary w-full min-h-[44px] text-xs"
+                        <x-back-link
+                            :fallback="route('short-plans.index')"
+                            variant="button"
+                            class="w-full min-h-[44px] text-xs"
                         >
                             Batal
-                        </a>
+                        </x-back-link>
                     </div>
                 </div>
             </div>

@@ -1,12 +1,7 @@
 <x-layouts.app title="Edit Short Plan">
     <div class="max-w-3xl mx-auto w-full">
         <div class="mb-6">
-            <a href="{{ route('short-plans.show', $shortPlan) }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-                Kembali ke Detail Rencana
-            </a>
+            <x-back-link :fallback="route('short-plans.show', $shortPlan)" label="Kembali ke Detail Rencana" class="min-h-[44px] sm:min-h-0" />
             <h1 class="font-serif text-3xl text-forest font-normal tracking-tight mt-2 mb-0.5">
                 Edit Short Plan
             </h1>
@@ -169,9 +164,9 @@
             </div>
 
             <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-3 border-t border-line">
-                <a href="{{ route('short-plans.show', $shortPlan) }}" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs">
+                <x-back-link :fallback="route('short-plans.show', $shortPlan)" variant="button" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs">
                     Batal
-                </a>
+                </x-back-link>
                 <button type="submit" id="editPlanSubmitBtn" class="btn-arus-primary min-h-[44px] sm:min-h-[38px] text-xs cursor-pointer">
                     Simpan Perubahan
                 </button>

@@ -4,12 +4,7 @@
     @endphp
 
     <div class="mb-6">
-        <a href="{{ route('recurring.index') }}" class="text-xs font-bold text-forest hover:underline inline-flex items-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Kembali ke daftar jadwal berulang
-        </a>
+        <x-back-link :fallback="route('recurring.index')" label="Kembali ke daftar jadwal berulang" />
         <div class="text-[11px] font-bold tracking-[1.5px] text-muted uppercase mt-3">ARUS / RECURRING / DETAIL</div>
         
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-1">
@@ -54,24 +49,39 @@
             <!-- Header Action Buttons -->
             <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 @if ($recurring->isActive())
-                    <button 
-                        type="button" 
-                        onclick="openConfirmModal('{{ $recurring->next_due_date->toDateString() }}', {{ $recurring->amount ?: 0 }})"
-                        class="btn-arus-primary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-4 py-2 inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                        </svg>
-                        <span>Konfirmasi Catat Periode Ini</span>
-                    </button>
-
-                    <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline" onsubmit="return confirm('Lewati periode jatuh tempo {{ $recurring->next_due_date->format('d/m/Y') }} tanpa mencatat transaksi keuangan?')">
-                        @csrf
-                        <input type="hidden" name="due_date" value="{{ $recurring->next_due_date->toDateString() }}">
-                        <button type="submit" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-muted hover:text-charcoal cursor-pointer" title="Lewati periode ini">
-                            Lewati
+                    @if ($recurring->isCreditPayment() && $recurring->creditAccount && $creditLiability <= 0)
+                        <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-forest/10 dark:bg-forest/20 text-forest text-xs font-bold border border-forest/30">
+                            <span>✅</span>
+                            <span>Kewajiban Lunas</span>
+                        </span>
+                        <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline" onsubmit="return confirm('Tandai selesai / lewati periode ini karena seluruh kewajiban kartu kredit sudah lunas?')">
+                            @csrf
+                            <input type="hidden" name="due_date" value="{{ $recurring->next_due_date->toDateString() }}">
+                            <input type="hidden" name="notes" value="Semua kewajiban kartu kredit telah lunas">
+                            <button type="submit" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-forest border-forest/30 hover:bg-forest-light cursor-pointer" title="Tandai selesai periode ini">
+                                Tandai Selesai
+                            </button>
+                        </form>
+                    @else
+                        <button 
+                            type="button" 
+                            onclick="openConfirmModal('{{ $recurring->next_due_date->toDateString() }}', {{ $recurring->isCreditPayment() && $suggestedCreditAmount > 0 ? $suggestedCreditAmount : ($recurring->amount ?: 0) }})"
+                            class="btn-arus-primary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-4 py-2 inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <span>{{ $recurring->isCreditPayment() ? 'Bayar Tagihan Periode Ini' : 'Konfirmasi Catat Periode Ini' }}</span>
                         </button>
-                    </form>
+
+                        <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline" onsubmit="return confirm('Lewati periode jatuh tempo {{ $recurring->next_due_date->format('d/m/Y') }} tanpa mencatat transaksi keuangan?')">
+                            @csrf
+                            <input type="hidden" name="due_date" value="{{ $recurring->next_due_date->toDateString() }}">
+                            <button type="submit" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-muted hover:text-charcoal cursor-pointer" title="Lewati periode ini">
+                                Lewati
+                            </button>
+                        </form>
+                    @endif
                 @endif
 
                 <a href="{{ route('recurring.edit', $recurring) }}" class="btn-arus-secondary min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3 py-2 text-forest border-forest/30 hover:bg-forest-light">
@@ -115,6 +125,51 @@
                 Buka Kredit &amp; Cicilan &rarr;
             </a>
         </div>
+    @endif
+
+    @if ($recurring->isCreditPayment() && $recurring->creditAccount)
+        @if ($creditLiability <= 0)
+            <div class="mb-6 rounded-2xl bg-forest/10 dark:bg-forest/20 border border-forest/30 p-4 text-xs text-charcoal space-y-2">
+                <div class="font-bold flex items-center gap-2 text-sm text-forest">
+                    <span>✅</span>
+                    <span>Seluruh Tagihan &amp; Cicilan Kartu Ini Sudah Lunas</span>
+                </div>
+                <p class="text-[12px] text-muted">
+                    Akun kartu kredit <strong>{{ $recurring->creditAccount->name }}</strong> saat ini tidak memiliki sisa hutang atau tagihan yang perlu dibayar. Jika Anda telah membayar cicilan secara terpisah, Anda dapat menandai selesai periode ini agar jadwal tidak lagi menagih.
+                </p>
+                <div class="pt-1 flex items-center gap-2 flex-wrap">
+                    <form method="POST" action="{{ route('recurring.skip', $recurring) }}" class="inline" onsubmit="return confirm('Tandai selesai / lewati periode ini?')">
+                        @csrf
+                        <input type="hidden" name="due_date" value="{{ $recurring->next_due_date->toDateString() }}">
+                        <input type="hidden" name="notes" value="Semua kewajiban kartu kredit telah lunas">
+                        <button type="submit" class="btn-arus-primary text-xs font-bold px-3.5 py-2 cursor-pointer">
+                            Tandai Periode Ini Selesai &rarr;
+                        </button>
+                    </form>
+                    <a href="{{ route('credit.accounts.statement', $recurring->creditAccount) }}" class="btn-arus-secondary text-xs font-bold px-3 py-2">
+                        Lihat Lembar Tagihan Kartu &rarr;
+                    </a>
+                </div>
+            </div>
+        @elseif ($hasPartiallyPaidInstallments)
+            <div class="mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs text-amber-950 dark:text-amber-200 space-y-2">
+                <div class="font-bold flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+                    <span>⚠️</span>
+                    <span>Sebagian Cicilan Sudah Dibayar Terpisah</span>
+                </div>
+                <p class="text-[12px] opacity-90">
+                    Terdapat cicilan pada kartu <strong>{{ $recurring->creditAccount->name }}</strong> yang telah dibayar secara mandiri. Sisa kewajiban aktif saat ini adalah <strong>Rp {{ number_format($creditLiability, 0, ',', '.') }}</strong> (dari {{ $pendingInstallments->count() }} cicilan tertunda).
+                </p>
+                <div class="pt-1 flex items-center gap-2 flex-wrap">
+                    <a href="#section-installments" class="btn-arus-secondary text-xs font-bold px-3 py-1.5 text-amber-800 dark:text-amber-200 border-amber-500/30 hover:bg-amber-500/20">
+                        Arahkan ke Rincian Cicilan &darr;
+                    </a>
+                    <button type="button" onclick="openConfirmModal('{{ $recurring->next_due_date->toDateString() }}', {{ $creditLiability }})" class="btn-arus-primary text-xs font-bold px-3 py-1.5 cursor-pointer">
+                        Bayar Sisa Tagihan (Rp {{ number_format($creditLiability, 0, ',', '.') }})
+                    </button>
+                </div>
+            </div>
+        @endif
     @endif
 
     <!-- Parameter Card & Status Card Grid -->
@@ -433,6 +488,84 @@
         @endif
     </div>
 
+    @if ($recurring->isCreditPayment() && $recurring->creditAccount && ($pendingInstallments->isNotEmpty() || $paidInstallments->isNotEmpty()))
+        <div id="section-installments" class="panel-card p-5 rounded-2xl border border-line bg-panel shadow-xs space-y-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-line pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">💳</span>
+                    <div>
+                        <h2 class="text-sm font-bold text-charcoal">Rincian Cicilan: {{ $recurring->creditAccount->name }}</h2>
+                        <div class="text-[11px] text-muted">Daftar cicilan yang terkait dengan kartu/akun kredit ini</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <a href="{{ route('credit.purchases.create') }}" class="btn-arus-secondary text-xs font-bold px-3 py-1.5 text-forest border-forest/30 hover:bg-forest-light">
+                        + Tambah Cicilan
+                    </a>
+                    <a href="{{ route('credit.index') }}" class="btn-arus-secondary text-xs font-bold px-3 py-1.5">
+                        Kelola Semua Cicilan &rarr;
+                    </a>
+                </div>
+            </div>
+
+            @if ($pendingInstallments->isNotEmpty())
+                <div class="space-y-2">
+                    <div class="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                        Cicilan Tertunda ({{ $pendingInstallments->count() }})
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        @foreach ($pendingInstallments as $inst)
+                            <div class="p-3 rounded-xl border border-line bg-cream/20 dark:bg-line/20 flex items-center justify-between gap-3 text-xs">
+                                <div class="min-w-0">
+                                    <div class="font-bold text-charcoal truncate">{{ $inst->installmentPlan?->name ?? 'Cicilan' }}</div>
+                                    <div class="text-[11px] text-muted mt-0.5">
+                                        Ke-{{ $inst->installment_number }}/{{ $inst->installmentPlan?->tenor ?? '-' }} &bull; Jatuh tempo {{ $inst->due_date->format('d/m/Y') }}
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="font-mono font-bold text-charcoal">
+                                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($inst->total_amount, 0, ',', '.') }}">Rp {{ number_format($inst->total_amount, 0, ',', '.') }}</span>
+                                    </div>
+                                    <a href="{{ route('credit.plans.show', $inst->installmentPlan) }}" class="mt-1 inline-flex items-center text-[11px] font-bold text-forest hover:underline">
+                                        Lihat &amp; Bayar &rarr;
+                                    </a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            @if ($paidInstallments->isNotEmpty())
+                <div class="space-y-2 pt-2 border-t border-line">
+                    <div class="text-[11px] font-bold text-forest uppercase tracking-wider">
+                        Cicilan Terakhir Lunas ({{ $paidInstallments->count() }})
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        @foreach ($paidInstallments as $pInst)
+                            <div class="p-3 rounded-xl border border-line bg-cream/10 dark:bg-line/10 flex items-center justify-between gap-3 text-xs opacity-85">
+                                <div class="min-w-0">
+                                    <div class="font-bold text-charcoal truncate">{{ $pInst->installmentPlan?->name ?? 'Cicilan' }}</div>
+                                    <div class="text-[11px] text-muted mt-0.5">
+                                        Ke-{{ $pInst->installment_number }}/{{ $pInst->installmentPlan?->tenor ?? '-' }} &bull; Lunas {{ $pInst->paid_at?->format('d/m/Y') ?? '-' }}
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="font-mono font-bold text-forest">
+                                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($pInst->total_amount, 0, ',', '.') }}">Rp {{ number_format($pInst->total_amount, 0, ',', '.') }}</span>
+                                    </div>
+                                    <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-forest/10 text-forest">
+                                        Lunas
+                                    </span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
+
     <!-- Modal Konfirmasi Occurrence -->
     <div id="confirmOccurrenceModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-start sm:items-center justify-center p-3 sm:p-4">
         <div class="panel-card w-full max-w-md p-4 sm:p-6 rounded-2xl border border-line bg-panel shadow-xl space-y-4 my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
@@ -497,6 +630,7 @@
 
                 @php
                     $defaultConfirmAmount = $recurring->amount ?: ($recurring->isCreditPayment() && $suggestedCreditAmount > 0 ? $suggestedCreditAmount : '');
+                    $maxCreditLiability = ($recurring->isCreditPayment() && $recurring->creditAccount) ? (int) $creditLiability : null;
                 @endphp
                 <div>
                     <label for="modalAmount" class="block text-xs font-bold text-charcoal mb-1">
@@ -507,15 +641,20 @@
                         name="amount" 
                         id="modalAmount" 
                         min="1" 
+                        @if (! is_null($maxCreditLiability) && $maxCreditLiability > 0) max="{{ $maxCreditLiability }}" @endif
                         value="{{ $defaultConfirmAmount }}"
                         class="field-input w-full text-xs font-mono font-bold" 
                         required 
                         onfocus="this.select()"
                         onclick="this.select()"
                     />
-                    @if ($recurring->isCreditPayment() && $recurring->is_variable_amount && $suggestedCreditAmount > 0)
+                    @if ($recurring->isCreditPayment() && $suggestedCreditAmount > 0)
                         <div class="text-[11px] text-muted mt-1">
-                            Terisi otomatis dari tagihan/kewajiban kartu saat ini (Rp {{ number_format($suggestedCreditAmount, 0, ',', '.') }}).
+                            @if ($hasPartiallyPaidInstallments)
+                                <span class="text-amber-600 dark:text-amber-400 font-semibold">Maksimal pembayaran sisa: Rp {{ number_format($creditLiability, 0, ',', '.') }}</span> (karena sebagian cicilan sudah dibayar terpisah).
+                            @else
+                                Terisi otomatis dari sisa kewajiban kartu saat ini (Rp {{ number_format($suggestedCreditAmount, 0, ',', '.') }}).
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -582,6 +721,11 @@
 
     <script>
         function openConfirmModal(dueDate, amount) {
+            @if ($recurring->isCreditPayment() && $recurring->creditAccount && $creditLiability <= 0)
+                alert('Seluruh kewajiban kartu kredit ini sudah lunas. Anda tidak perlu mencatat transaksi pembayaran kas.');
+                return;
+            @endif
+
             const modal = document.getElementById('confirmOccurrenceModal');
             document.getElementById('modalDueDate').value = dueDate;
             document.getElementById('modalDueDateLabel').textContent = dueDate;
@@ -601,7 +745,17 @@
             }
         });
 
-        document.getElementById('confirmOccurrenceForm')?.addEventListener('submit', function() {
+        document.getElementById('confirmOccurrenceForm')?.addEventListener('submit', function(e) {
+            const amountInput = document.getElementById('modalAmount');
+            const maxVal = amountInput.getAttribute('max') ? parseInt(amountInput.getAttribute('max'), 10) : null;
+            const enteredVal = parseInt(amountInput.value, 10);
+
+            if (maxVal !== null && !isNaN(maxVal) && !isNaN(enteredVal) && enteredVal > maxVal) {
+                e.preventDefault();
+                alert('Nominal pembayaran melebihi sisa kewajiban aktif kartu kredit (Rp ' + maxVal.toLocaleString('id-ID') + '). Silakan sesuaikan nominal.');
+                return false;
+            }
+
             const btn = document.getElementById('btnConfirmShowSubmit');
             const icon = document.getElementById('confirmShowIcon');
             const spinner = document.getElementById('confirmShowSpinner');
