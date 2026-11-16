@@ -22,10 +22,14 @@ class CreditAccountController extends Controller
         protected ActivityLogService $activityLog
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $space = app('currentSpace');
         Gate::authorize('viewAny', CreditAccount::class);
+
+        if ($request->query('tab') === 'payoff') {
+            return redirect()->route('credit.payoff.index', $request->query());
+        }
 
         $tz = $space->timezone ?? 'Asia/Jakarta';
         $tab = $request->query('tab', 'accounts');

@@ -204,6 +204,12 @@
         >
             Riwayat Selesai ({{ $completedPlans->count() }})
         </a>
+        <a 
+            href="{{ route('credit.payoff.index') }}" 
+            class="min-h-[44px] px-4 py-3 text-xs font-bold border-b-2 transition inline-flex items-center shrink-0 border-transparent text-forest dark:text-emerald-400 hover:text-forest-hover"
+        >
+            <span class="mr-1">🎯</span> Rencana Pelunasan Utang
+        </a>
     </div>
 
     <!-- Tab 1: Akun Kredit & Kartu -->
