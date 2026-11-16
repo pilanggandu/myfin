@@ -10,6 +10,7 @@ use App\Http\Requests\Goal\WithdrawGoalRequest;
 use App\Models\Goal;
 use App\Models\GoalContribution;
 use App\Services\ActivityLogService;
+use App\Services\AdaptiveGoalService;
 use App\Services\TransactionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,8 @@ class GoalController extends Controller
 {
     public function __construct(
         protected TransactionService $transactionService,
-        protected ActivityLogService $activityLog
+        protected ActivityLogService $activityLog,
+        protected AdaptiveGoalService $adaptiveGoalService
     ) {}
 
     public function index(Request $request): View
@@ -58,6 +60,8 @@ class GoalController extends Controller
             ? min(100.0, round(($totalCurrentAmount / $totalTargetAmount) * 100, 1))
             : 0.0;
 
+        $adaptiveSummary = $this->adaptiveGoalService->calculateSummary($allGoals, $now);
+
         return view('goals.index', compact(
             'space',
             'now',
@@ -67,7 +71,8 @@ class GoalController extends Controller
             'totalCurrentAmount',
             'overallProgress',
             'achievedCount',
-            'activeCount'
+            'activeCount',
+            'adaptiveSummary'
         ));
     }
 
@@ -219,7 +224,9 @@ class GoalController extends Controller
             ];
         });
 
-        return view('goals.show', compact('space', 'now', 'goal', 'cashAccounts', 'members', 'memberBreakdown'));
+        $adaptivePace = $this->adaptiveGoalService->calculatePace($goal, $now);
+
+        return view('goals.show', compact('space', 'now', 'goal', 'cashAccounts', 'members', 'memberBreakdown', 'adaptivePace'));
     }
 
     public function edit(Goal $goal): View

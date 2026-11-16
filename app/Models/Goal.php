@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\AdaptiveGoalService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -138,25 +139,31 @@ class Goal extends Model
         return (int) $now->diffInDays($target, false);
     }
 
+    public function adaptivePace(?Carbon $now = null): array
+    {
+        return app(AdaptiveGoalService::class)->calculatePace($this, $now);
+    }
+
     public function monthlyRecommendation(?Carbon $now = null): ?float
     {
         if (! $this->target_date || $this->remainingAmount() <= 0) {
             return null;
         }
 
-        $now = $now ?: Carbon::now('Asia/Jakarta')->startOfDay();
-        $target = $this->target_date->copy()->startOfDay();
+        $pace = $this->adaptivePace($now);
 
-        if ($target->lessThanOrEqualTo($now)) {
-            return $this->remainingAmount();
+        return $pace['required_monthly_deposit'];
+    }
+
+    public function weeklyRecommendation(?Carbon $now = null): ?float
+    {
+        if (! $this->target_date || $this->remainingAmount() <= 0) {
+            return null;
         }
 
-        $diffMonths = $now->diffInMonths($target);
-        if ($diffMonths <= 0) {
-            $diffMonths = 1;
-        }
+        $pace = $this->adaptivePace($now);
 
-        return round($this->remainingAmount() / $diffMonths, 2);
+        return $pace['required_weekly_deposit'];
     }
 
     public function dailyRecommendation(?Carbon $now = null): ?float
@@ -165,12 +172,9 @@ class Goal extends Model
             return null;
         }
 
-        $days = $this->daysRemaining($now);
-        if ($days === null || $days <= 0) {
-            return $this->remainingAmount();
-        }
+        $pace = $this->adaptivePace($now);
 
-        return round($this->remainingAmount() / $days, 2);
+        return $pace['required_daily_deposit'];
     }
 
     public function syncAmount(): void

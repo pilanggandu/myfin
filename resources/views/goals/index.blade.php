@@ -44,9 +44,9 @@
         />
 
         <x-metric-card 
-            label="RATA-RATA PENCAPAIAN" 
-            :value="$overallProgress . '%'" 
-            :sub="$overallProgress >= 100 ? 'Semua target tercapai!' : 'Progres tabungan berjalan'" 
+            label="KOMITMEN SETORAN ADAPTIF" 
+            :value="'Rp ' . number_format($adaptiveSummary['total_monthly_commitment'] ?? 0, 0, ',', '.') . ' /bln'" 
+            :sub="(($adaptiveSummary['behind_count'] ?? 0) + ($adaptiveSummary['critical_count'] ?? 0) + ($adaptiveSummary['overdue_count'] ?? 0)) > 0 ? (($adaptiveSummary['behind_count'] ?? 0) + ($adaptiveSummary['critical_count'] ?? 0) + ($adaptiveSummary['overdue_count'] ?? 0)) . ' target perlu penyesuaian' : 'Semua target tepat waktu'" 
         />
 
         <x-metric-card 
@@ -55,6 +55,25 @@
             sub="Pencapaian berhasil terlaksana" 
         />
     </div>
+
+    @if ((($adaptiveSummary['behind_count'] ?? 0) > 0 || ($adaptiveSummary['critical_count'] ?? 0) > 0 || ($adaptiveSummary['overdue_count'] ?? 0) > 0) && ($status === 'active' || $status === 'all'))
+        <div class="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-start sm:items-center gap-2.5">
+                <span class="text-xl flex-shrink-0">⚡</span>
+                <div>
+                    <span class="font-bold text-amber-900 dark:text-amber-200">Perhatian Progres Target Tabungan</span>
+                    <p class="text-amber-800/90 dark:text-amber-300/80 mt-0.5">
+                        Terdapat {{ (($adaptiveSummary['behind_count'] ?? 0) + ($adaptiveSummary['critical_count'] ?? 0)) }} target tertinggal dan {{ ($adaptiveSummary['overdue_count'] ?? 0) }} target melewati tenggat. Diperlukan setoran pemulihan Rp {{ number_format($adaptiveSummary['total_catch_up_needed'] ?? 0, 0, ',', '.') }} untuk kembali ke jadwal ideal.
+                    </p>
+                </div>
+            </div>
+            <div class="flex-shrink-0">
+                <span class="font-mono font-bold text-amber-900 dark:text-amber-200 bg-amber-500/20 px-2.5 py-1 rounded-lg">
+                    Komitmen: Rp {{ number_format($adaptiveSummary['total_monthly_commitment'] ?? 0, 0, ',', '.') }}/bln
+                </span>
+            </div>
+        </div>
+    @endif
 
     <!-- Filter Status Tabs -->
     <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
@@ -107,7 +126,8 @@
                     $pct = $goal->percentage();
                     $rem = $goal->remainingAmount();
                     $days = $goal->daysRemaining($now);
-                    $monthlyRec = $goal->monthlyRecommendation($now);
+                    $pace = $goal->adaptivePace($now);
+                    $monthlyRec = $pace['required_monthly_deposit'];
                     $isAchieved = $goal->isAchieved();
                     $isPaused = $goal->isPaused();
                 @endphp
@@ -138,7 +158,7 @@
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                <div class="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
                                     @if ($isAchieved)
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/15 text-forest border border-forest/30 whitespace-nowrap">
                                             🎉 Tercapai
@@ -148,8 +168,8 @@
                                             Dijeda
                                         </span>
                                     @else
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-forest/10 text-forest border border-forest/20 whitespace-nowrap">
-                                            Aktif
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $pace['pace_badge_class'] }} whitespace-nowrap" title="{{ $pace['summary_headline'] }}">
+                                            {{ $pace['pace_icon'] }} {{ $pace['pace_label'] }}
                                         </span>
                                     @endif
                                     <button 
@@ -203,6 +223,34 @@
                                 </div>
                             </div>
 
+                            <!-- Peringatan & Sorotan Laju Adaptif -->
+                            @if (! $isAchieved && in_array($pace['pace_status'], ['behind', 'critical']))
+                                <div class="mt-3 p-2.5 rounded-lg bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/25 text-[11px] text-amber-900 dark:text-amber-200 flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="flex-shrink-0">⚠️</span>
+                                        <span class="truncate">Tertinggal <strong>Rp {{ number_format($pace['catch_up_lump_sum'], 0, ',', '.') }}</strong></span>
+                                    </div>
+                                    <span class="text-[10px] font-mono font-bold text-amber-800 dark:text-amber-300 flex-shrink-0">
+                                        Adaptif: Rp {{ number_format($pace['required_monthly_deposit'], 0, ',', '.') }}/bln
+                                    </span>
+                                </div>
+                            @elseif (! $isAchieved && $pace['pace_status'] === 'overdue')
+                                <div class="mt-3 p-2.5 rounded-lg bg-rose-500/10 dark:bg-rose-500/5 border border-rose-500/25 text-[11px] text-rose-900 dark:text-rose-200 flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="flex-shrink-0">⚠️</span>
+                                        <span class="truncate">Melewati tenggat</span>
+                                    </div>
+                                    <span class="text-[10px] font-mono font-bold text-rose-800 dark:text-rose-300 flex-shrink-0">
+                                        Sisa Rp {{ number_format($rem, 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            @elseif (! $isAchieved && $pace['pace_status'] === 'ahead')
+                                <div class="mt-3 p-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/25 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                                    <span>🚀</span>
+                                    <span>Mendahului jadwal <strong>+Rp {{ number_format($pace['variance_amount'], 0, ',', '.') }}</strong></span>
+                                </div>
+                            @endif
+
                             <!-- Info Rekomendasi & Tanggal Target -->
                             <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs text-muted">
                                 @if ($goal->target_date)
@@ -224,7 +272,7 @@
 
                                 @if ($monthlyRec !== null && ! $isAchieved)
                                     <div class="text-right">
-                                        <div class="text-[10px] uppercase font-bold text-muted/80">Saran Menabung</div>
+                                        <div class="text-[10px] uppercase font-bold text-muted/80">Setoran Adaptif</div>
                                         <div class="font-mono font-bold text-forest text-[11px] mt-0.5">
                                             <span class="privacy-balance" data-raw-value="Rp {{ number_format($monthlyRec, 0, ',', '.') }}">Rp {{ number_format($monthlyRec, 0, ',', '.') }}</span> <span class="font-sans text-[10px] text-muted">/ bln</span>
                                         </div>

@@ -1,10 +1,12 @@
 <x-layouts.app title="{{ $goal->name }} - Detail Target Tabungan">
     @php
+        $pace = $adaptivePace ?? $goal->adaptivePace($now);
         $pct = $goal->percentage();
         $rem = $goal->remainingAmount();
-        $days = $goal->daysRemaining($now);
-        $monthlyRec = $goal->monthlyRecommendation($now);
-        $dailyRec = $goal->dailyRecommendation($now);
+        $days = $pace['days_remaining'] ?? $goal->daysRemaining($now);
+        $monthlyRec = $pace['required_monthly_deposit'] ?? $goal->monthlyRecommendation($now);
+        $weeklyRec = $pace['required_weekly_deposit'] ?? $goal->weeklyRecommendation($now);
+        $dailyRec = $pace['required_daily_deposit'] ?? $goal->dailyRecommendation($now);
         $isAchieved = $goal->isAchieved();
         $isPaused = $goal->isPaused();
     @endphp
@@ -31,6 +33,11 @@
                         <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-forest/10 text-forest border border-forest/20">
                             Aktif
                         </span>
+                        @if ($pace['has_target_date'])
+                            <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $pace['pace_badge_class'] }}" title="{{ $pace['summary_headline'] }}">
+                                {{ $pace['pace_icon'] }} {{ $pace['pace_label'] }}
+                            </span>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -161,14 +168,26 @@
                         @endif
 
                         @if ($monthlyRec !== null && ! $isAchieved)
-                            <div class="p-3 rounded-xl bg-forest-light/60 dark:bg-forest-light/20 border border-forest/20 text-xs">
-                                <span class="text-[10px] uppercase font-bold text-forest block mb-0.5">Rekomendasi Cerdas</span>
+                            <div class="p-3.5 rounded-xl bg-forest-light/60 dark:bg-forest-light/20 border border-forest/20 text-xs space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] uppercase font-bold text-forest">Rekomendasi Cerdas</span>
+                                    @if ($pace['has_target_date'])
+                                        <span class="text-[10px] font-bold {{ $pace['pace_badge_class'] }} px-1.5 py-0.5 rounded">
+                                            {{ $pace['pace_icon'] }} {{ $pace['pace_label'] }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <div class="font-mono text-base font-bold text-forest">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($monthlyRec, 0, ',', '.') }}">Rp {{ number_format($monthlyRec, 0, ',', '.') }}</span> <span class="font-sans text-xs text-muted font-normal">/ bln</span>
                                 </div>
+                                @if ($weeklyRec !== null && $days > 7)
+                                    <span class="text-[11px] text-charcoal/90 dark:text-muted block font-medium">
+                                        atau ~<strong class="font-mono privacy-balance" data-raw-value="Rp {{ number_format($weeklyRec, 0, ',', '.') }}">Rp {{ number_format($weeklyRec, 0, ',', '.') }}</strong> / minggu
+                                    </span>
+                                @endif
                                 @if ($dailyRec !== null)
-                                    <span class="text-[10px] text-muted block mt-0.5">
-                                        atau sekitar ~<span class="privacy-balance" data-raw-value="Rp {{ number_format($dailyRec, 0, ',', '.') }}">Rp {{ number_format($dailyRec, 0, ',', '.') }}</span> / hari
+                                    <span class="text-[10px] text-muted block">
+                                        atau ~<span class="privacy-balance" data-raw-value="Rp {{ number_format($dailyRec, 0, ',', '.') }}">Rp {{ number_format($dailyRec, 0, ',', '.') }}</span> / hari
                                     </span>
                                 @endif
                             </div>
@@ -199,6 +218,211 @@
             </div>
         </div>
     </div>
+
+    <!-- Target Tabungan Adaptif & Laju Waktu (Pace Tracking) -->
+    @if ($pace['has_target_date'])
+        <div class="panel-card p-5 sm:p-6 mb-6 border border-line" data-privacy-scope="goal-adaptive">
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">🎯</span>
+                    <div>
+                        <h2 class="text-base font-bold text-forest">Target Tabungan Adaptif &amp; Laju Waktu</h2>
+                        <p class="text-xs text-muted">Kalkulasi dinamis setoran yang dibutuhkan dan pemantauan ketepatan jadwal.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ $pace['pace_badge_class'] }}">
+                        {{ $pace['pace_icon'] }} {{ $pace['pace_label'] }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Banner Notifikasi Status Pace -->
+            @if (! $isAchieved && in_array($pace['pace_status'], ['behind', 'critical']))
+                <div class="mt-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/5 space-y-3">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl flex-shrink-0">⚠️</span>
+                        <div class="space-y-1">
+                            <h3 class="font-bold text-sm text-amber-950 dark:text-amber-200">
+                                {{ $pace['summary_headline'] }}
+                            </h3>
+                            <p class="text-xs text-amber-900/90 dark:text-amber-300/90 leading-relaxed">
+                                {{ $pace['summary_description'] }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Rekomendasi Pemulihan Target (Catch-up Options) -->
+                    <div class="pt-2 border-t border-amber-500/20 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Opsi 1: Setoran Baru Adaptif -->
+                        <div class="p-3 rounded-lg bg-panel border border-line space-y-1.5 flex flex-col justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-muted uppercase block">Opsi 1: Setoran Adaptif Baru</span>
+                                <div class="font-mono text-sm font-bold text-forest mt-0.5">
+                                    Rp {{ number_format($pace['required_monthly_deposit'], 0, ',', '.') }} <span class="text-[10px] text-muted font-sans font-normal">/ bulan</span>
+                                </div>
+                                <p class="text-[11px] text-muted mt-1 leading-snug">
+                                    Disesuaikan untuk sisa {{ $pace['days_remaining'] }} hari agar target lunas tepat waktu.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Opsi 2: Setoran Penyelamat Sekaligus -->
+                        <div class="p-3 rounded-lg bg-panel border border-amber-500/40 space-y-1.5 flex flex-col justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase block">Opsi 2: Setor Penyelamat Sekaligus</span>
+                                <div class="font-mono text-sm font-bold text-amber-700 dark:text-amber-300 mt-0.5">
+                                    Rp {{ number_format($pace['catch_up_lump_sum'], 0, ',', '.') }}
+                                </div>
+                                <p class="text-[11px] text-muted mt-1 leading-snug">
+                                    Setor sekali untuk langsung menutup ketertinggalan hari ini dan kembali tepat waktu.
+                                </p>
+                            </div>
+                            <div class="pt-1">
+                                <button 
+                                    type="button" 
+                                    onclick="openDepositModal({{ $pace['catch_up_lump_sum'] }})" 
+                                    class="w-full btn-arus-primary justify-center text-[11px] py-1 px-2.5 cursor-pointer"
+                                >
+                                    + Setor Penyelamat
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Opsi 3: Proyeksi Realistis / Perpanjangan Tenggat -->
+                        <div class="p-3 rounded-lg bg-panel border border-line space-y-1.5 flex flex-col justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold text-muted uppercase block">Opsi 3: Penyesuaian Tenggat</span>
+                                @if ($pace['projected_completion_date'])
+                                    <div class="font-bold text-xs text-charcoal mt-0.5">
+                                        {{ $pace['projected_completion_date']->translatedFormat('d M Y') }}
+                                        <span class="text-[10px] text-muted font-normal">(mundur {{ $pace['projected_delay_days'] }} hari)</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted mt-1 leading-snug">
+                                        Perkiraan tanggal lunas jika mempertahankan laju saat ini (~Rp {{ number_format(round($pace['daily_historical_rate'] * 30.4375), 0, ',', '.') }}/bln).
+                                    </p>
+                                @else
+                                    <p class="text-[11px] text-muted mt-1 leading-snug">
+                                        Belum ada data setoran riil untuk memproyeksikan laju historis.
+                                    </p>
+                                @endif
+                            </div>
+                            <div class="pt-1">
+                                <a href="{{ route('goals.edit', $goal) }}" class="text-[11px] font-bold text-forest hover:underline inline-flex items-center gap-1">
+                                    <span>Ubah Tanggal Target</span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @elseif (! $isAchieved && $pace['pace_status'] === 'overdue')
+                <div class="mt-4 p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 dark:bg-rose-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                    <div class="flex items-start sm:items-center gap-3">
+                        <span class="text-2xl flex-shrink-0">⚠️</span>
+                        <div>
+                            <h3 class="font-bold text-sm text-rose-950 dark:text-rose-200">
+                                {{ $pace['summary_headline'] }}
+                            </h3>
+                            <p class="text-rose-900/90 dark:text-rose-300/90 mt-0.5">
+                                {{ $pace['summary_description'] }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button 
+                            type="button" 
+                            onclick="openDepositModal({{ $rem }})" 
+                            class="btn-arus-primary text-xs py-1.5 px-3 cursor-pointer whitespace-nowrap"
+                        >
+                            + Setor Sisa Rp {{ number_format($rem, 0, ',', '.') }}
+                        </button>
+                        <a href="{{ route('goals.edit', $goal) }}" class="btn-arus-secondary text-xs py-1.5 px-3 whitespace-nowrap">
+                            Edit Tenggat
+                        </a>
+                    </div>
+                </div>
+            @elseif (! $isAchieved && $pace['pace_status'] === 'ahead')
+                <div class="mt-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                    <div class="flex items-start sm:items-center gap-3">
+                        <span class="text-2xl flex-shrink-0">🚀</span>
+                        <div>
+                            <h3 class="font-bold text-sm text-emerald-950 dark:text-emerald-200">
+                                {{ $pace['summary_headline'] }}
+                            </h3>
+                            <p class="text-emerald-900/90 dark:text-emerald-300/90 mt-0.5">
+                                {{ $pace['summary_description'] }}
+                            </p>
+                        </div>
+                    </div>
+                    @if ($pace['projected_completion_date'])
+                        <div class="text-right flex-shrink-0 font-mono text-emerald-800 dark:text-emerald-300">
+                            <span class="text-[10px] uppercase font-bold block">Estimasi Tercapai Lebih Awal</span>
+                            <span class="font-bold text-xs">{{ $pace['projected_completion_date']->translatedFormat('d M Y') }}</span>
+                        </div>
+                    @endif
+                </div>
+            @elseif (! $isAchieved && $pace['pace_status'] === 'on_track')
+                <div class="mt-4 p-4 rounded-xl border border-forest/20 bg-forest/5 flex items-center gap-3 text-xs">
+                    <span class="text-2xl flex-shrink-0">🟢</span>
+                    <div>
+                        <h3 class="font-bold text-sm text-forest">
+                            {{ $pace['summary_headline'] }}
+                        </h3>
+                        <p class="text-muted mt-0.5">
+                            {{ $pace['summary_description'] }}
+                        </p>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Grid 4 Metrik Laju Tabungan Adaptif -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-4 border-t border-line">
+                <div class="p-3.5 rounded-xl bg-cream/30 dark:bg-line/25 border border-line">
+                    <div class="text-[10px] uppercase font-bold text-muted/80">Target Ideal Hari Ini</div>
+                    <div class="font-mono text-sm sm:text-base font-bold text-charcoal mt-1">
+                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($pace['expected_amount_today'] ?? 0, 0, ',', '.') }}">
+                            Rp {{ number_format($pace['expected_amount_today'] ?? 0, 0, ',', '.') }}
+                        </span>
+                    </div>
+                    <div class="text-[10px] text-muted mt-0.5">Jadwal linier akumulatif</div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-cream/30 dark:bg-line/25 border border-line">
+                    <div class="text-[10px] uppercase font-bold text-muted/80">Selisih Laju (Pace)</div>
+                    <div class="font-mono text-sm sm:text-base font-bold mt-1 {{ ($pace['variance_amount'] ?? 0) >= 0 ? 'text-forest' : 'text-amber-600 dark:text-amber-400' }}">
+                        <span class="privacy-balance" data-raw-value="{{ ($pace['variance_amount'] ?? 0) >= 0 ? '+' : '' }}Rp {{ number_format($pace['variance_amount'] ?? 0, 0, ',', '.') }}">
+                            {{ ($pace['variance_amount'] ?? 0) >= 0 ? '+' : '' }}Rp {{ number_format($pace['variance_amount'] ?? 0, 0, ',', '.') }}
+                        </span>
+                    </div>
+                    <div class="text-[10px] text-muted mt-0.5">
+                        {{ ($pace['variance_percentage'] ?? 0) >= 0 ? '+' : '' }}{{ $pace['variance_percentage'] ?? 0 }}% dari sasaran
+                    </div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-cream/30 dark:bg-line/25 border border-line">
+                    <div class="text-[10px] uppercase font-bold text-muted/80">Setoran Adaptif / Bulan</div>
+                    <div class="font-mono text-sm sm:text-base font-bold text-forest mt-1">
+                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($pace['required_monthly_deposit'] ?? 0, 0, ',', '.') }}">
+                            Rp {{ number_format($pace['required_monthly_deposit'] ?? 0, 0, ',', '.') }}
+                        </span>
+                    </div>
+                    <div class="text-[10px] text-muted mt-0.5">Disesuaikan sisa waktu</div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-cream/30 dark:bg-line/25 border border-line">
+                    <div class="text-[10px] uppercase font-bold text-muted/80">Setoran Adaptif / Minggu</div>
+                    <div class="font-mono text-sm sm:text-base font-bold text-charcoal mt-1">
+                        <span class="privacy-balance" data-raw-value="Rp {{ number_format($pace['required_weekly_deposit'] ?? 0, 0, ',', '.') }}">
+                            Rp {{ number_format($pace['required_weekly_deposit'] ?? 0, 0, ',', '.') }}
+                        </span>
+                    </div>
+                    <div class="text-[10px] text-muted mt-0.5">Alternatif mingguan</div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Kolaborasi Kontributor (Shared Space / Anggota) -->
     @if ($memberBreakdown->isNotEmpty() && ($memberBreakdown->count() > 1 || $space?->isShared()))
@@ -556,8 +780,15 @@
     </div>
 
     <script>
-        function openDepositModal() {
-            document.getElementById('depositModal').classList.remove('hidden');
+        function openDepositModal(amount = null) {
+            const modal = document.getElementById('depositModal');
+            if (amount) {
+                const input = modal.querySelector('input[name="amount"]');
+                if (input) {
+                    input.value = amount;
+                }
+            }
+            modal.classList.remove('hidden');
         }
 
         function closeDepositModal() {

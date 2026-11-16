@@ -286,7 +286,7 @@ class AccountTest extends TestCase
                 'is_default' => true,
             ]);
 
-        $response->assertRedirect(route('accounts.index'));
+        $response->assertRedirect(route('accounts.show', $account));
         $this->assertTrue($account->fresh()->isDefault());
         $this->assertEquals(6000000, $account->fresh()->opening_balance);
     }
@@ -312,7 +312,7 @@ class AccountTest extends TestCase
                 'reason' => 'Penyesuaian saldo awal rekonsiliasi bank',
             ]);
 
-        $response->assertRedirect(route('accounts.index'));
+        $response->assertRedirect(route('accounts.show', $account));
 
         $this->assertDatabaseHas('account_opening_balance_logs', [
             'account_id' => $account->id,
@@ -377,7 +377,7 @@ class AccountTest extends TestCase
                 'reason' => 'Koreksi saldo awal aset',
             ]);
 
-        $updateResponse->assertRedirect('/accounts');
+        $updateResponse->assertRedirect(route('accounts.show', $account));
         $this->assertSame('Bibit & SBN Portofolio', $account->fresh()->name);
         $this->assertEquals(6000000, $this->spaceA->fresh()->investmentBalance());
     }
