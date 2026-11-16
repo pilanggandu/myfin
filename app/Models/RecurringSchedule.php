@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SubscriptionAnalyticsService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -267,5 +268,26 @@ class RecurringSchedule extends Model
     {
         $next = $this->calculateNextDueDate(Carbon::parse($this->next_due_date));
         $this->update(['next_due_date' => $next->toDateString()]);
+    }
+
+    public function normalizedMonthlyCost(): float
+    {
+        $amount = (float) ($this->amount ?? 0);
+
+        return match ($this->frequency) {
+            'weekly' => round(($amount * 52) / 12, 2),
+            'yearly' => round($amount / 12, 2),
+            default => $amount,
+        };
+    }
+
+    public function annualCost(): float
+    {
+        return round($this->normalizedMonthlyCost() * 12, 2);
+    }
+
+    public function subscriptionAnalysis(?Carbon $today = null): array
+    {
+        return app(SubscriptionAnalyticsService::class)->analyzeSchedule($this, $today);
     }
 }

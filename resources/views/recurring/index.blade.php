@@ -9,7 +9,10 @@
                 Kelola tagihan rutin (Kas, Bank, E-Wallet, atau Kartu Kredit/PayLater), transfer berkala, dan jadwal pelunasan tagihan kredit. Untuk belanja cicilan ber-tenor, gunakan <a href="{{ route('credit.index') }}" class="text-forest font-semibold hover:underline">Kredit &amp; Cicilan</a>.
             </p>
         </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <a href="{{ route('recurring.subscriptions') }}" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] text-xs font-bold px-3.5 py-2 inline-flex items-center justify-center gap-1.5 shadow-xs">
+                <span>📊 Analisis Langganan</span>
+            </a>
             <a href="{{ route('recurring.create') }}" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] text-xs font-bold px-4 py-2 inline-flex items-center justify-center gap-1.5 shadow-xs">
                 <span>+ Buat Jadwal Baru</span>
             </a>

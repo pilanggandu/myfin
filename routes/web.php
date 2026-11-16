@@ -19,6 +19,7 @@ use App\Http\Controllers\PlannedIncomes\PlannedIncomeController;
 use App\Http\Controllers\Profile\ProfileController;
 use App\Http\Controllers\Projections\CashflowProjectionController;
 use App\Http\Controllers\Recurring\RecurringScheduleController;
+use App\Http\Controllers\Recurring\SubscriptionAnalyticsController;
 use App\Http\Controllers\Reminders\ReminderController;
 use App\Http\Controllers\Reports\NetWorthReportController;
 use App\Http\Controllers\Reports\ReportController;
@@ -191,6 +192,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
 
     Route::get('/recurring', [RecurringScheduleController::class, 'index'])->name('recurring.index');
+    Route::get('/recurring/subscriptions', [SubscriptionAnalyticsController::class, 'index'])->name('recurring.subscriptions');
     Route::get('/recurring/create', [RecurringScheduleController::class, 'create'])->name('recurring.create');
     Route::post('/recurring', [RecurringScheduleController::class, 'store'])->name('recurring.store');
     Route::get('/recurring/{recurring}', [RecurringScheduleController::class, 'show'])->name('recurring.show');
