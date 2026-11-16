@@ -7,6 +7,7 @@ use App\Http\Requests\Budget\StoreBudgetRequest;
 use App\Http\Requests\Budget\UpdateBudgetRequest;
 use App\Models\Budget;
 use App\Services\ActivityLogService;
+use App\Services\BudgetRolloverService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -16,7 +17,8 @@ use Illuminate\View\View;
 class BudgetController extends Controller
 {
     public function __construct(
-        private readonly ActivityLogService $activityLog
+        private readonly ActivityLogService $activityLog,
+        private readonly BudgetRolloverService $rolloverService
     ) {}
 
     public function index(Request $request): View
@@ -33,11 +35,24 @@ class BudgetController extends Controller
             $month = (int) $now->month;
         }
 
-        $budgets = $space ? $space->budgets()
-            ->where('year', $year)
-            ->where('month', $month)
-            ->with('category')
-            ->get() : collect();
+        $enriched = $space
+            ? $this->rolloverService->getEnrichedBudgetsForPeriod($space, $year, $month)
+            : [
+                'budgets' => collect(),
+                'summary' => [
+                    'total_base_budget' => 0,
+                    'total_rollover' => 0,
+                    'total_effective_budget' => 0,
+                    'total_spent' => 0,
+                    'total_remaining' => 0,
+                    'overall_percentage' => 0.0,
+                    'over_budget_count' => 0,
+                    'rollover_active_count' => 0,
+                ],
+            ];
+
+        $budgets = $enriched['budgets'];
+        $summary = $enriched['summary'];
 
         $budgetCategoryIds = $budgets->pluck('category_id')->toArray();
         $availableCategories = $space ? $space->activeCategories()
@@ -46,26 +61,14 @@ class BudgetController extends Controller
             ->orderBy('name')
             ->get() : collect();
 
-        $totalBudget = 0;
-        $totalSpent = 0;
-        $overBudgetCount = 0;
-
-        foreach ($budgets as $budget) {
-            $spent = $budget->spentAmount();
-            $budget->calculated_spent = $spent;
-            $budget->calculated_remaining = $budget->limit_amount - $spent;
-            $budget->calculated_percentage = $budget->limit_amount > 0 ? round(($spent / $budget->limit_amount) * 100, 1) : 0;
-            $budget->calculated_is_over = $spent > $budget->limit_amount;
-
-            $totalBudget += $budget->limit_amount;
-            $totalSpent += $spent;
-            if ($budget->calculated_is_over) {
-                $overBudgetCount++;
-            }
-        }
-
-        $totalRemaining = $totalBudget - $totalSpent;
-        $overallPercentage = $totalBudget > 0 ? round(($totalSpent / $totalBudget) * 100, 1) : 0;
+        $totalBudget = $summary['total_effective_budget'];
+        $totalBaseBudget = $summary['total_base_budget'];
+        $totalRollover = $summary['total_rollover'];
+        $totalSpent = $summary['total_spent'];
+        $totalRemaining = $summary['total_remaining'];
+        $overallPercentage = $summary['overall_percentage'];
+        $overBudgetCount = $summary['over_budget_count'];
+        $rolloverActiveCount = $summary['rollover_active_count'];
 
         $periodDate = Carbon::createFromDate($year, $month, 1);
 
@@ -76,10 +79,13 @@ class BudgetController extends Controller
             'month',
             'periodDate',
             'totalBudget',
+            'totalBaseBudget',
+            'totalRollover',
             'totalSpent',
             'totalRemaining',
             'overallPercentage',
             'overBudgetCount',
+            'rolloverActiveCount',
             'availableCategories'
         ));
     }

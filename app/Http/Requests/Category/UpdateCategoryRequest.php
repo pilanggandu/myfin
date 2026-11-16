@@ -2,14 +2,27 @@
 
 namespace App\Http\Requests\Category;
 
+use App\Http\Requests\Concerns\NormalizesMonetaryInputs;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateCategoryRequest extends FormRequest
 {
+    use NormalizesMonetaryInputs;
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('category'));
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('rollover_enabled')) {
+            $this->merge([
+                'rollover_enabled' => $this->boolean('rollover_enabled'),
+                'rollover_cap' => $this->normalizeMonetaryInput($this->input('rollover_cap')),
+            ]);
+        }
     }
 
     public function rules(): array
@@ -19,6 +32,7 @@ class UpdateCategoryRequest extends FormRequest
 
         return [
             'name' => [
+                'sometimes',
                 'required',
                 'string',
                 'max:255',
@@ -27,6 +41,9 @@ class UpdateCategoryRequest extends FormRequest
                         ->where('type', $category->type);
                 })->ignore($category->id),
             ],
+            'rollover_enabled' => ['nullable', 'boolean'],
+            'rollover_mode' => ['nullable', 'in:all,surplus_only,deficit_only'],
+            'rollover_cap' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

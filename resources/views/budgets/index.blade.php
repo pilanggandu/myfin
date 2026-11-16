@@ -54,13 +54,13 @@
             label="TOTAL BATAS ANGGARAN" 
             :value="'Rp ' . number_format($totalBudget, 0, ',', '.')" 
             :dark="true" 
-            :sub="$budgets->count() . ' kategori ditetapkan'" 
+            :sub="$totalRollover != 0 ? 'Plafon dasar: Rp ' . number_format($totalBaseBudget, 0, ',', '.') . ($totalRollover > 0 ? ' (+Rp ' . number_format($totalRollover, 0, ',', '.') . ')' : ' (-Rp ' . number_format(abs($totalRollover), 0, ',', '.') . ')') : $budgets->count() . ' kategori ditetapkan'" 
         />
 
         <x-metric-card 
             label="REALISASI PENGELUARAN" 
             :value="'Rp ' . number_format($totalSpent, 0, ',', '.')" 
-            :sub="$overallPercentage . '% dari total limit'" 
+            :sub="$overallPercentage . '% dari plafon efektif'" 
         />
 
         <x-metric-card 
@@ -72,7 +72,7 @@
         <x-metric-card 
             label="STATUS KONTROL" 
             :value="$overBudgetCount === 0 ? 'Terkendali' : $overBudgetCount . ' Melebihi Batas'" 
-            :sub="$overBudgetCount === 0 ? 'Semua kategori dalam batas aman' : 'Evaluasi pengeluaran Anda'" 
+            :sub="$rolloverActiveCount > 0 ? $rolloverActiveCount . ' kategori bergulir aktif' : ($overBudgetCount === 0 ? 'Semua kategori dalam batas aman' : 'Evaluasi pengeluaran Anda')" 
         />
     </div>
 
@@ -119,14 +119,21 @@
                         $barColor = $isOver ? 'bg-red' : ($percentage >= 80 ? 'bg-amber-500' : 'bg-forest');
                     @endphp
                     <div class="p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="font-bold text-sm text-charcoal">{{ $budget->category->name }}</span>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-bold text-sm text-charcoal">{{ $budget->category->name }}</span>
+                                @if ($budget->category->isRolloverEnabled())
+                                    <span class="inline-flex items-center text-[10px] font-semibold text-forest bg-forest/10 border border-forest/20 px-1.5 py-0.5 rounded" title="Mode: {{ $budget->category->rolloverModeLabel() }}{{ $budget->category->rollover_cap ? ', Maks Cap: Rp ' . number_format($budget->category->rollover_cap, 0, ',', '.') : '' }}">
+                                        🔄 Bergulir
+                                    </span>
+                                @endif
+                            </div>
                             @if ($isOver)
-                                <span class="text-[10px] font-bold text-red bg-red/10 border border-red/20 px-2 py-0.5 rounded-full">
+                                <span class="text-[10px] font-bold text-red bg-red/10 border border-red/20 px-2 py-0.5 rounded-full shrink-0">
                                     LEWAT {{ round($percentage - 100) }}%
                                 </span>
                             @else
-                                <span class="text-[11px] font-bold text-muted">{{ $percentage }}%</span>
+                                <span class="text-[11px] font-bold text-muted shrink-0">{{ $percentage }}%</span>
                             @endif
                         </div>
 
@@ -135,28 +142,54 @@
                             <div class="{{ $barColor }} h-2 rounded-full transition-all duration-300" style="width: {{ min(100, $percentage) }}%"></div>
                         </div>
 
-                        <div class="grid grid-cols-1 min-[380px]:grid-cols-3 gap-2 text-[11px] pt-1">
-                            <div class="flex items-center justify-between min-[380px]:block">
-                                <span class="text-muted block text-[10px] uppercase font-bold">Limit</span>
+                        <div class="grid grid-cols-2 min-[420px]:grid-cols-4 gap-2 text-[11px] pt-1">
+                            <div>
+                                <span class="text-muted block text-[10px] uppercase font-bold">Plafon Dasar</span>
                                 <span class="font-semibold text-charcoal">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->limit_amount, 0, ',', '.') }}">Rp {{ number_format($budget->limit_amount, 0, ',', '.') }}</span>
                                 </span>
                             </div>
-                            <div class="flex items-center justify-between min-[380px]:block">
-                                <span class="text-muted block text-[10px] uppercase font-bold">Terpakai</span>
-                                <span class="font-semibold {{ $isOver ? 'text-red' : 'text-charcoal' }}">
-                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->calculated_spent, 0, ',', '.') }}">Rp {{ number_format($budget->calculated_spent, 0, ',', '.') }}</span>
+                            <div>
+                                <span class="text-muted block text-[10px] uppercase font-bold">Bergulir</span>
+                                <span class="font-semibold">
+                                    @if ($budget->rollover_amount > 0)
+                                        <span class="text-forest privacy-balance" data-raw-value="+Rp {{ number_format($budget->rollover_amount, 0, ',', '.') }}">+Rp {{ number_format($budget->rollover_amount, 0, ',', '.') }}</span>
+                                    @elseif ($budget->rollover_amount < 0)
+                                        <span class="text-red privacy-balance" data-raw-value="-Rp {{ number_format(abs($budget->rollover_amount), 0, ',', '.') }}">-Rp {{ number_format(abs($budget->rollover_amount), 0, ',', '.') }}</span>
+                                    @elseif ($budget->category->isRolloverEnabled())
+                                        <span class="text-muted">Rp 0</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </span>
                             </div>
-                            <div class="flex items-center justify-between min-[380px]:block min-[380px]:text-right">
+                            <div>
+                                <span class="text-muted block text-[10px] uppercase font-bold">Plafon Efektif</span>
+                                <span class="font-bold text-charcoal">
+                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->effective_limit_amount, 0, ',', '.') }}">Rp {{ number_format($budget->effective_limit_amount, 0, ',', '.') }}</span>
+                                </span>
+                            </div>
+                            <div class="min-[420px]:text-right">
                                 <span class="text-muted block text-[10px] uppercase font-bold">Sisa</span>
                                 <span class="font-semibold {{ $budget->calculated_remaining < 0 ? 'text-red' : 'text-forest' }}">
-                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->calculated_remaining, 0, ',', '.') }}">Rp {{ number_format($budget->calculated_remaining, 0, ',', '.') }}</span>
+                                    <span class="privacy-balance" data-raw-value="{{ $budget->calculated_remaining < 0 ? '-' : '' }}Rp {{ number_format(abs($budget->calculated_remaining), 0, ',', '.') }}">{{ $budget->calculated_remaining < 0 ? '-' : '' }}Rp {{ number_format(abs($budget->calculated_remaining), 0, ',', '.') }}</span>
                                 </span>
                             </div>
                         </div>
 
                         <div class="flex items-center justify-end gap-2 pt-2 border-t border-line/60">
+                            <button 
+                                type="button" 
+                                onclick="openRolloverModal({{ $budget->category->id }}, '{{ addslashes($budget->category->name) }}', {{ $budget->category->rollover_enabled ? 'true' : 'false' }}, '{{ $budget->category->rollover_mode }}', {{ $budget->category->rollover_cap ?? 'null' }})"
+                                class="w-11 h-11 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                title="Pengaturan Anggaran Bergulir"
+                                aria-label="Pengaturan Anggaran Bergulir"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            </button>
+
                             <button 
                                 type="button" 
                                 onclick="openEditBudgetModal({{ $budget->id }}, '{{ addslashes($budget->category->name) }}', {{ $budget->limit_amount }})"
@@ -194,10 +227,12 @@
                     <thead>
                         <tr class="border-b border-line bg-cream/40 text-muted uppercase font-bold text-[11px] tracking-wider">
                             <th class="py-3 px-6">Kategori</th>
-                            <th class="py-3 px-4 text-right">Batas Limit</th>
+                            <th class="py-3 px-4 text-right">Plafon Dasar</th>
+                            <th class="py-3 px-4 text-right">Bergulir</th>
+                            <th class="py-3 px-4 text-right">Plafon Efektif</th>
                             <th class="py-3 px-4 text-right">Pengeluaran</th>
                             <th class="py-3 px-4 text-right">Sisa Anggaran</th>
-                            <th class="py-3 px-6 min-w-[180px]">Progres Realisasi</th>
+                            <th class="py-3 px-6 min-w-[170px]">Progres Realisasi</th>
                             <th class="py-3 px-6 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -210,10 +245,35 @@
                             @endphp
                             <tr class="hover:bg-cream/20 transition-colors">
                                 <td class="py-4 px-6 font-bold text-charcoal">
-                                    {{ $budget->category->name }}
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span>{{ $budget->category->name }}</span>
+                                        @if ($budget->category->isRolloverEnabled())
+                                            <span class="inline-flex items-center text-[10px] font-semibold text-forest bg-forest/10 border border-forest/20 px-1.5 py-0.2 rounded" title="Mode: {{ $budget->category->rolloverModeLabel() }}{{ $budget->category->rollover_cap ? ', Maks Cap: Rp ' . number_format($budget->category->rollover_cap, 0, ',', '.') : '' }}">
+                                                🔄 Bergulir
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="py-4 px-4 text-right font-mono font-semibold text-charcoal">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->limit_amount, 0, ',', '.') }}">Rp {{ number_format($budget->limit_amount, 0, ',', '.') }}</span>
+                                </td>
+                                <td class="py-4 px-4 text-right font-mono font-semibold">
+                                    @if ($budget->rollover_amount > 0)
+                                        <span class="inline-flex items-center gap-0.5 text-forest" title="Surplus dari bulan sebelumnya dialihkan ke plafon bulan ini">
+                                            +<span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->rollover_amount, 0, ',', '.') }}">Rp {{ number_format($budget->rollover_amount, 0, ',', '.') }}</span>
+                                        </span>
+                                    @elseif ($budget->rollover_amount < 0)
+                                        <span class="inline-flex items-center gap-0.5 text-red" title="Defisit dari bulan sebelumnya mengurangi plafon bulan ini">
+                                            -<span class="privacy-balance" data-raw-value="Rp {{ number_format(abs($budget->rollover_amount), 0, ',', '.') }}">Rp {{ number_format(abs($budget->rollover_amount), 0, ',', '.') }}</span>
+                                        </span>
+                                    @elseif ($budget->category->isRolloverEnabled())
+                                        <span class="text-muted" title="Tidak ada surplus atau defisit bergulir">Rp 0</span>
+                                    @else
+                                        <span class="text-muted" title="Fitur bergulir nonaktif">-</span>
+                                    @endif
+                                </td>
+                                <td class="py-4 px-4 text-right font-mono font-bold text-charcoal">
+                                    <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->effective_limit_amount, 0, ',', '.') }}">Rp {{ number_format($budget->effective_limit_amount, 0, ',', '.') }}</span>
                                 </td>
                                 <td class="py-4 px-4 text-right font-mono font-bold {{ $isOver ? 'text-red' : 'text-charcoal' }}">
                                     <span class="privacy-balance" data-raw-value="Rp {{ number_format($budget->calculated_spent, 0, ',', '.') }}">Rp {{ number_format($budget->calculated_spent, 0, ',', '.') }}</span>
@@ -233,6 +293,18 @@
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-right">
                                     <div class="inline-flex items-center justify-end gap-1.5">
+                                        <button 
+                                            type="button" 
+                                            onclick="openRolloverModal({{ $budget->category->id }}, '{{ addslashes($budget->category->name) }}', {{ $budget->category->rollover_enabled ? 'true' : 'false' }}, '{{ $budget->category->rollover_mode }}', {{ $budget->category->rollover_cap ?? 'null' }})"
+                                            class="w-11 h-11 lg:w-8 lg:h-8 rounded-lg border border-line bg-panel text-muted hover:text-forest hover:border-forest/40 hover:bg-cream/40 transition inline-flex items-center justify-center cursor-pointer"
+                                            title="Pengaturan Anggaran Bergulir"
+                                            aria-label="Pengaturan Anggaran Bergulir"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                            </svg>
+                                        </button>
+
                                         <button 
                                             type="button" 
                                             onclick="openEditBudgetModal({{ $budget->id }}, '{{ addslashes($budget->category->name) }}', {{ $budget->limit_amount }})"
@@ -380,6 +452,94 @@
         </div>
     </div>
 
+    <!-- Modal Pengaturan Anggaran Bergulir (Rollover) -->
+    <div id="rollover-settings-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto hidden">
+        <div class="panel-card bg-panel border border-line rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="font-serif text-xl text-forest font-normal mb-1">Pengaturan Anggaran Bergulir</h3>
+                    <p class="text-xs text-muted" id="rollover-modal-category-label">
+                        Kategori: <strong class="text-charcoal" id="rollover-modal-category-name"></strong>
+                    </p>
+                </div>
+                <button type="button" onclick="document.getElementById('rollover-settings-modal').classList.add('hidden')" class="w-11 h-11 sm:w-8 sm:h-8 rounded-lg text-muted hover:text-charcoal hover:bg-cream transition cursor-pointer inline-flex items-center justify-center shrink-0" aria-label="Tutup">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form id="rollover-settings-form" method="POST" action="" class="space-y-4">
+                @csrf
+
+                <!-- Toggle Aktif -->
+                <div class="p-3.5 rounded-xl bg-sidebar/50 border border-line">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="hidden" name="rollover_enabled" value="0">
+                        <input 
+                            type="checkbox" 
+                            name="rollover_enabled" 
+                            id="modal_rollover_enabled" 
+                            value="1" 
+                            class="rounded border-line text-forest focus:ring-forest/20 w-4 h-4 mt-0.5 cursor-pointer"
+                        />
+                        <div class="text-xs">
+                            <span class="font-bold text-charcoal block">Aktifkan Anggaran Bergulir (Rollover)</span>
+                            <span class="text-muted block mt-0.5 leading-relaxed">
+                                Sisa anggaran (surplus) atau kelebihan pengeluaran (defisit) bulan lalu akan otomatis dialihkan ke plafon anggaran bulan berikutnya.
+                            </span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Mode Rollover -->
+                <div>
+                    <label for="modal_rollover_mode" class="block text-xs font-bold text-charcoal mb-1.5 uppercase tracking-wider">
+                        Aturan Pemindahan Saldo (Mode)
+                    </label>
+                    <select name="rollover_mode" id="modal_rollover_mode" class="field-select text-xs w-full">
+                        <option value="all">Semua (Bawa Surplus Sisa & Kurangi Defisit)</option>
+                        <option value="surplus_only">Surplus Saja (Hanya bawa sisa yang belum terpakai)</option>
+                        <option value="deficit_only">Defisit Saja (Hanya kurangi plafon jika overbudget)</option>
+                    </select>
+                    <p class="text-[11px] text-muted mt-1 leading-relaxed">
+                        Mode <strong>Semua</strong> sangat dianjurkan untuk menjaga kedisiplinan dan akurasi arus kas.
+                    </p>
+                </div>
+
+                <!-- Batas Cap Surplus -->
+                <div>
+                    <label for="modal_rollover_cap" class="block text-xs font-bold text-charcoal mb-1.5 uppercase tracking-wider">
+                        Batas Maksimal Surplus Bergulir (Cap)
+                    </label>
+                    <input 
+                        type="number" 
+                        name="rollover_cap" 
+                        id="modal_rollover_cap" 
+                        placeholder="Contoh: 500000 (Kosongkan jika tanpa batas)" 
+                        class="field-input text-xs w-full font-mono font-bold" 
+                        min="0"
+                        step="1000"
+                        onfocus="this.select()"
+                        onclick="this.select()"
+                    />
+                    <p class="text-[11px] text-muted mt-1 leading-relaxed">
+                        Membatasi nominal surplus yang dapat bergulir agar tidak terakumulasi melebihi batas. Kosongkan jika tanpa batas.
+                    </p>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" onclick="document.getElementById('rollover-settings-modal').classList.add('hidden')" class="btn-arus-secondary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px] cursor-pointer">
+                        Simpan Pengaturan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function openEditBudgetModal(id, categoryName, currentLimit) {
             var form = document.getElementById('edit-budget-form');
@@ -387,6 +547,16 @@
             document.getElementById('edit-budget-category-label').innerText = 'Kategori: ' + categoryName + ' ({{ $periodDate->translatedFormat("F Y") }})';
             document.getElementById('edit_budget_limit_amount').value = currentLimit;
             document.getElementById('edit-budget-modal').classList.remove('hidden');
+        }
+
+        function openRolloverModal(categoryId, categoryName, isEnabled, mode, cap) {
+            var form = document.getElementById('rollover-settings-form');
+            form.action = '/categories/' + categoryId + '/rollover';
+            document.getElementById('rollover-modal-category-name').innerText = categoryName;
+            document.getElementById('modal_rollover_enabled').checked = Boolean(isEnabled);
+            document.getElementById('modal_rollover_mode').value = mode || 'all';
+            document.getElementById('modal_rollover_cap').value = (cap !== null && cap !== undefined && cap !== '') ? cap : '';
+            document.getElementById('rollover-settings-modal').classList.remove('hidden');
         }
     </script>
 </x-layouts.app>

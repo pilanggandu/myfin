@@ -16,6 +16,9 @@ class Category extends Model
         'space_id',
         'name',
         'type',
+        'rollover_enabled',
+        'rollover_mode',
+        'rollover_cap',
         'archived_at',
     ];
 
@@ -23,6 +26,8 @@ class Category extends Model
     {
         return [
             'archived_at' => 'datetime',
+            'rollover_enabled' => 'boolean',
+            'rollover_cap' => 'integer',
         ];
     }
 
@@ -84,5 +89,25 @@ class Category extends Model
     public function unarchive(): void
     {
         $this->update(['archived_at' => null]);
+    }
+
+    public function isRolloverEnabled(): bool
+    {
+        return (bool) $this->rollover_enabled && $this->isExpense();
+    }
+
+    public function rolloverModeLabel(): string
+    {
+        return match ($this->rollover_mode) {
+            'surplus_only' => 'Hanya Sisa Hemat (Surplus)',
+            'deficit_only' => 'Hanya Kelebihan Belanja (Defisit)',
+            'all' => 'Sisa Hemat & Defisit',
+            default => 'Sisa Hemat & Defisit',
+        };
+    }
+
+    public function scopeRolloverEnabled(Builder $query): Builder
+    {
+        return $query->where('rollover_enabled', true);
     }
 }

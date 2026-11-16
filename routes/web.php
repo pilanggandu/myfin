@@ -83,6 +83,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::post('/categories/{category}/rollover', [CategoryController::class, 'updateRollover'])->name('categories.rollover');
     Route::post('/categories/{category}/archive', [CategoryController::class, 'archive'])->name('categories.archive');
     Route::post('/categories/{category}/unarchive', [CategoryController::class, 'unarchive'])->name('categories.unarchive');
 

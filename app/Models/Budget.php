@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\BudgetRolloverService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -64,23 +65,54 @@ class Budget extends Model
         return $directExpense + $transferFees;
     }
 
+    public function rolloverAmount(): int
+    {
+        if (isset($this->rollover_amount)) {
+            return (int) $this->rollover_amount;
+        }
+
+        if (! $this->category || ! $this->category->isRolloverEnabled()) {
+            return 0;
+        }
+
+        $service = app(BudgetRolloverService::class);
+        $res = $service->calculateRollover($this->space, $this->category, $this->year, $this->month);
+
+        return $this->rollover_amount = (int) $res['rollover_amount'];
+    }
+
+    public function effectiveLimitAmount(): int
+    {
+        if (isset($this->effective_limit_amount)) {
+            return (int) $this->effective_limit_amount;
+        }
+
+        return $this->effective_limit_amount = max(0, (int) ($this->limit_amount + $this->rolloverAmount()));
+    }
+
+    public function isRolloverEnabled(): bool
+    {
+        return (bool) ($this->category?->isRolloverEnabled());
+    }
+
     public function remainingAmount(): int
     {
-        return (int) ($this->limit_amount - $this->spentAmount());
+        return (int) ($this->effectiveLimitAmount() - $this->spentAmount());
     }
 
     public function percentageSpent(): float
     {
-        if ($this->limit_amount <= 0) {
-            return 0.0;
+        $limit = $this->effectiveLimitAmount();
+        if ($limit <= 0) {
+            return $this->spentAmount() > 0 ? 100.0 : 0.0;
         }
 
-        return round(($this->spentAmount() / $this->limit_amount) * 100, 1);
+        return round(($this->spentAmount() / $limit) * 100, 1);
     }
 
     public function isOverBudget(): bool
     {
-        return $this->spentAmount() > $this->limit_amount;
+        return $this->spentAmount() > $this->effectiveLimitAmount();
     }
 
     public function periodLabel(): string
