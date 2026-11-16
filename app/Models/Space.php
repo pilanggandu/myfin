@@ -242,6 +242,16 @@ class Space extends Model
         return $this->hasMany(PlannedIncome::class);
     }
 
+    public function transactionRules(): HasMany
+    {
+        return $this->hasMany(TransactionRule::class);
+    }
+
+    public function activeTransactionRules(): HasMany
+    {
+        return $this->transactionRules()->active()->ordered();
+    }
+
     public function activePlannedIncomes(): HasMany
     {
         return $this->plannedIncomes()->where('status', 'planned');

@@ -17,6 +17,18 @@
                 <span class="privacy-toggle-icon text-muted"></span>
                 <span class="privacy-toggle-text">Nominal Transaksi</span>
             </button>
+            <a href="{{ route('transactions.import') }}" class="btn-arus-secondary inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 text-xs font-semibold">
+                <svg class="w-4 h-4 text-forest dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                </svg>
+                <span>Impor CSV</span>
+            </a>
+            <a href="{{ route('transaction-rules.index') }}" class="btn-arus-secondary inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-[38px] px-3 text-xs font-semibold">
+                <svg class="w-4 h-4 text-forest dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+                </svg>
+                <span>Aturan Otomatis</span>
+            </a>
             <a href="{{ route('transactions.create') }}" class="btn-arus-primary w-full sm:w-auto min-h-[44px] sm:min-h-[38px]">
                 + Catat Transaksi Baru
             </a>
@@ -693,6 +705,14 @@
                                             {{ $trx->member->name }}
                                         </span>
                                     @endif
+                                    @if (! empty($trx->notes))
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900" title="{{ $trx->notes }}">
+                                            <svg class="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.502 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                            </svg>
+                                            <span>{{ Str::limit($trx->notes, 30) }}</span>
+                                        </span>
+                                    @endif
                                     @if ($trx->type === 'income')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">
                                             {{ $typeBadge }}
@@ -888,6 +908,14 @@
                                         @if ($trx->member)
                                             <span class="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold text-white shadow-2xs" style="background-color: {{ $trx->member->color ?: '#0f4c3a' }};">
                                                 {{ $trx->member->name }}
+                                            </span>
+                                        @endif
+                                        @if (! empty($trx->notes))
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900" title="{{ $trx->notes }}">
+                                                <svg class="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.502 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                                                </svg>
+                                                <span>{{ Str::limit($trx->notes, 20) }}</span>
                                             </span>
                                         @endif
                                     </div>

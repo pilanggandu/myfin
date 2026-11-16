@@ -23,6 +23,8 @@ use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\ShortPlans\ShortPlanController;
 use App\Http\Controllers\Spaces\SpaceController;
 use App\Http\Controllers\Transactions\FinancialTransactionController;
+use App\Http\Controllers\Transactions\TransactionImportController;
+use App\Http\Controllers\Transactions\TransactionRuleController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -85,12 +87,25 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/transactions', [FinancialTransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [FinancialTransactionController::class, 'create'])->name('transactions.create');
+    Route::get('/transactions/import', [TransactionImportController::class, 'show'])->name('transactions.import');
+    Route::post('/transactions/import/parse', [TransactionImportController::class, 'parse'])->name('transactions.import.parse');
+    Route::post('/transactions/import/execute', [TransactionImportController::class, 'execute'])->name('transactions.import.execute');
+    Route::get('/transactions/import/sample-csv', [TransactionImportController::class, 'downloadSample'])->name('transactions.import.sample');
     Route::post('/transactions', [FinancialTransactionController::class, 'store'])->name('transactions.store');
     Route::post('/transactions/bulk-correct', [FinancialTransactionController::class, 'bulkCorrect'])->name('transactions.bulk-correct');
     Route::get('/transactions/{transaction}', [FinancialTransactionController::class, 'show'])->name('transactions.show');
     Route::get('/transactions/{transaction}/edit', [FinancialTransactionController::class, 'edit'])->name('transactions.edit');
     Route::put('/transactions/{transaction}', [FinancialTransactionController::class, 'update'])->name('transactions.update');
     Route::post('/transactions/{transaction}/void', [FinancialTransactionController::class, 'void'])->name('transactions.void');
+
+    Route::get('/transaction-rules', [TransactionRuleController::class, 'index'])->name('transaction-rules.index');
+    Route::post('/transaction-rules', [TransactionRuleController::class, 'store'])->name('transaction-rules.store');
+    Route::post('/transaction-rules/simulate', [TransactionRuleController::class, 'simulate'])->name('transaction-rules.simulate');
+    Route::get('/transaction-rules/{rule}', [TransactionRuleController::class, 'show'])->name('transaction-rules.show');
+    Route::put('/transaction-rules/{rule}', [TransactionRuleController::class, 'update'])->name('transaction-rules.update');
+    Route::delete('/transaction-rules/{rule}', [TransactionRuleController::class, 'destroy'])->name('transaction-rules.destroy');
+    Route::post('/transaction-rules/{rule}/toggle-active', [TransactionRuleController::class, 'toggleActive'])->name('transaction-rules.toggle-active');
+    Route::post('/transaction-rules/{rule}/apply-existing', [TransactionRuleController::class, 'applyExisting'])->name('transaction-rules.apply-existing');
 
     Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
     Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');

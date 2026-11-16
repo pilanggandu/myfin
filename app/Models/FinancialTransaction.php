@@ -19,6 +19,7 @@ class FinancialTransaction extends Model
         'transaction_date',
         'transaction_time',
         'description',
+        'notes',
         'category_id',
         'fee_amount',
         'fee_category_id',
