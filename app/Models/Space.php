@@ -262,6 +262,11 @@ class Space extends Model
         return $this->hasMany(ActivityLog::class);
     }
 
+    public function financialSimulations(): HasMany
+    {
+        return $this->hasMany(FinancialSimulation::class);
+    }
+
     public function totalBalance(): int
     {
         $total = 0;

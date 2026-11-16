@@ -22,6 +22,7 @@ use App\Http\Controllers\Recurring\RecurringScheduleController;
 use App\Http\Controllers\Reminders\ReminderController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\ShortPlans\ShortPlanController;
+use App\Http\Controllers\Simulations\FinancialSimulationController;
 use App\Http\Controllers\Spaces\SpaceController;
 use App\Http\Controllers\Transactions\FinancialTransactionController;
 use App\Http\Controllers\Transactions\TransactionImportController;
@@ -142,6 +143,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/projections', [CashflowProjectionController::class, 'index'])->name('projections.index');
     Route::get('/projections/export-csv', [CashflowProjectionController::class, 'exportCsv'])->name('projections.export-csv');
+
+    Route::get('/simulations', [FinancialSimulationController::class, 'index'])->name('simulations.index');
+    Route::post('/simulations/simulate', [FinancialSimulationController::class, 'simulate'])->name('simulations.simulate');
+    Route::post('/simulations', [FinancialSimulationController::class, 'store'])->name('simulations.store');
+    Route::get('/simulations/{simulation}', [FinancialSimulationController::class, 'show'])->name('simulations.show');
+    Route::post('/simulations/{simulation}/toggle-starred', [FinancialSimulationController::class, 'toggleStarred'])->name('simulations.toggleStarred');
+    Route::delete('/simulations/{simulation}', [FinancialSimulationController::class, 'destroy'])->name('simulations.destroy');
 
     Route::post('/planned-incomes', [PlannedIncomeController::class, 'store'])->name('planned-incomes.store');
     Route::put('/planned-incomes/{plannedIncome}', [PlannedIncomeController::class, 'update'])->name('planned-incomes.update');

@@ -185,6 +185,12 @@
                             </svg>
                             <span>Proyeksi Arus Kas</span>
                         </a>
+                        <a href="{{ route('simulations.index') }}" class="sidebar-nav-item {{ request()->routeIs('simulations.*') ? 'active' : '' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18m2.498-12.75H6.75A2.25 2.25 0 0 0 4.5 7.5v12a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-12a2.25 2.25 0 0 0-2.25-2.25Zm0 0V4.5a2.25 2.25 0 0 0-2.25-2.25h-6A2.25 2.25 0 0 0 6.75 4.5v.75" />
+                            </svg>
+                            <span>Simulasi Keputusan</span>
+                        </a>
                     </div>
                 </div>
 
