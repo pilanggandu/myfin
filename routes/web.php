@@ -20,6 +20,7 @@ use App\Http\Controllers\Profile\ProfileController;
 use App\Http\Controllers\Projections\CashflowProjectionController;
 use App\Http\Controllers\Recurring\RecurringScheduleController;
 use App\Http\Controllers\Reminders\ReminderController;
+use App\Http\Controllers\Reports\NetWorthReportController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\ShortPlans\ShortPlanController;
 use App\Http\Controllers\Simulations\FinancialSimulationController;
@@ -160,6 +161,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])->name('reports.export-csv');
+    Route::get('/reports/net-worth', [NetWorthReportController::class, 'index'])->name('reports.net-worth');
+    Route::get('/reports/net-worth/export-csv', [NetWorthReportController::class, 'exportCsv'])->name('reports.net-worth.export-csv');
 
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::get('/activity-logs/export-csv', [ActivityLogController::class, 'exportCsv'])->name('activity-logs.export-csv');
