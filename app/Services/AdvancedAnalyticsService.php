@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\DB;
 
 class AdvancedAnalyticsService
 {
+    public function __construct(
+        protected ?TransactionAnomalyService $anomalyService = null
+    ) {
+        $this->anomalyService = $this->anomalyService ?? app(TransactionAnomalyService::class);
+    }
+
     /**
      * Bangun seluruh metrik analisis keuangan lanjutan berbasis data riil ruang aktif.
      *
@@ -137,6 +143,13 @@ class AdvancedAnalyticsService
             $currentStats['expense']
         );
 
+        $anomalyAnalysis = $this->anomalyService->detectAnomaliesForSpace(
+            $space,
+            $startCarbon->toDateString(),
+            $endCarbon->toDateString(),
+            $accountId
+        );
+
         $insights = $this->generateInsights(
             $periodComparison,
             $categoryAnalysis,
@@ -144,7 +157,8 @@ class AdvancedAnalyticsService
             $budgetAnalysis,
             $balanceSheet,
             $runwayMonths,
-            $commitmentsForecast
+            $commitmentsForecast,
+            $anomalyAnalysis
         );
 
         return [
@@ -167,6 +181,7 @@ class AdvancedAnalyticsService
             'memberBreakdown' => $memberBreakdown,
             'topExpenses' => $topExpenses,
             'insights' => $insights,
+            'anomalyAnalysis' => $anomalyAnalysis,
         ];
     }
 
@@ -1052,7 +1067,8 @@ class AdvancedAnalyticsService
         array $budgetAnalysis,
         array $balanceSheet,
         ?float $runwayMonths,
-        array $commitmentsForecast
+        array $commitmentsForecast,
+        ?array $anomalyAnalysis = null
     ): array {
         $insights = [];
         $curr = $periodComparison['current'];
@@ -1064,6 +1080,35 @@ class AdvancedAnalyticsService
                 'title' => 'Belum ada transaksi pada periode ini',
                 'detail' => 'Catat pemasukan atau pengeluaran agar perbandingan tren, laju belanja harian, dan efisiensi anggaran dapat dihitung.',
             ]];
+        }
+
+        if ($anomalyAnalysis) {
+            if (! empty($anomalyAnalysis['summary']['duplicate_count']) && $anomalyAnalysis['summary']['duplicate_count'] > 0) {
+                $dupCount = $anomalyAnalysis['summary']['duplicate_count'];
+                $insights[] = [
+                    'tone' => 'danger',
+                    'title' => $dupCount.' kelompok transaksi berpotensi ganda terdeteksi',
+                    'detail' => 'Terdapat transaksi dengan nominal dan tanggal berdekatan yang berpotensi tercatat dua kali. Periksa di daftar transaksi.',
+                ];
+            }
+
+            if (! empty($anomalyAnalysis['spikes'])) {
+                $topSpike = $anomalyAnalysis['spikes'][0];
+                $insights[] = [
+                    'tone' => 'warning',
+                    'title' => 'Lonjakan tajam pengeluaran kategori '.$topSpike['category_name'],
+                    'detail' => $topSpike['reason'],
+                ];
+            }
+
+            if (! empty($anomalyAnalysis['outliers'])) {
+                $topOutlier = $anomalyAnalysis['outliers'][0];
+                $insights[] = [
+                    'tone' => 'warning',
+                    'title' => 'Transaksi nominal tidak biasa: '.$topOutlier['transaction']->description,
+                    'detail' => $topOutlier['reason'],
+                ];
+            }
         }
 
         if ($expDeltaPct !== null && abs($expDeltaPct) >= 10) {
@@ -1233,6 +1278,17 @@ class AdvancedAnalyticsService
             'memberBreakdown' => collect(),
             'topExpenses' => collect(),
             'insights' => [],
+            'anomalyAnalysis' => [
+                'summary' => ['total_anomalies' => 0, 'duplicate_count' => 0, 'outlier_count' => 0, 'spike_count' => 0],
+                'duplicates' => [],
+                'outliers' => [],
+                'spikes' => [],
+                'flagged_transaction_ids' => [],
+                'all_flagged_ids' => [],
+                'duplicate_ids' => [],
+                'outlier_ids' => [],
+                'spiked_category_ids' => [],
+            ],
         ];
     }
 }

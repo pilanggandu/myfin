@@ -14,6 +14,7 @@
     $members = $aa['memberBreakdown'];
     $topExpenses = $aa['topExpenses'];
     $insights = $aa['insights'];
+    $anom = $aa['anomalyAnalysis'] ?? ['summary' => ['total_anomalies' => 0, 'duplicate_count' => 0, 'outlier_count' => 0, 'spike_count' => 0], 'duplicates' => [], 'outliers' => [], 'spikes' => []];
 
     $toneBadge = function (string $tone): string {
         return match ($tone) {
@@ -833,6 +834,197 @@
                 </div>
             </div>
         @endif
+    </div>
+
+    <!-- Zona 8: Deteksi Anomali & Transaksi Tidak Biasa -->
+    <div class="panel-card p-0 overflow-hidden">
+        <div class="px-5 sm:px-6 py-4 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold" aria-hidden="true">
+                        ⚠️
+                    </span>
+                    <h2 class="text-sm font-bold text-forest dark:text-blue-300">Deteksi Transaksi Tidak Biasa &amp; Anomali</h2>
+                </div>
+                <p class="text-[11px] text-muted mt-0.5">Menandai nominal jauh di atas kebiasaan, potensi transaksi ganda, dan lonjakan tajam pengeluaran kategori.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                @if (($anom['summary']['total_anomalies'] ?? 0) > 0)
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                        {{ $anom['summary']['total_anomalies'] }} Temuan Anomali
+                    </span>
+                @else
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                        ✓ Kondisi Normal
+                    </span>
+                @endif
+                <a href="{{ route('transactions.index', ['unusual' => 'all']) }}" class="btn-arus-secondary px-3 py-1 text-xs font-bold">
+                    Buka di Daftar Transaksi &rarr;
+                </a>
+            </div>
+        </div>
+
+        <div class="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Kolom 1: Transaksi Berpotensi Ganda -->
+            <div class="rounded-xl border border-line bg-surface/40 p-4 space-y-3 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-2.5 border-b border-line">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm">⚠️</span>
+                            <span class="text-xs font-bold text-charcoal">Potensi Transaksi Ganda</span>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded {{ count($anom['duplicates']) > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20' : 'bg-cream text-muted' }}">
+                            {{ count($anom['duplicates']) }} kelompok
+                        </span>
+                    </div>
+
+                    @if (empty($anom['duplicates']))
+                        <div class="py-6 text-center text-xs text-muted">
+                            <span class="block text-emerald-600 dark:text-emerald-400 font-bold mb-1">✓ Tidak Ada Duplikat</span>
+                            Tidak ditemukan transaksi dengan nominal dan tanggal berdekatan yang mencurigakan.
+                        </div>
+                    @else
+                        <div class="mt-3 space-y-2.5">
+                            @foreach (array_slice($anom['duplicates'], 0, 3) as $dup)
+                                <div class="p-2.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-panel text-xs space-y-1.5">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="font-bold text-rose-700 dark:text-rose-300">Rp {{ number_format($dup['amount'], 0, ',', '.') }}</span>
+                                        <span class="text-[10px] text-muted">{{ count($dup['transactions']) }} transaksi</span>
+                                    </div>
+                                    <p class="text-[11px] text-muted leading-tight">{{ $dup['reason'] }}</p>
+                                    <div class="pt-1 flex items-center gap-1.5 flex-wrap">
+                                        @foreach ($dup['transactions'] as $dtx)
+                                            <a href="{{ route('transactions.show', is_array($dtx) ? $dtx['id'] : $dtx->id) }}" class="text-[10px] font-semibold text-forest hover:underline">
+                                                #{{ is_array($dtx) ? $dtx['id'] : $dtx->id }}
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                            @if (count($anom['duplicates']) > 3)
+                                <p class="text-[11px] text-muted text-center pt-1">+{{ count($anom['duplicates']) - 3 }} kelompok lainnya</p>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                @if (!empty($anom['duplicates']))
+                    <div class="pt-2 border-t border-line">
+                        <a href="{{ route('transactions.index', ['unusual' => 'duplicate']) }}" class="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1">
+                            <span>Tinjau Transaksi Ganda</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Kolom 2: Nominal Jauh di Atas Kebiasaan -->
+            <div class="rounded-xl border border-line bg-surface/40 p-4 space-y-3 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-2.5 border-b border-line">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm">⚠️</span>
+                            <span class="text-xs font-bold text-charcoal">Nominal Ekstrem (Outlier)</span>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded {{ count($anom['outliers']) > 0 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' : 'bg-cream text-muted' }}">
+                            {{ count($anom['outliers']) }} transaksi
+                        </span>
+                    </div>
+
+                    @if (empty($anom['outliers']))
+                        <div class="py-6 text-center text-xs text-muted">
+                            <span class="block text-emerald-600 dark:text-emerald-400 font-bold mb-1">✓ Nominal Wajar</span>
+                            Seluruh nominal transaksi berada dalam rentang wajar statistik historis Anda.
+                        </div>
+                    @else
+                        <div class="mt-3 space-y-2.5">
+                            @foreach (array_slice($anom['outliers'], 0, 3) as $out)
+                                @php $otx = $out['transaction']; @endphp
+                                <div class="p-2.5 rounded-lg border border-amber-200 dark:border-amber-900 bg-panel text-xs space-y-1.5">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <a href="{{ route('transactions.show', $otx) }}" class="font-bold text-charcoal hover:text-forest line-clamp-1">
+                                            {{ $otx->description }}
+                                        </a>
+                                        <span class="font-bold text-amber-600 dark:text-amber-400 shrink-0 font-mono">
+                                            {{ $out['multiplier'] }}x
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-muted flex items-center justify-between gap-1">
+                                        <span>Rp {{ number_format($out['amount'], 0, ',', '.') }}</span>
+                                        <span>Rata-rata: Rp {{ number_format($out['baseline_avg'], 0, ',', '.') }}</span>
+                                    </div>
+                                    <p class="text-[10.5px] text-muted leading-tight">{{ $out['reason'] }}</p>
+                                </div>
+                            @endforeach
+                            @if (count($anom['outliers']) > 3)
+                                <p class="text-[11px] text-muted text-center pt-1">+{{ count($anom['outliers']) - 3 }} outlier lainnya</p>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                @if (!empty($anom['outliers']))
+                    <div class="pt-2 border-t border-line">
+                        <a href="{{ route('transactions.index', ['unusual' => 'outlier']) }}" class="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1">
+                            <span>Tinjau Nominal Ekstrem</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Kolom 3: Lonjakan Pengeluaran Kategori -->
+            <div class="rounded-xl border border-line bg-surface/40 p-4 space-y-3 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-2.5 border-b border-line">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm">🔥</span>
+                            <span class="text-xs font-bold text-charcoal">Lonjakan Belanja Kategori</span>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded {{ count($anom['spikes']) > 0 ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20' : 'bg-cream text-muted' }}">
+                            {{ count($anom['spikes']) }} kategori
+                        </span>
+                    </div>
+
+                    @if (empty($anom['spikes']))
+                        <div class="py-6 text-center text-xs text-muted">
+                            <span class="block text-emerald-600 dark:text-emerald-400 font-bold mb-1">✓ Tren Terkendali</span>
+                            Tidak ada kategori pengeluaran dengan kenaikan tajam (&gt;50%) periode ini.
+                        </div>
+                    @else
+                        <div class="mt-3 space-y-2.5">
+                            @foreach (array_slice($anom['spikes'], 0, 3) as $spk)
+                                <div class="p-2.5 rounded-lg border border-purple-200 dark:border-purple-900 bg-panel text-xs space-y-1.5">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="font-bold text-charcoal">{{ $spk['category_name'] }}</span>
+                                        <span class="font-bold text-purple-600 dark:text-purple-400 shrink-0 font-mono">
+                                            {{ $spk['diff_pct'] !== null ? '+'.$spk['diff_pct'].'%' : 'Kategori Baru' }}
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-muted flex items-center justify-between gap-1">
+                                        <span>Kini: Rp {{ number_format($spk['current_amount'], 0, ',', '.') }}</span>
+                                        <span>Naik: +Rp {{ number_format($spk['diff_amount'], 0, ',', '.') }}</span>
+                                    </div>
+                                    <p class="text-[10.5px] text-muted leading-tight">{{ $spk['reason'] }}</p>
+                                </div>
+                            @endforeach
+                            @if (count($anom['spikes']) > 3)
+                                <p class="text-[11px] text-muted text-center pt-1">+{{ count($anom['spikes']) - 3 }} kategori lainnya</p>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                @if (!empty($anom['spikes']))
+                    <div class="pt-2 border-t border-line">
+                        <a href="{{ route('transactions.index', ['unusual' => 'spike']) }}" class="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-1">
+                            <span>Tinjau Transaksi Lonjakan Kategori</span>
+                            <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 

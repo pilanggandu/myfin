@@ -77,6 +77,143 @@
         />
     </div>
 
+    <!-- Deteksi Anomali Transaksi -->
+    @if (!empty($anomalyData['has_anomaly']))
+        <div class="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20 p-5 space-y-4">
+            <div class="flex items-center justify-between gap-3 border-b border-amber-500/20 pb-3 flex-wrap">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center text-sm font-bold shrink-0">
+                        ⚠️
+                    </span>
+                    <div>
+                        <h2 class="text-sm font-bold text-charcoal dark:text-amber-100">Peringatan: Transaksi Tidak Biasa</h2>
+                        <p class="text-xs text-muted dark:text-amber-200/80">Sistem mendeteksi indikasi anomali pada pencatatan transaksi ini.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    @foreach ($anomalyData['badges'] as $b)
+                        @php
+                            $badgeClass = match($b['type']) {
+                                'duplicate' => 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900',
+                                'outlier' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900',
+                                'spike' => 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900',
+                                default => 'bg-cream text-muted border-line',
+                            };
+                        @endphp
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border {{ $badgeClass }}">
+                            {{ $b['label'] }}
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3.5">
+                @if (!empty($anomalyData['is_duplicate']))
+                    <div class="p-4 rounded-xl border border-rose-200 dark:border-rose-900 bg-panel space-y-3">
+                        <div class="flex items-start gap-2.5">
+                            <span class="text-rose-600 dark:text-rose-400 font-bold text-sm shrink-0">⚠️</span>
+                            <div class="flex-1">
+                                <h3 class="text-xs font-bold text-rose-700 dark:text-rose-300">Potensi Transaksi Ganda (Duplikat)</h3>
+                                <p class="text-xs text-muted mt-0.5">{{ $anomalyData['duplicate_reason'] }}</p>
+                            </div>
+                        </div>
+
+                        @if (!empty($anomalyData['duplicate_transactions']))
+                            <div class="divide-y divide-line rounded-lg border border-line bg-surface/50 overflow-hidden text-xs">
+                                @foreach ($anomalyData['duplicate_transactions'] as $dupTx)
+                                    <div class="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div>
+                                            <div class="font-bold text-charcoal">
+                                                <a href="{{ route('transactions.show', $dupTx) }}" class="text-forest hover:underline">
+                                                    Transaksi #{{ $dupTx->id }}: {{ $dupTx->description }}
+                                                </a>
+                                            </div>
+                                            <div class="text-[11px] text-muted mt-0.5">
+                                                {{ $dupTx->transaction_date->format('d M Y') }} &bull;
+                                                {{ $dupTx->sourceAccount()?->name ?? $dupTx->destinationAccount()?->name }} &bull;
+                                                {{ $dupTx->category?->name ?? 'Tanpa Kategori' }}
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                            <span class="font-bold font-mono text-charcoal">
+                                                Rp {{ number_format($dupTx->totalAmount(), 0, ',', '.') }}
+                                            </span>
+                                            <a href="{{ route('transactions.show', $dupTx) }}" class="btn-arus-secondary px-2.5 py-1 text-xs font-bold">
+                                                Lihat #{{ $dupTx->id }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                @if (!empty($anomalyData['is_outlier']) && !empty($anomalyData['outlier_data']))
+                    @php $od = $anomalyData['outlier_data']; @endphp
+                    <div class="p-4 rounded-xl border border-amber-200 dark:border-amber-900 bg-panel space-y-3">
+                        <div class="flex items-start gap-2.5">
+                            <span class="text-amber-600 dark:text-amber-400 font-bold text-sm shrink-0">⚠️</span>
+                            <div class="flex-1">
+                                <h3 class="text-xs font-bold text-amber-700 dark:text-amber-300">Nominal Jauh di Atas Kebiasaan (Outlier)</h3>
+                                <p class="text-xs text-muted mt-0.5">{{ $od['reason'] }}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Nominal Transaksi</span>
+                                <span class="font-bold font-mono text-charcoal mt-0.5 block">Rp {{ number_format($od['amount'], 0, ',', '.') }}</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Rata-rata Historis</span>
+                                <span class="font-bold font-mono text-charcoal mt-0.5 block">Rp {{ number_format($od['baseline_avg'], 0, ',', '.') }}</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Rasio Lonjakan</span>
+                                <span class="font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5 block">{{ $od['multiplier'] }}x lipat</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Selisih Deviasi</span>
+                                <span class="font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5 block">+Rp {{ number_format($od['diff_amount'], 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if (!empty($anomalyData['is_category_spike']) && !empty($anomalyData['spike_data']))
+                    @php $sd = $anomalyData['spike_data']; @endphp
+                    <div class="p-4 rounded-xl border border-purple-200 dark:border-purple-900 bg-panel space-y-3">
+                        <div class="flex items-start gap-2.5">
+                            <span class="text-purple-600 dark:text-purple-400 font-bold text-sm shrink-0">🔥</span>
+                            <div class="flex-1">
+                                <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300">Pengeluaran Kategori Melonjak Tajam</h3>
+                                <p class="text-xs text-muted mt-0.5">{{ $sd['reason'] }}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Total Kategori Periode Ini</span>
+                                <span class="font-bold font-mono text-charcoal mt-0.5 block">Rp {{ number_format($sd['current_amount'], 0, ',', '.') }}</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Periode Pembanding</span>
+                                <span class="font-bold font-mono text-charcoal mt-0.5 block">Rp {{ number_format($sd['prev_amount'], 0, ',', '.') }}</span>
+                            </div>
+                            <div class="p-2.5 rounded-lg border border-line bg-surface/40">
+                                <span class="text-[10px] text-muted uppercase font-bold tracking-wider block">Kenaikan Total</span>
+                                <span class="font-bold font-mono text-purple-600 dark:text-purple-400 mt-0.5 block">
+                                    {{ $sd['diff_pct'] !== null ? '+'.$sd['diff_pct'].'%' : 'Kategori Baru' }} (+Rp {{ number_format($sd['diff_amount'], 0, ',', '.') }})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Informasi Transaksi -->
         <div class="lg:col-span-2 space-y-6">

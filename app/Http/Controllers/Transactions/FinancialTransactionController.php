@@ -8,6 +8,7 @@ use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Category;
 use App\Models\FinancialTransaction;
+use App\Services\TransactionAnomalyService;
 use App\Services\TransactionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +23,8 @@ use Illuminate\View\View;
 class FinancialTransactionController extends Controller
 {
     public function __construct(
-        protected TransactionService $transactionService
+        protected TransactionService $transactionService,
+        protected TransactionAnomalyService $anomalyService
     ) {}
 
     public function index(Request $request): View
@@ -62,6 +64,42 @@ class FinancialTransactionController extends Controller
             $query->whereDate('transaction_date', '<=', $today);
         }
 
+        $anomalyData = $space ? $this->anomalyService->detectAnomaliesForSpace(
+            $space,
+            $request->input('start_date'),
+            $request->input('end_date'),
+            $request->filled('account_id') ? (int) $request->account_id : null
+        ) : [
+            'summary' => ['total_anomalies' => 0, 'duplicate_count' => 0, 'outlier_count' => 0, 'spike_count' => 0],
+            'duplicates' => [],
+            'outliers' => [],
+            'spikes' => [],
+            'all_flagged_ids' => [],
+            'duplicate_ids' => [],
+            'outlier_ids' => [],
+            'spiked_category_ids' => [],
+        ];
+
+        $unusual = $request->input('unusual');
+        if ($space && $request->filled('unusual')) {
+            if ($unusual === 'duplicate') {
+                $query->whereIn('financial_transactions.id', $anomalyData['duplicate_ids']);
+            } elseif ($unusual === 'outlier') {
+                $query->whereIn('financial_transactions.id', $anomalyData['outlier_ids']);
+            } elseif ($unusual === 'spike') {
+                $query->whereIn('financial_transactions.category_id', $anomalyData['spiked_category_ids'])
+                    ->where('financial_transactions.type', 'expense');
+            } elseif (in_array($unusual, ['all', '1', 'true'], true)) {
+                $query->where(function (Builder $q) use ($anomalyData): void {
+                    $q->whereIn('financial_transactions.id', $anomalyData['all_flagged_ids'])
+                        ->orWhere(function (Builder $sub) use ($anomalyData): void {
+                            $sub->whereIn('financial_transactions.category_id', $anomalyData['spiked_category_ids'])
+                                ->where('financial_transactions.type', 'expense');
+                        });
+                });
+            }
+        }
+
         $upcomingQuery = $space->financialTransactions()
             ->whereDate('transaction_date', '>', $today);
 
@@ -70,6 +108,8 @@ class FinancialTransactionController extends Controller
         $upcomingCount = $upcomingQuery->count();
 
         $transactions = $query->paginate(15)->withQueryString();
+        $flaggedTransactionIds = $space ? $this->anomalyService->detectForTransactions($space, $transactions) : [];
+        $anomalySummary = $anomalyData['summary'];
 
         $accounts = $space->activeAccounts()->orderBy('name')->get();
         $recentAccountIds = $space->recentAccountIds(limit: 5);
@@ -105,7 +145,10 @@ class FinancialTransactionController extends Controller
             'recentFilterCategories',
             'upcomingCount',
             'showUpcoming',
-            'today'
+            'today',
+            'anomalySummary',
+            'flaggedTransactionIds',
+            'unusual'
         ));
     }
 
@@ -288,7 +331,9 @@ class FinancialTransactionController extends Controller
 
         $transaction->load(['entries.account', 'category', 'feeCategory', 'creator', 'updater', 'revisions.actor', 'member']);
 
-        return view('transactions.show', compact('transaction'));
+        $anomalyData = $this->anomalyService->detectAnomaliesForSingleTransaction($transaction);
+
+        return view('transactions.show', compact('transaction', 'anomalyData'));
     }
 
     public function edit(FinancialTransaction $transaction): View|RedirectResponse

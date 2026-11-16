@@ -26,7 +26,7 @@
     <!-- Filter & Search Panel -->
     <div class="panel-card p-4 sm:p-5 mb-6">
         @php
-            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future', 'min_amount', 'max_amount'];
+            $advancedKeys = ['type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future', 'min_amount', 'max_amount', 'unusual'];
             $activeCount = 0;
             foreach ($advancedKeys as $k) {
                 if (request()->filled($k)) {
@@ -40,7 +40,7 @@
                 $activeCount++;
             }
             $isAdvancedOpen = $activeCount > 0;
-            $hasAnyFilter = request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future', 'min_amount', 'max_amount'])
+            $hasAnyFilter = request()->hasAny(['search', 'type', 'account_id', 'category_id', 'member_id', 'start_date', 'end_date', 'include_future', 'min_amount', 'max_amount', 'unusual'])
                 || (request()->has('status') && request('status') !== 'posted')
                 || (request()->has('sort') && request('sort') !== 'date_desc');
         @endphp
@@ -264,6 +264,17 @@
                     </div>
 
                     <div>
+                        <label for="filterUnusualSelect" class="block text-[11px] font-semibold text-charcoal mb-1.5">Deteksi Anomali</label>
+                        <select name="unusual" id="filterUnusualSelect" class="field-select w-full">
+                            <option value="">Semua Transaksi</option>
+                            <option value="all" {{ in_array(request('unusual'), ['all', '1', 'true'], true) ? 'selected' : '' }}>⚠️ Semua Tidak Biasa</option>
+                            <option value="duplicate" {{ request('unusual') === 'duplicate' ? 'selected' : '' }}>⚠️ Potensi Ganda</option>
+                            <option value="outlier" {{ request('unusual') === 'outlier' ? 'selected' : '' }}>⚠️ Nominal Ekstrem</option>
+                            <option value="spike" {{ request('unusual') === 'spike' ? 'selected' : '' }}>🔥 Lonjakan Kategori</option>
+                        </select>
+                    </div>
+
+                    <div>
                         <label for="filterStartDate" class="block text-[11px] font-semibold text-charcoal mb-1.5">Mulai Tanggal</label>
                         <input 
                             type="date" 
@@ -448,6 +459,20 @@
                             <span aria-hidden="true">&times;</span>
                         </a>
                     @endif
+                    @if (request()->filled('unusual'))
+                        @php
+                            $unusualLabel = match(request('unusual')) {
+                                'duplicate' => 'Potensi Ganda',
+                                'outlier' => 'Nominal Ekstrem',
+                                'spike' => 'Lonjakan Kategori',
+                                default => 'Semua Anomali',
+                            };
+                        @endphp
+                        <a href="{{ request()->fullUrlWithQuery(['unusual' => null, 'page' => null]) }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-800 dark:text-amber-200 font-semibold hover:bg-amber-500/30 transition">
+                            <span>⚠️ Anomali: {{ $unusualLabel }}</span>
+                            <span aria-hidden="true">&times;</span>
+                        </a>
+                    @endif
                 </div>
                 <span class="text-muted font-mono text-[11px]">{{ $transactions->total() }} hasil ditemukan</span>
             </div>
@@ -492,6 +517,66 @@
                 <a href="{{ request()->fullUrlWithQuery(['include_future' => null]) }}" class="btn-arus-secondary text-xs py-1.5 px-3 font-bold border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 transition flex-shrink-0 inline-flex items-center gap-1.5">
                     <span>Sembunyikan Transaksi Mendatang</span>
                 </a>
+            </div>
+        @endif
+
+        {{-- Banner Deteksi Transaksi Tidak Biasa --}}
+        @if (($anomalySummary['total_anomalies'] ?? 0) > 0 || request()->filled('unusual'))
+            <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-charcoal dark:text-amber-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
+                <div class="flex items-start sm:items-center gap-3">
+                    <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center text-sm shrink-0">
+                        ⚠️
+                    </span>
+                    <div>
+                        <div class="text-xs font-bold text-charcoal dark:text-amber-100 flex items-center gap-2 flex-wrap">
+                            <span>Deteksi Transaksi Tidak Biasa</span>
+                            @if (request()->filled('unusual'))
+                                <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-200 font-bold border border-amber-500/30">
+                                    Filter Aktif: {{ $unusualLabel ?? request('unusual') }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="text-[11px] text-muted dark:text-amber-200/80 mt-0.5">
+                            @if (($anomalySummary['total_anomalies'] ?? 0) > 0)
+                                Terdeteksi {{ $anomalySummary['total_anomalies'] }} anomali:
+                                {{ $anomalySummary['duplicate_count'] }} potensi ganda, {{ $anomalySummary['outlier_count'] }} nominal ekstrem, {{ $anomalySummary['spike_count'] }} lonjakan kategori.
+                            @else
+                                Menampilkan transaksi hasil penyaringan kriteria anomali.
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <a href="{{ request()->fullUrlWithQuery(['unusual' => 'all', 'page' => null]) }}" 
+                       class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer {{ in_array(request('unusual'), ['all', '1', 'true'], true) ? 'bg-amber-600 text-white border-amber-700 font-bold' : 'bg-panel border-line text-charcoal hover:bg-cream' }}">
+                        Semua ({{ $anomalySummary['total_anomalies'] ?? 0 }})
+                    </a>
+                    @if (($anomalySummary['duplicate_count'] ?? 0) > 0)
+                        <a href="{{ request()->fullUrlWithQuery(['unusual' => 'duplicate', 'page' => null]) }}" 
+                           class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer {{ request('unusual') === 'duplicate' ? 'bg-rose-600 text-white border-rose-700 font-bold' : 'bg-panel border-line text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30' }}">
+                            Potensi Ganda ({{ $anomalySummary['duplicate_count'] }})
+                        </a>
+                    @endif
+                    @if (($anomalySummary['outlier_count'] ?? 0) > 0)
+                        <a href="{{ request()->fullUrlWithQuery(['unusual' => 'outlier', 'page' => null]) }}" 
+                           class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer {{ request('unusual') === 'outlier' ? 'bg-amber-600 text-white border-amber-700 font-bold' : 'bg-panel border-line text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30' }}">
+                            Nominal Ekstrem ({{ $anomalySummary['outlier_count'] }})
+                        </a>
+                    @endif
+                    @if (($anomalySummary['spike_count'] ?? 0) > 0)
+                        <a href="{{ request()->fullUrlWithQuery(['unusual' => 'spike', 'page' => null]) }}" 
+                           class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer {{ request('unusual') === 'spike' ? 'bg-purple-600 text-white border-purple-700 font-bold' : 'bg-panel border-line text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30' }}">
+                            Lonjakan Kategori ({{ $anomalySummary['spike_count'] }})
+                        </a>
+                    @endif
+                    @if (request()->filled('unusual'))
+                        <a href="{{ request()->fullUrlWithQuery(['unusual' => null, 'page' => null]) }}" 
+                           class="px-2.5 py-1 rounded-lg text-xs font-semibold text-muted hover:text-charcoal border border-transparent hover:border-line transition cursor-pointer"
+                           title="Hapus filter anomali">
+                            &times; Reset
+                        </a>
+                    @endif
+                </div>
             </div>
         @endif
 
@@ -618,6 +703,24 @@
                                         </span>
                                     @else
                                         <x-badge variant="default">{{ $typeBadge }}</x-badge>
+                                    @endif
+                                    @php
+                                        $flagInfo = $flaggedTransactionIds[$trx->id] ?? null;
+                                    @endphp
+                                    @if (! empty($flagInfo['badges']))
+                                        @foreach ($flagInfo['badges'] as $b)
+                                            @php
+                                                $badgeClass = match($b['type']) {
+                                                    'duplicate' => 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900',
+                                                    'outlier' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900',
+                                                    'spike' => 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900',
+                                                    default => 'bg-cream text-muted border-line',
+                                                };
+                                            @endphp
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border {{ $badgeClass }}" title="{{ $b['title'] }}">
+                                                {{ $b['label'] }}
+                                            </span>
+                                        @endforeach
                                     @endif
                                 </div>
                                 <div class="text-xs text-muted mt-1 flex items-center gap-1.5 flex-wrap">
@@ -791,6 +894,26 @@
                                     <div class="text-xs uppercase tracking-wider text-[10px] font-bold {{ $trx->type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : ($trx->type === 'expense' ? 'text-rose-600 dark:text-rose-400' : 'text-muted') }}">
                                         {{ strtoupper($trx->type) }}
                                     </div>
+                                    @php
+                                        $flagInfo = $flaggedTransactionIds[$trx->id] ?? null;
+                                    @endphp
+                                    @if (! empty($flagInfo['badges']))
+                                        <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                                            @foreach ($flagInfo['badges'] as $b)
+                                                @php
+                                                    $badgeClass = match($b['type']) {
+                                                        'duplicate' => 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900',
+                                                        'outlier' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900',
+                                                        'spike' => 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900',
+                                                        default => 'bg-cream text-muted border-line',
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border {{ $badgeClass }}" title="{{ $b['title'] }}">
+                                                    {{ $b['label'] }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="py-4 px-4 whitespace-nowrap">
                                     @if ($trx->category)
