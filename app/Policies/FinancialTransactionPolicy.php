@@ -21,4 +21,14 @@ class FinancialTransactionPolicy
     {
         return $transaction->space->hasMember($user);
     }
+
+    public function split(User $user, FinancialTransaction $transaction): bool
+    {
+        return $transaction->space->hasMember($user);
+    }
+
+    public function unsplit(User $user, FinancialTransaction $transaction): bool
+    {
+        return $transaction->space->hasMember($user);
+    }
 }

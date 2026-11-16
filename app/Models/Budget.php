@@ -48,11 +48,22 @@ class Budget extends Model
         $directExpense = (int) FinancialTransaction::query()
             ->where('financial_transactions.space_id', $this->space_id)
             ->where('financial_transactions.category_id', $this->category_id)
+            ->where('financial_transactions.is_split', false)
             ->posted()
             ->expense()
             ->whereBetween('financial_transactions.transaction_date', [$start, $end])
             ->join('transaction_entries', 'financial_transactions.id', '=', 'transaction_entries.transaction_id')
             ->sum(DB::raw('ABS(transaction_entries.amount_signed)'));
+
+        $splitExpense = (int) TransactionSplit::query()
+            ->where('transaction_splits.space_id', $this->space_id)
+            ->where('transaction_splits.category_id', $this->category_id)
+            ->whereHas('transaction', function ($query) use ($start, $end): void {
+                $query->posted()
+                    ->expense()
+                    ->whereBetween('transaction_date', [$start, $end]);
+            })
+            ->sum('amount');
 
         $transferFees = (int) FinancialTransaction::query()
             ->where('space_id', $this->space_id)
@@ -62,7 +73,7 @@ class Budget extends Model
             ->whereBetween('transaction_date', [$start, $end])
             ->sum('fee_amount');
 
-        return $directExpense + $transferFees;
+        return $directExpense + $splitExpense + $transferFees;
     }
 
     public function rolloverAmount(): int

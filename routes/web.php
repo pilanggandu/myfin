@@ -102,6 +102,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions/{transaction}/edit', [FinancialTransactionController::class, 'edit'])->name('transactions.edit');
     Route::put('/transactions/{transaction}', [FinancialTransactionController::class, 'update'])->name('transactions.update');
     Route::post('/transactions/{transaction}/void', [FinancialTransactionController::class, 'void'])->name('transactions.void');
+    Route::post('/transactions/{transaction}/split', [FinancialTransactionController::class, 'split'])->name('transactions.split');
+    Route::post('/transactions/{transaction}/unsplit', [FinancialTransactionController::class, 'unsplit'])->name('transactions.unsplit');
+    Route::delete('/transactions/{transaction}/split', [FinancialTransactionController::class, 'unsplit'])->name('transactions.split.destroy');
 
     Route::get('/transaction-rules', [TransactionRuleController::class, 'index'])->name('transaction-rules.index');
     Route::post('/transaction-rules', [TransactionRuleController::class, 'store'])->name('transaction-rules.store');

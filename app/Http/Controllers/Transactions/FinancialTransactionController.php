@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Transactions;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\BulkCorrectTransactionsRequest;
+use App\Http\Requests\Transaction\SplitTransactionRequest;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\Category;
@@ -32,7 +33,7 @@ class FinancialTransactionController extends Controller
         $space = app('currentSpace');
 
         $query = $space->financialTransactions()
-            ->with(['category', 'feeCategory', 'entries.account', 'creator', 'member', 'installmentPlan']);
+            ->with(['category', 'feeCategory', 'entries.account', 'creator', 'member', 'installmentPlan', 'splits.category', 'splits.member']);
 
         $sort = $request->input('sort', 'date_desc');
         if ($sort === 'date_asc' || $request->input('direction') === 'asc') {
@@ -170,13 +171,18 @@ class FinancialTransactionController extends Controller
         if ($request->filled('category_id')) {
             $categoryId = (int) $request->category_id;
             $query->where(function (Builder $q) use ($categoryId): void {
-                $q->where('category_id', $categoryId)
-                    ->orWhere('fee_category_id', $categoryId);
+                $q->where('financial_transactions.category_id', $categoryId)
+                    ->orWhere('financial_transactions.fee_category_id', $categoryId)
+                    ->orWhereHas('splits', fn (Builder $sq) => $sq->where('category_id', $categoryId));
             });
         }
 
         if ($request->filled('member_id')) {
-            $query->where('member_id', $request->member_id);
+            $memberId = (int) $request->member_id;
+            $query->where(function (Builder $q) use ($memberId): void {
+                $q->where('financial_transactions.member_id', $memberId)
+                    ->orWhereHas('splits', fn (Builder $sq) => $sq->where('member_id', $memberId));
+            });
         }
 
         if ($request->filled('account_id')) {
@@ -329,11 +335,18 @@ class FinancialTransactionController extends Controller
     {
         Gate::authorize('view', $transaction);
 
-        $transaction->load(['entries.account', 'category', 'feeCategory', 'creator', 'updater', 'revisions.actor', 'member']);
+        $transaction->load(['entries.account', 'category', 'feeCategory', 'creator', 'updater', 'revisions.actor', 'member', 'splits.category', 'splits.member']);
 
         $anomalyData = $this->anomalyService->detectAnomaliesForSingleTransaction($transaction);
 
-        return view('transactions.show', compact('transaction', 'anomalyData'));
+        $space = $transaction->space;
+        $categories = $space->activeCategories()
+            ->where('type', $transaction->type === 'income' ? 'income' : 'expense')
+            ->orderBy('name')
+            ->get();
+        $members = $space->customMembers()->active()->orderBy('name')->get();
+
+        return view('transactions.show', compact('transaction', 'anomalyData', 'categories', 'members'));
     }
 
     public function edit(FinancialTransaction $transaction): View|RedirectResponse
@@ -420,5 +433,55 @@ class FinancialTransactionController extends Controller
         }
 
         return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Pisahkan transaksi menjadi beberapa kategori atau member.
+     */
+    public function split(SplitTransactionRequest $request, FinancialTransaction $transaction): RedirectResponse|JsonResponse
+    {
+        Gate::authorize('update', $transaction);
+
+        $validated = $request->validated();
+
+        $updated = $this->transactionService->splitTransaction($transaction, $request->user(), $validated['splits']);
+
+        $message = 'Transaksi berhasil dipisahkan ke '.$updated->splits->count().' alokasi kategori/member.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'transaction' => $updated,
+            ]);
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('success', $message);
+    }
+
+    /**
+     * Batalkan pemisahan transaksi (unsplit), kembalikan ke kategori tunggal.
+     */
+    public function unsplit(Request $request, FinancialTransaction $transaction): RedirectResponse|JsonResponse
+    {
+        Gate::authorize('update', $transaction);
+
+        $fallbackCategoryId = $request->filled('fallback_category_id') ? (int) $request->input('fallback_category_id') : null;
+
+        $updated = $this->transactionService->unsplitTransaction($transaction, $request->user(), $fallbackCategoryId);
+
+        $message = 'Pemisahan transaksi berhasil dibatalkan.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'transaction' => $updated,
+            ]);
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('success', $message);
     }
 }

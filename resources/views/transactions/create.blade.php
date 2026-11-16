@@ -377,6 +377,45 @@
                             </div>
                         </div>
 
+                        <!-- Opsi Pemisahan Transaksi (Split Transaction) -->
+                        <div id="splitTransactionSection" class="pt-3 border-t border-line/60 space-y-3">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input 
+                                    type="checkbox" 
+                                    name="is_split" 
+                                    id="isSplitCheckbox" 
+                                    value="1" 
+                                    {{ old('is_split') ? 'checked' : '' }}
+                                    onchange="toggleCreateSplit(this.checked)"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span class="text-xs font-bold text-charcoal flex items-center gap-1.5 flex-wrap">
+                                    <span>✂️ Pisahkan ke beberapa kategori / member (Split Transaction)</span>
+                                    <span class="text-[10px] font-normal text-muted">(Bagi satu struk belanja ke beberapa pos pengeluaran)</span>
+                                </span>
+                            </label>
+
+                            <div id="createSplitContainer" class="{{ old('is_split') ? '' : 'hidden' }} space-y-3 p-4 rounded-xl border border-forest/20 bg-forest/5 dark:bg-forest/10">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-forest dark:text-forest-light">Daftar Alokasi Pemisahan</span>
+                                    <span class="text-[11px] text-muted">Minimal 2 alokasi</span>
+                                </div>
+
+                                <div id="createSplitRows" class="space-y-2.5">
+                                    <!-- Diisi oleh JS -->
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-forest/10">
+                                    <button type="button" onclick="addCreateSplitRow()" class="btn-arus-secondary text-xs min-h-[34px] px-3 font-semibold cursor-pointer">
+                                        + Tambah Baris Kategori
+                                    </button>
+                                    <div class="text-xs font-mono font-bold" id="createSplitStatus">
+                                        <!-- Live status -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Transfer Flow (Antar-Rekening) -->
                         @include('transactions.partials._transfer-fields', [
                             'mode' => 'create',
@@ -657,10 +696,12 @@
                 const feeInput = document.getElementById('fee_amount');
                 const feeDisplay = document.getElementById('fee_amount_display');
                 const feeCatSelect = document.getElementById('fee_category_id');
+                const splitSection = document.getElementById('splitTransactionSection');
 
                 if (type === 'transfer') {
                     singleBlock.classList.add('hidden');
                     transferBlock.classList.remove('hidden');
+                    if (splitSection) splitSection.classList.add('hidden');
 
                     accountSelect.disabled = true;
                     expenseCatSelect.disabled = true;
@@ -674,6 +715,7 @@
                 } else {
                     singleBlock.classList.remove('hidden');
                     transferBlock.classList.add('hidden');
+                    if (splitSection) splitSection.classList.remove('hidden');
 
                     accountSelect.disabled = false;
                     sourceAccSelect.disabled = true;
@@ -717,6 +759,125 @@
                     };
                     container.appendChild(btn);
                 });
+            }
+
+            let createSplitIdx = 0;
+            const createExpenseCats = @json($expenseCategories->map(fn($c) => ['id' => $c->id, 'name' => $c->name]));
+            const createIncomeCats = @json($incomeCategories->map(fn($c) => ['id' => $c->id, 'name' => $c->name]));
+            const createMembers = @json($members->map(fn($m) => ['id' => $m->id, 'name' => $m->name]));
+
+            function toggleCreateSplit(active) {
+                const container = document.getElementById('createSplitContainer');
+                const expContainer = document.getElementById('expenseCategoryContainer');
+                const incContainer = document.getElementById('incomeCategoryContainer');
+                const expSelect = document.getElementById('expense_category_id');
+                const incSelect = document.getElementById('income_category_id');
+
+                if (active) {
+                    container.classList.remove('hidden');
+                    if (expContainer) expContainer.classList.add('opacity-40', 'pointer-events-none');
+                    if (incContainer) incContainer.classList.add('opacity-40', 'pointer-events-none');
+                    if (expSelect) expSelect.required = false;
+                    if (incSelect) incSelect.required = false;
+
+                    const rows = document.querySelectorAll('.create-split-row');
+                    if (rows.length < 2) {
+                        const rowsContainer = document.getElementById('createSplitRows');
+                        rowsContainer.innerHTML = '';
+                        createSplitIdx = 0;
+                        addCreateSplitRow();
+                        addCreateSplitRow();
+                    }
+                    recalculateCreateSplit();
+                } else {
+                    container.classList.add('hidden');
+                    if (expContainer) expContainer.classList.remove('opacity-40', 'pointer-events-none');
+                    if (incContainer) incContainer.classList.remove('opacity-40', 'pointer-events-none');
+                    if (currentType === 'expense' && expSelect) expSelect.required = true;
+                    if (currentType === 'income' && incSelect) incSelect.required = true;
+                }
+                updateReceipt();
+            }
+
+            function addCreateSplitRow(catId = null, memberId = null, amount = '', notes = '') {
+                const container = document.getElementById('createSplitRows');
+                const idx = createSplitIdx++;
+                const cats = currentType === 'income' ? createIncomeCats : createExpenseCats;
+
+                let catOpts = '<option value="">-- Pilih Kategori --</option>';
+                cats.forEach(c => {
+                    const sel = catId && Number(catId) === Number(c.id) ? 'selected' : '';
+                    catOpts += `<option value="${c.id}" ${sel}>${c.name}</option>`;
+                });
+
+                let memOpts = '<option value="">Tanpa Member (Umum)</option>';
+                createMembers.forEach(m => {
+                    const sel = memberId && Number(memberId) === Number(m.id) ? 'selected' : '';
+                    memOpts += `<option value="${m.id}" ${sel}>${m.name}</option>`;
+                });
+
+                const div = document.createElement('div');
+                div.className = 'p-3 rounded-lg border border-line bg-panel space-y-2 create-split-row';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-muted uppercase">Alokasi #${idx + 1}</span>
+                        <button type="button" onclick="removeCreateSplitRow(this)" class="text-muted hover:text-red text-xs px-1 cursor-pointer" title="Hapus Baris">✕ Hapus</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <select name="splits[${idx}][category_id]" class="field-select w-full text-xs create-split-cat" required>
+                                ${catOpts}
+                            </select>
+                        </div>
+                        <div>
+                            <input type="number" step="any" min="0.01" name="splits[${idx}][amount]" value="${amount}" placeholder="Nominal alokasi (Rp)" class="field-input w-full text-xs font-mono font-bold create-split-amt" required oninput="recalculateCreateSplit()">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <select name="splits[${idx}][member_id]" class="field-select w-full text-xs">
+                                ${memOpts}
+                            </select>
+                        </div>
+                        <div>
+                            <input type="text" name="splits[${idx}][notes]" value="${notes}" placeholder="Catatan alokasi (opsional)" class="field-input w-full text-xs" maxlength="255">
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(div);
+                recalculateCreateSplit();
+            }
+
+            function removeCreateSplitRow(btn) {
+                const rows = document.querySelectorAll('.create-split-row');
+                if (rows.length <= 2) {
+                    alert('Minimal 2 baris alokasi pemisahan.');
+                    return;
+                }
+                btn.closest('.create-split-row').remove();
+                recalculateCreateSplit();
+            }
+
+            function recalculateCreateSplit() {
+                const targetAmt = parseFloat(document.getElementById('amountInput')?.value) || 0;
+                const amtInputs = document.querySelectorAll('.create-split-amt');
+                let sum = 0;
+                amtInputs.forEach(inp => {
+                    sum += parseFloat(inp.value) || 0;
+                });
+                sum = Math.round(sum * 100) / 100;
+                const diff = Math.round((targetAmt - sum) * 100) / 100;
+                const statusEl = document.getElementById('createSplitStatus');
+                if (!statusEl) return;
+
+                if (Math.abs(diff) < 0.01 && targetAmt > 0) {
+                    statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400">✓ Alokasi Pas (Rp ${Math.round(sum).toLocaleString('id-ID')})</span>`;
+                } else if (diff > 0) {
+                    statusEl.innerHTML = `<span class="text-amber-600 dark:text-amber-400">Kurang Rp ${Math.round(diff).toLocaleString('id-ID')} (Total: Rp ${Math.round(sum).toLocaleString('id-ID')} / Rp ${Math.round(targetAmt).toLocaleString('id-ID')})</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400">Kelebihan Rp ${Math.round(Math.abs(diff)).toLocaleString('id-ID')}</span>`;
+                }
             }
 
             function applyPagePreset(desc, amount, type, categoryKeyword) {
@@ -1007,6 +1168,9 @@
                     const catSelect = document.getElementById('expense_category_id');
                     const selectedCat = catSelect.options[catSelect.selectedIndex];
                     receiptCat.textContent = selectedCat && selectedCat.value ? selectedCat.getAttribute('data-name') : '(Belum dipilih)';
+                    if (document.getElementById('isSplitCheckbox')?.checked) {
+                        receiptCat.textContent = '✂️ Terbagi (Split Transaction)';
+                    }
 
                     receiptAccountLabel.textContent = 'Rekening Sumber:';
                     const accSelect = document.getElementById('account_id');
@@ -1043,6 +1207,9 @@
                     const catSelect = document.getElementById('income_category_id');
                     const selectedCat = catSelect.options[catSelect.selectedIndex];
                     receiptCat.textContent = selectedCat && selectedCat.value ? selectedCat.getAttribute('data-name') : '(Belum dipilih)';
+                    if (document.getElementById('isSplitCheckbox')?.checked) {
+                        receiptCat.textContent = '✂️ Terbagi (Split Transaction)';
+                    }
 
                     receiptAccountLabel.textContent = 'Rekening Tujuan:';
                     const accSelect = document.getElementById('account_id');
@@ -1135,6 +1302,10 @@
                     } else {
                         balanceSimulation.classList.add('hidden');
                     }
+                }
+
+                if (typeof recalculateCreateSplit === 'function') {
+                    recalculateCreateSplit();
                 }
             }
 

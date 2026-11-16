@@ -25,6 +25,7 @@ class FinancialTransaction extends Model
         'fee_category_id',
         'member_id',
         'status',
+        'is_split',
         'request_key',
         'created_by',
         'updated_by',
@@ -36,6 +37,7 @@ class FinancialTransaction extends Model
         return [
             'transaction_date' => 'date',
             'fee_amount' => 'decimal:2',
+            'is_split' => 'boolean',
             'version' => 'integer',
         ];
     }
@@ -88,6 +90,26 @@ class FinancialTransaction extends Model
     public function entries(): HasMany
     {
         return $this->hasMany(TransactionEntry::class, 'transaction_id');
+    }
+
+    public function splits(): HasMany
+    {
+        return $this->hasMany(TransactionSplit::class, 'transaction_id');
+    }
+
+    public function isSplit(): bool
+    {
+        return (bool) $this->is_split;
+    }
+
+    public function splitTotal(): float
+    {
+        return (float) $this->splits->sum('amount');
+    }
+
+    public function isSplitBalanced(): bool
+    {
+        return abs($this->totalAmount() - $this->splitTotal()) < 0.01;
     }
 
     public function revisions(): HasMany
@@ -172,7 +194,10 @@ class FinancialTransaction extends Model
                 ->orWhereHas('category', fn (Builder $q) => $q->where('name', 'like', $like))
                 ->orWhereHas('feeCategory', fn (Builder $q) => $q->where('name', 'like', $like))
                 ->orWhereHas('member', fn (Builder $q) => $q->where('name', 'like', $like))
-                ->orWhereHas('entries.account', fn (Builder $q) => $q->where('name', 'like', $like));
+                ->orWhereHas('entries.account', fn (Builder $q) => $q->where('name', 'like', $like))
+                ->orWhereHas('splits.category', fn (Builder $q) => $q->where('name', 'like', $like))
+                ->orWhereHas('splits.member', fn (Builder $q) => $q->where('name', 'like', $like))
+                ->orWhereHas('splits', fn (Builder $q) => $q->where('notes', 'like', $like));
 
             if ($amount !== null) {
                 $searchQuery->orWhere('fee_amount', $amount)

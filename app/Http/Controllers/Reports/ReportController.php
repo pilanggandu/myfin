@@ -125,6 +125,7 @@ class ReportController extends Controller
             ->where('financial_transactions.space_id', $spaceId)
             ->where('financial_transactions.status', 'posted')
             ->where('financial_transactions.type', 'expense')
+            ->where('financial_transactions.is_split', false)
             ->whereBetween('financial_transactions.transaction_date', [$startDate, $endDate])
             ->groupBy('categories.id', 'categories.name')
             ->select(
@@ -135,6 +136,23 @@ class ReportController extends Controller
             )
             ->orderByDesc('total_amount')
             ->get();
+
+        $splitBreakdown = DB::table('transaction_splits')
+            ->join('financial_transactions', 'transaction_splits.transaction_id', '=', 'financial_transactions.id')
+            ->join('categories', 'transaction_splits.category_id', '=', 'categories.id')
+            ->where('transaction_splits.space_id', $spaceId)
+            ->where('financial_transactions.status', 'posted')
+            ->where('financial_transactions.type', 'expense')
+            ->whereBetween('financial_transactions.transaction_date', [$startDate, $endDate])
+            ->groupBy('categories.id', 'categories.name')
+            ->select(
+                'categories.id',
+                'categories.name',
+                DB::raw('COUNT(DISTINCT financial_transactions.id) as transaction_count'),
+                DB::raw('SUM(transaction_splits.amount) as total_amount')
+            )
+            ->get()
+            ->keyBy('id');
 
         $transferFeesByCategory = DB::table('financial_transactions')
             ->join('categories', 'financial_transactions.fee_category_id', '=', 'categories.id')
@@ -154,19 +172,26 @@ class ReportController extends Controller
             ->keyBy('id');
 
         $combinedCategories = collect();
-        $processedFeeCatIds = [];
+        $processedIds = [];
 
         foreach ($categoryBreakdown as $catItem) {
             $catId = $catItem->id;
             $catAmount = (int) $catItem->total_amount;
             $catCount = (int) $catItem->transaction_count;
 
+            if ($splitBreakdown->has($catId)) {
+                $splitItem = $splitBreakdown->get($catId);
+                $catAmount += (int) $splitItem->total_amount;
+                $catCount += (int) $splitItem->transaction_count;
+            }
+
             if ($transferFeesByCategory->has($catId)) {
                 $feeItem = $transferFeesByCategory->get($catId);
                 $catAmount += (int) $feeItem->total_amount;
                 $catCount += (int) $feeItem->transaction_count;
-                $processedFeeCatIds[] = $catId;
             }
+
+            $processedIds[] = $catId;
 
             $percentage = $totalExpense > 0 ? round(($catAmount / $totalExpense) * 100, 1) : 0;
             $combinedCategories->push((object) [
@@ -178,8 +203,32 @@ class ReportController extends Controller
             ]);
         }
 
+        foreach ($splitBreakdown as $catId => $splitItem) {
+            if (! in_array($catId, $processedIds, true)) {
+                $catAmount = (int) $splitItem->total_amount;
+                $catCount = (int) $splitItem->transaction_count;
+
+                if ($transferFeesByCategory->has($catId)) {
+                    $feeItem = $transferFeesByCategory->get($catId);
+                    $catAmount += (int) $feeItem->total_amount;
+                    $catCount += (int) $feeItem->transaction_count;
+                }
+
+                $processedIds[] = $catId;
+
+                $percentage = $totalExpense > 0 ? round(($catAmount / $totalExpense) * 100, 1) : 0;
+                $combinedCategories->push((object) [
+                    'id' => $catId,
+                    'name' => $splitItem->name,
+                    'count' => $catCount,
+                    'amount' => $catAmount,
+                    'percentage' => $percentage,
+                ]);
+            }
+        }
+
         foreach ($transferFeesByCategory as $catId => $feeItem) {
-            if (! in_array($catId, $processedFeeCatIds)) {
+            if (! in_array($catId, $processedIds, true)) {
                 $catAmount = (int) $feeItem->total_amount;
                 $catCount = (int) $feeItem->transaction_count;
                 $percentage = $totalExpense > 0 ? round(($catAmount / $totalExpense) * 100, 1) : 0;

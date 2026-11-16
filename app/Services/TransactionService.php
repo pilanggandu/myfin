@@ -56,8 +56,24 @@ class TransactionService
                     ]);
                 }
 
+                $amount = round((float) $data['amount'], 2);
+                if ($amount <= 0) {
+                    throw ValidationException::withMessages([
+                        'amount' => 'Nominal transaksi harus lebih dari 0.',
+                    ]);
+                }
+
+                $isSplit = ! empty($data['is_split']) && ! empty($data['splits']) && is_array($data['splits']);
+                $preparedSplits = [];
+                if ($isSplit) {
+                    $preparedSplits = $this->validateAndPrepareSplits($space, 'income', $amount, $data['splits']);
+                    $catId = ! empty($data['category_id']) ? (int) $data['category_id'] : $preparedSplits[0]['category_id'];
+                } else {
+                    $catId = (int) ($data['category_id'] ?? 0);
+                }
+
                 $category = Category::where('space_id', $space->id)
-                    ->where('id', $data['category_id'])
+                    ->where('id', $catId)
                     ->income()
                     ->active()
                     ->first();
@@ -65,13 +81,6 @@ class TransactionService
                 if (! $category) {
                     throw ValidationException::withMessages([
                         'category_id' => 'Kategori pemasukan tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
-                    ]);
-                }
-
-                $amount = round((float) $data['amount'], 2);
-                if ($amount <= 0) {
-                    throw ValidationException::withMessages([
-                        'amount' => 'Nominal transaksi harus lebih dari 0.',
                     ]);
                 }
 
@@ -85,6 +94,7 @@ class TransactionService
                     'category_id' => $category->id,
                     'member_id' => $data['member_id'] ?? null,
                     'status' => 'posted',
+                    'is_split' => $isSplit,
                     'request_key' => $requestKey,
                     'created_by' => $actor->id,
                     'version' => 1,
@@ -94,6 +104,18 @@ class TransactionService
                     'account_id' => $account->id,
                     'amount_signed' => $amount,
                 ]);
+
+                if ($isSplit) {
+                    foreach ($preparedSplits as $split) {
+                        $transaction->splits()->create([
+                            'space_id' => $space->id,
+                            'category_id' => $split['category_id'],
+                            'member_id' => $split['member_id'],
+                            'amount' => $split['amount'],
+                            'notes' => $split['notes'],
+                        ]);
+                    }
+                }
 
                 if (empty($data['skip_activity_log'])) {
                     $this->activityLog->log(
@@ -163,8 +185,24 @@ class TransactionService
                     ]);
                 }
 
+                $amount = round((float) $data['amount'], 2);
+                if ($amount <= 0) {
+                    throw ValidationException::withMessages([
+                        'amount' => 'Nominal transaksi harus lebih dari 0.',
+                    ]);
+                }
+
+                $isSplit = ! empty($data['is_split']) && ! empty($data['splits']) && is_array($data['splits']);
+                $preparedSplits = [];
+                if ($isSplit) {
+                    $preparedSplits = $this->validateAndPrepareSplits($space, 'expense', $amount, $data['splits']);
+                    $catId = ! empty($data['category_id']) ? (int) $data['category_id'] : $preparedSplits[0]['category_id'];
+                } else {
+                    $catId = (int) ($data['category_id'] ?? 0);
+                }
+
                 $category = Category::where('space_id', $space->id)
-                    ->where('id', $data['category_id'])
+                    ->where('id', $catId)
                     ->expense()
                     ->active()
                     ->first();
@@ -172,13 +210,6 @@ class TransactionService
                 if (! $category) {
                     throw ValidationException::withMessages([
                         'category_id' => 'Kategori pengeluaran tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
-                    ]);
-                }
-
-                $amount = round((float) $data['amount'], 2);
-                if ($amount <= 0) {
-                    throw ValidationException::withMessages([
-                        'amount' => 'Nominal transaksi harus lebih dari 0.',
                     ]);
                 }
 
@@ -192,6 +223,7 @@ class TransactionService
                     'category_id' => $category->id,
                     'member_id' => $data['member_id'] ?? null,
                     'status' => 'posted',
+                    'is_split' => $isSplit,
                     'request_key' => $requestKey,
                     'created_by' => $actor->id,
                     'version' => 1,
@@ -201,6 +233,18 @@ class TransactionService
                     'account_id' => $account->id,
                     'amount_signed' => -$amount,
                 ]);
+
+                if ($isSplit) {
+                    foreach ($preparedSplits as $split) {
+                        $transaction->splits()->create([
+                            'space_id' => $space->id,
+                            'category_id' => $split['category_id'],
+                            'member_id' => $split['member_id'],
+                            'amount' => $split['amount'],
+                            'notes' => $split['notes'],
+                        ]);
+                    }
+                }
 
                 if (empty($data['skip_activity_log'])) {
                     $this->activityLog->log(
@@ -1067,11 +1111,20 @@ class TransactionService
             'category_id' => $transaction->category_id,
             'category_name' => $transaction->category?->name,
             'status' => $transaction->status,
+            'is_split' => (bool) $transaction->is_split,
             'version' => $transaction->version,
             'entries' => $transaction->entries->map(fn ($e): array => [
                 'account_id' => $e->account_id,
                 'account_name' => $e->account?->name,
                 'amount_signed' => (int) $e->amount_signed,
+            ])->toArray(),
+            'splits' => $transaction->splits->map(fn ($s): array => [
+                'category_id' => $s->category_id,
+                'category_name' => $s->category?->name,
+                'member_id' => $s->member_id,
+                'member_name' => $s->member?->name,
+                'amount' => (float) $s->amount,
+                'notes' => $s->notes,
             ])->toArray(),
         ];
     }
@@ -1133,5 +1186,257 @@ class TransactionService
         ]);
 
         return $lockedTransaction;
+    }
+
+    /**
+     * Pisahkan alokasi transaksi ke beberapa kategori atau member.
+     *
+     * @param  array<int, array{category_id: int|string, member_id?: int|string|null, amount: float|int|string, notes?: string|null}>  $splits
+     *
+     * @throws ValidationException
+     */
+    public function splitTransaction(FinancialTransaction $transaction, User $actor, array $splits): FinancialTransaction
+    {
+        if ($transaction->isVoid()) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Transaksi yang telah dibatalkan (void) tidak dapat dipisahkan.',
+            ]);
+        }
+
+        if (! in_array($transaction->type, ['expense', 'income'], true)) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Hanya transaksi pengeluaran atau pemasukan yang dapat dipisahkan.',
+            ]);
+        }
+
+        $space = $transaction->space;
+        $totalAmount = (float) $transaction->totalAmount();
+
+        $preparedSplits = $this->validateAndPrepareSplits($space, $transaction->type, $totalAmount, $splits);
+
+        return DB::transaction(function () use ($transaction, $actor, $preparedSplits, $space, $totalAmount) {
+            $lockedTransaction = FinancialTransaction::where('id', $transaction->id)->lockForUpdate()->firstOrFail();
+
+            $beforeSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            $lockedTransaction->splits()->delete();
+
+            foreach ($preparedSplits as $split) {
+                $lockedTransaction->splits()->create([
+                    'space_id' => $space->id,
+                    'category_id' => $split['category_id'],
+                    'member_id' => $split['member_id'],
+                    'amount' => $split['amount'],
+                    'notes' => $split['notes'],
+                ]);
+            }
+
+            $lockedTransaction->update([
+                'is_split' => true,
+                'updated_by' => $actor->id,
+                'version' => $lockedTransaction->version + 1,
+            ]);
+
+            $afterSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            TransactionRevision::create([
+                'transaction_id' => $lockedTransaction->id,
+                'actor_id' => $actor->id,
+                'before_data' => $beforeSnapshot,
+                'after_data' => $afterSnapshot,
+                'reason' => 'Pemisahan transaksi ke '.count($preparedSplits).' kategori',
+                'created_at' => now(),
+            ]);
+
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'split_created',
+                description: "Memisahkan transaksi #{$lockedTransaction->id} '{$lockedTransaction->description}' ke ".count($preparedSplits).' kategori',
+                space: $space,
+                actor: $actor,
+                subject: $lockedTransaction,
+                subjectLabel: "#{$lockedTransaction->id} {$lockedTransaction->description}",
+                properties: [
+                    'splits_count' => count($preparedSplits),
+                    'total_amount' => $totalAmount,
+                ]
+            );
+
+            return $lockedTransaction->fresh(['category', 'member', 'splits.category', 'splits.member']);
+        });
+    }
+
+    /**
+     * Batalkan pemisahan alokasi transaksi (unsplit), kembalikan ke pencatatan kategori tunggal.
+     *
+     * @throws ValidationException
+     */
+    public function unsplitTransaction(FinancialTransaction $transaction, User $actor, ?int $fallbackCategoryId = null): FinancialTransaction
+    {
+        if ($transaction->isVoid()) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Transaksi yang telah dibatalkan (void) tidak dapat diubah.',
+            ]);
+        }
+
+        if (! $transaction->is_split) {
+            return $transaction;
+        }
+
+        $space = $transaction->space;
+
+        if ($fallbackCategoryId !== null) {
+            $category = Category::where('space_id', $space->id)
+                ->where('id', $fallbackCategoryId)
+                ->active()
+                ->first();
+
+            if (! $category) {
+                throw ValidationException::withMessages([
+                    'fallback_category_id' => 'Kategori pengganti tidak valid atau bukan milik ruang aktif.',
+                ]);
+            }
+        }
+
+        return DB::transaction(function () use ($transaction, $actor, $space, $fallbackCategoryId) {
+            $lockedTransaction = FinancialTransaction::where('id', $transaction->id)->lockForUpdate()->firstOrFail();
+
+            $beforeSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            $lockedTransaction->splits()->delete();
+
+            $updates = [
+                'is_split' => false,
+                'updated_by' => $actor->id,
+                'version' => $lockedTransaction->version + 1,
+            ];
+
+            if ($fallbackCategoryId !== null) {
+                $updates['category_id'] = $fallbackCategoryId;
+            }
+
+            $lockedTransaction->update($updates);
+
+            $afterSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            TransactionRevision::create([
+                'transaction_id' => $lockedTransaction->id,
+                'actor_id' => $actor->id,
+                'before_data' => $beforeSnapshot,
+                'after_data' => $afterSnapshot,
+                'reason' => 'Pembatalan pemisahan transaksi (unsplit)',
+                'created_at' => now(),
+            ]);
+
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'split_removed',
+                description: "Membatalkan pemisahan transaksi #{$lockedTransaction->id} '{$lockedTransaction->description}'",
+                space: $space,
+                actor: $actor,
+                subject: $lockedTransaction,
+                subjectLabel: "#{$lockedTransaction->id} {$lockedTransaction->description}",
+            );
+
+            return $lockedTransaction->fresh(['category', 'member', 'splits']);
+        });
+    }
+
+    /**
+     * Validasi dan siapkan baris alokasi pemisahan transaksi.
+     *
+     * @param  array<int, array{category_id?: int|string|null, member_id?: int|string|null, amount?: float|int|string|null, notes?: string|null}>  $splits
+     * @return array<int, array{category_id: int, member_id: int|null, amount: float, notes: string|null}>
+     *
+     * @throws ValidationException
+     */
+    private function validateAndPrepareSplits(Space $space, string $transactionType, float $totalAmount, array $splits): array
+    {
+        if (count($splits) < 2) {
+            throw ValidationException::withMessages([
+                'splits' => 'Pemisahan transaksi membutuhkan minimal 2 baris alokasi.',
+            ]);
+        }
+
+        $expectedType = match ($transactionType) {
+            'expense' => 'expense',
+            'income' => 'income',
+            default => null,
+        };
+
+        if ($expectedType === null) {
+            throw ValidationException::withMessages([
+                'splits' => 'Hanya transaksi pengeluaran atau pemasukan yang dapat dipisahkan ke beberapa alokasi.',
+            ]);
+        }
+
+        $prepared = [];
+        $allocatedSum = 0.0;
+
+        foreach ($splits as $index => $split) {
+            $rowNum = $index + 1;
+            $catId = ! empty($split['category_id']) ? (int) $split['category_id'] : null;
+
+            if (! $catId) {
+                throw ValidationException::withMessages([
+                    "splits.{$index}.category_id" => "Kategori pada baris alokasi #{$rowNum} wajib dipilih.",
+                ]);
+            }
+
+            $category = Category::where('space_id', $space->id)
+                ->where('id', $catId)
+                ->where('type', $expectedType)
+                ->active()
+                ->first();
+
+            if (! $category) {
+                throw ValidationException::withMessages([
+                    "splits.{$index}.category_id" => "Kategori pada baris alokasi #{$rowNum} tidak valid atau bukan milik ruang aktif.",
+                ]);
+            }
+
+            $amount = round((float) ($split['amount'] ?? 0), 2);
+            if ($amount <= 0) {
+                throw ValidationException::withMessages([
+                    "splits.{$index}.amount" => "Nominal pada baris alokasi #{$rowNum} harus lebih dari 0.",
+                ]);
+            }
+
+            $memberId = ! empty($split['member_id']) ? (int) $split['member_id'] : null;
+            if ($memberId) {
+                $memberExists = Member::where('space_id', $space->id)->where('id', $memberId)->exists();
+                if (! $memberExists) {
+                    throw ValidationException::withMessages([
+                        "splits.{$index}.member_id" => "Pihak/Member pada baris alokasi #{$rowNum} tidak valid.",
+                    ]);
+                }
+            }
+
+            $allocatedSum += $amount;
+            $prepared[] = [
+                'category_id' => $category->id,
+                'member_id' => $memberId,
+                'amount' => $amount,
+                'notes' => ! empty($split['notes']) ? trim((string) $split['notes']) : null,
+            ];
+        }
+
+        $allocatedSum = round($allocatedSum, 2);
+        $totalAmount = round($totalAmount, 2);
+        $diff = round(abs($allocatedSum - $totalAmount), 2);
+
+        if ($diff >= 0.01) {
+            $formattedAllocated = 'Rp '.number_format($allocatedSum, 0, ',', '.');
+            $formattedTotal = 'Rp '.number_format($totalAmount, 0, ',', '.');
+            $formattedDiff = 'Rp '.number_format($diff, 0, ',', '.');
+
+            $statusText = $allocatedSum > $totalAmount ? 'Kelebihan alokasi' : 'Kekurangan alokasi';
+
+            throw ValidationException::withMessages([
+                'splits' => "Total alokasi pemisahan ({$formattedAllocated}) harus tepat sama dengan total nominal transaksi ({$formattedTotal}). {$statusText}: {$formattedDiff}.",
+            ]);
+        }
+
+        return $prepared;
     }
 }

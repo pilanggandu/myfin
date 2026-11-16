@@ -748,7 +748,12 @@
                                     @if ($trx->formattedTime())
                                         <span class="text-muted/75 font-mono text-[11px]">({{ $trx->formattedTime() }})</span>
                                     @endif
-                                    @if ($trx->category)
+                                    @if ($trx->isSplit())
+                                        <span class="text-line">&bull;</span>
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-forest/10 text-forest dark:bg-forest/20 dark:text-forest-light border border-forest/20" title="Terbagi ke {{ $trx->splits->count() }} kategori: {{ $trx->splits->map(fn($s) => $s->category?->name)->filter()->implode(', ') }}">
+                                            <span>✂️ Pisah ({{ $trx->splits->count() }})</span>
+                                        </span>
+                                    @elseif ($trx->category)
                                         <span class="text-line">&bull;</span>
                                         <span>{{ $trx->category->name }}</span>
                                     @endif
@@ -944,7 +949,11 @@
                                     @endif
                                 </td>
                                 <td class="py-4 px-4 whitespace-nowrap">
-                                    @if ($trx->category)
+                                    @if ($trx->isSplit())
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-forest/10 text-forest dark:bg-forest/20 dark:text-forest-light border border-forest/20" title="Terbagi ke {{ $trx->splits->count() }} kategori: {{ $trx->splits->map(fn($s) => $s->category?->name)->filter()->implode(', ') }}">
+                                            <span>✂️ Pisah ({{ $trx->splits->count() }})</span>
+                                        </span>
+                                    @elseif ($trx->category)
                                         <x-badge variant="default">{{ $trx->category->name }}</x-badge>
                                     @else
                                         <span class="text-muted">-</span>

@@ -23,6 +23,15 @@ class StoreTransactionRequest extends FormRequest
         if ($this->has('fee_amount')) {
             $this->merge(['fee_amount' => $this->normalizeMonetaryInput($this->input('fee_amount'))]);
         }
+        if ($this->has('splits') && is_array($this->input('splits'))) {
+            $splits = $this->input('splits');
+            foreach ($splits as $key => $split) {
+                if (isset($split['amount'])) {
+                    $splits[$key]['amount'] = $this->normalizeMonetaryInput($split['amount']);
+                }
+            }
+            $this->merge(['splits' => $splits]);
+        }
     }
 
     public function rules(): array
@@ -46,6 +55,9 @@ class StoreTransactionRequest extends FormRequest
             ],
         ];
 
+        $isSplit = $this->boolean('is_split');
+        $rules['is_split'] = ['nullable', 'boolean'];
+
         if ($this->type === 'income' || $this->type === 'expense') {
             $rules['account_id'] = [
                 'required',
@@ -55,13 +67,34 @@ class StoreTransactionRequest extends FormRequest
                     ->whereNull('archived_at'),
             ];
             $rules['category_id'] = [
-                'required',
+                $isSplit ? 'nullable' : 'required',
                 'integer',
                 Rule::exists('categories', 'id')
                     ->where('space_id', $spaceId)
                     ->where('type', $this->type)
                     ->whereNull('archived_at'),
             ];
+
+            if ($isSplit) {
+                $rules['splits'] = ['required', 'array', 'min:2'];
+                $rules['splits.*.category_id'] = [
+                    'required',
+                    'integer',
+                    Rule::exists('categories', 'id')
+                        ->where('space_id', $spaceId)
+                        ->where('type', $this->type)
+                        ->whereNull('archived_at'),
+                ];
+                $rules['splits.*.member_id'] = [
+                    'nullable',
+                    'integer',
+                    Rule::exists('members', 'id')
+                        ->where('space_id', $spaceId)
+                        ->whereNull('archived_at'),
+                ];
+                $rules['splits.*.amount'] = ['required', 'numeric', 'min:0.01'];
+                $rules['splits.*.notes'] = ['nullable', 'string', 'max:255'];
+            }
         } elseif ($this->type === 'transfer') {
             $rules['source_account_id'] = [
                 'required',
