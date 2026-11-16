@@ -105,6 +105,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/transactions/{transaction}/split', [FinancialTransactionController::class, 'split'])->name('transactions.split');
     Route::post('/transactions/{transaction}/unsplit', [FinancialTransactionController::class, 'unsplit'])->name('transactions.unsplit');
     Route::delete('/transactions/{transaction}/split', [FinancialTransactionController::class, 'unsplit'])->name('transactions.split.destroy');
+    Route::post('/transactions/{transaction}/split-payment', [FinancialTransactionController::class, 'splitPayment'])->name('transactions.split-payment');
+    Route::post('/transactions/{transaction}/unsplit-payment', [FinancialTransactionController::class, 'unsplitPayment'])->name('transactions.unsplit-payment');
 
     Route::get('/transaction-rules', [TransactionRuleController::class, 'index'])->name('transaction-rules.index');
     Route::post('/transaction-rules', [TransactionRuleController::class, 'store'])->name('transaction-rules.store');

@@ -413,9 +413,10 @@ class TransactionAnomalyService
             ->whereNotNull('financial_transactions.category_id')
             ->whereDate('financial_transactions.transaction_date', '>=', $sinceDate)
             ->where('transaction_entries.amount_signed', '<', 0)
+            ->groupBy('financial_transactions.id', 'financial_transactions.category_id')
             ->select(
                 'financial_transactions.category_id',
-                DB::raw('ABS(transaction_entries.amount_signed) as amount')
+                DB::raw('ABS(SUM(transaction_entries.amount_signed)) as amount')
             )
             ->get();
 
@@ -471,9 +472,10 @@ class TransactionAnomalyService
                         ->where('transaction_entries.amount_signed', '>', 0);
                 });
             })
+            ->groupBy('financial_transactions.id', 'financial_transactions.type')
             ->select(
                 'financial_transactions.type',
-                DB::raw('ABS(transaction_entries.amount_signed) as amount')
+                DB::raw('ABS(SUM(transaction_entries.amount_signed)) as amount')
             )
             ->get();
 

@@ -39,28 +39,36 @@ class TransactionService
 
         try {
             return DB::transaction(function () use ($space, $actor, $data, $requestKey) {
-                $account = Account::where('space_id', $space->id)
-                    ->where('id', $data['account_id'])
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $account) {
-                    throw ValidationException::withMessages([
-                        'account_id' => 'Rekening tidak valid atau bukan milik ruang aktif.',
-                    ]);
-                }
-
-                if ($account->isArchived()) {
-                    throw ValidationException::withMessages([
-                        'account_id' => 'Rekening yang telah diarsipkan tidak dapat menerima mutasi transaksi.',
-                    ]);
-                }
-
                 $amount = round((float) $data['amount'], 2);
                 if ($amount <= 0) {
                     throw ValidationException::withMessages([
                         'amount' => 'Nominal transaksi harus lebih dari 0.',
                     ]);
+                }
+
+                $isSplitPayment = ! empty($data['is_split_payment']) && ! empty($data['payments']) && is_array($data['payments']);
+                $preparedPayments = [];
+                $account = null;
+
+                if ($isSplitPayment) {
+                    $preparedPayments = $this->validateAndPreparePayments($space, $amount, $data['payments']);
+                } else {
+                    $account = Account::where('space_id', $space->id)
+                        ->where('id', $data['account_id'] ?? null)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $account) {
+                        throw ValidationException::withMessages([
+                            'account_id' => 'Rekening tidak valid atau bukan milik ruang aktif.',
+                        ]);
+                    }
+
+                    if ($account->isArchived()) {
+                        throw ValidationException::withMessages([
+                            'account_id' => 'Rekening yang telah diarsipkan tidak dapat menerima mutasi transaksi.',
+                        ]);
+                    }
                 }
 
                 $isSplit = ! empty($data['is_split']) && ! empty($data['splits']) && is_array($data['splits']);
@@ -95,15 +103,25 @@ class TransactionService
                     'member_id' => $data['member_id'] ?? null,
                     'status' => 'posted',
                     'is_split' => $isSplit,
+                    'is_split_payment' => $isSplitPayment,
                     'request_key' => $requestKey,
                     'created_by' => $actor->id,
                     'version' => 1,
                 ]);
 
-                $transaction->entries()->create([
-                    'account_id' => $account->id,
-                    'amount_signed' => $amount,
-                ]);
+                if ($isSplitPayment) {
+                    foreach ($preparedPayments as $p) {
+                        $transaction->entries()->create([
+                            'account_id' => $p['account']->id,
+                            'amount_signed' => $p['amount'],
+                        ]);
+                    }
+                } else {
+                    $transaction->entries()->create([
+                        'account_id' => $account->id,
+                        'amount_signed' => $amount,
+                    ]);
+                }
 
                 if ($isSplit) {
                     foreach ($preparedSplits as $split) {
@@ -118,10 +136,14 @@ class TransactionService
                 }
 
                 if (empty($data['skip_activity_log'])) {
+                    $accountLabel = $isSplitPayment
+                        ? count($preparedPayments).' rekening ('.collect($preparedPayments)->map(fn ($p) => $p['account']->name)->implode(', ').')'
+                        : $account->name;
+
                     $this->activityLog->log(
                         module: 'transaction',
                         action: 'created',
-                        description: "Mencatat pemasukan '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." ke {$account->name}",
+                        description: "Mencatat pemasukan '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." ke {$accountLabel}",
                         space: $space,
                         actor: $actor,
                         subject: $transaction,
@@ -129,7 +151,8 @@ class TransactionService
                         properties: [
                             'type' => 'income',
                             'amount' => $amount,
-                            'account' => $account->name,
+                            'account' => $accountLabel,
+                            'is_split_payment' => $isSplitPayment,
                             'category' => $category->name,
                             'date' => $transaction->transaction_date->toDateString(),
                         ],
@@ -168,28 +191,36 @@ class TransactionService
 
         try {
             return DB::transaction(function () use ($space, $actor, $data, $requestKey) {
-                $account = Account::where('space_id', $space->id)
-                    ->where('id', $data['account_id'])
-                    ->lockForUpdate()
-                    ->first();
-
-                if (! $account) {
-                    throw ValidationException::withMessages([
-                        'account_id' => 'Rekening tidak valid atau bukan milik ruang aktif.',
-                    ]);
-                }
-
-                if ($account->isArchived()) {
-                    throw ValidationException::withMessages([
-                        'account_id' => 'Rekening yang telah diarsipkan tidak dapat melakukan mutasi transaksi.',
-                    ]);
-                }
-
                 $amount = round((float) $data['amount'], 2);
                 if ($amount <= 0) {
                     throw ValidationException::withMessages([
                         'amount' => 'Nominal transaksi harus lebih dari 0.',
                     ]);
+                }
+
+                $isSplitPayment = ! empty($data['is_split_payment']) && ! empty($data['payments']) && is_array($data['payments']);
+                $preparedPayments = [];
+                $account = null;
+
+                if ($isSplitPayment) {
+                    $preparedPayments = $this->validateAndPreparePayments($space, $amount, $data['payments']);
+                } else {
+                    $account = Account::where('space_id', $space->id)
+                        ->where('id', $data['account_id'] ?? null)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $account) {
+                        throw ValidationException::withMessages([
+                            'account_id' => 'Rekening tidak valid atau bukan milik ruang aktif.',
+                        ]);
+                    }
+
+                    if ($account->isArchived()) {
+                        throw ValidationException::withMessages([
+                            'account_id' => 'Rekening yang telah diarsipkan tidak dapat melakukan mutasi transaksi.',
+                        ]);
+                    }
                 }
 
                 $isSplit = ! empty($data['is_split']) && ! empty($data['splits']) && is_array($data['splits']);
@@ -224,15 +255,25 @@ class TransactionService
                     'member_id' => $data['member_id'] ?? null,
                     'status' => 'posted',
                     'is_split' => $isSplit,
+                    'is_split_payment' => $isSplitPayment,
                     'request_key' => $requestKey,
                     'created_by' => $actor->id,
                     'version' => 1,
                 ]);
 
-                $transaction->entries()->create([
-                    'account_id' => $account->id,
-                    'amount_signed' => -$amount,
-                ]);
+                if ($isSplitPayment) {
+                    foreach ($preparedPayments as $p) {
+                        $transaction->entries()->create([
+                            'account_id' => $p['account']->id,
+                            'amount_signed' => -$p['amount'],
+                        ]);
+                    }
+                } else {
+                    $transaction->entries()->create([
+                        'account_id' => $account->id,
+                        'amount_signed' => -$amount,
+                    ]);
+                }
 
                 if ($isSplit) {
                     foreach ($preparedSplits as $split) {
@@ -247,10 +288,14 @@ class TransactionService
                 }
 
                 if (empty($data['skip_activity_log'])) {
+                    $accountLabel = $isSplitPayment
+                        ? count($preparedPayments).' rekening ('.collect($preparedPayments)->map(fn ($p) => $p['account']->name)->implode(', ').')'
+                        : $account->name;
+
                     $this->activityLog->log(
                         module: 'transaction',
                         action: 'created',
-                        description: "Mencatat pengeluaran '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." dari {$account->name}",
+                        description: "Mencatat pengeluaran '{$transaction->description}' sebesar ".$this->activityLog->formatCurrency($amount)." dari {$accountLabel}",
                         space: $space,
                         actor: $actor,
                         subject: $transaction,
@@ -258,7 +303,8 @@ class TransactionService
                         properties: [
                             'type' => 'expense',
                             'amount' => $amount,
-                            'account' => $account->name,
+                            'account' => $accountLabel,
+                            'is_split_payment' => $isSplitPayment,
                             'category' => $category->name,
                             'date' => $transaction->transaction_date->toDateString(),
                         ],
@@ -482,36 +528,58 @@ class TransactionService
             $feeAmount = 0.0;
             $feeCategoryId = null;
 
+            $isSplitPayment = ! empty($data['is_split_payment']) && ! empty($data['payments']) && is_array($data['payments']);
+
             if ($type === 'income') {
-                $account = $this->lockActiveAccount(
-                    $space,
-                    (int) $data['account_id'],
-                    'account_id',
-                    'Rekening yang telah diarsipkan tidak dapat menerima mutasi transaksi.'
-                );
                 $category = $this->resolveActiveCategory($space, (int) $data['category_id'], 'income');
                 $categoryId = $category->id;
 
                 $lockedTransaction->entries()->delete();
-                $lockedTransaction->entries()->create([
-                    'account_id' => $account->id,
-                    'amount_signed' => $amount,
-                ]);
+                if ($isSplitPayment) {
+                    $preparedPayments = $this->validateAndPreparePayments($space, $amount, $data['payments']);
+                    foreach ($preparedPayments as $p) {
+                        $lockedTransaction->entries()->create([
+                            'account_id' => $p['account']->id,
+                            'amount_signed' => $p['amount'],
+                        ]);
+                    }
+                } else {
+                    $account = $this->lockActiveAccount(
+                        $space,
+                        (int) $data['account_id'],
+                        'account_id',
+                        'Rekening yang telah diarsipkan tidak dapat menerima mutasi transaksi.'
+                    );
+                    $lockedTransaction->entries()->create([
+                        'account_id' => $account->id,
+                        'amount_signed' => $amount,
+                    ]);
+                }
             } elseif ($type === 'expense') {
-                $account = $this->lockActiveAccount(
-                    $space,
-                    (int) $data['account_id'],
-                    'account_id',
-                    'Rekening yang telah diarsipkan tidak dapat melakukan mutasi transaksi.'
-                );
                 $category = $this->resolveActiveCategory($space, (int) $data['category_id'], 'expense');
                 $categoryId = $category->id;
 
                 $lockedTransaction->entries()->delete();
-                $lockedTransaction->entries()->create([
-                    'account_id' => $account->id,
-                    'amount_signed' => -$amount,
-                ]);
+                if ($isSplitPayment) {
+                    $preparedPayments = $this->validateAndPreparePayments($space, $amount, $data['payments']);
+                    foreach ($preparedPayments as $p) {
+                        $lockedTransaction->entries()->create([
+                            'account_id' => $p['account']->id,
+                            'amount_signed' => -$p['amount'],
+                        ]);
+                    }
+                } else {
+                    $account = $this->lockActiveAccount(
+                        $space,
+                        (int) $data['account_id'],
+                        'account_id',
+                        'Rekening yang telah diarsipkan tidak dapat melakukan mutasi transaksi.'
+                    );
+                    $lockedTransaction->entries()->create([
+                        'account_id' => $account->id,
+                        'amount_signed' => -$amount,
+                    ]);
+                }
             } elseif ($type === 'transfer') {
                 $sourceId = (int) ($data['source_account_id'] ?? 0);
                 $destId = (int) ($data['destination_account_id'] ?? 0);
@@ -556,6 +624,7 @@ class TransactionService
                 'fee_amount' => $type === 'transfer' ? $feeAmount : 0,
                 'fee_category_id' => $type === 'transfer' ? $feeCategoryId : null,
                 'member_id' => array_key_exists('member_id', $data) ? $data['member_id'] : $lockedTransaction->member_id,
+                'is_split_payment' => $type === 'transfer' ? false : $isSplitPayment,
                 'updated_by' => $actor->id,
                 'version' => $lockedTransaction->version + 1,
             ]);
@@ -1112,6 +1181,7 @@ class TransactionService
             'category_name' => $transaction->category?->name,
             'status' => $transaction->status,
             'is_split' => (bool) $transaction->is_split,
+            'is_split_payment' => (bool) $transaction->is_split_payment,
             'version' => $transaction->version,
             'entries' => $transaction->entries->map(fn ($e): array => [
                 'account_id' => $e->account_id,
@@ -1434,6 +1504,258 @@ class TransactionService
 
             throw ValidationException::withMessages([
                 'splits' => "Total alokasi pemisahan ({$formattedAllocated}) harus tepat sama dengan total nominal transaksi ({$formattedTotal}). {$statusText}: {$formattedDiff}.",
+            ]);
+        }
+
+        return $prepared;
+    }
+
+    /**
+     * Pisahkan sumber rekening pembayaran transaksi ke beberapa rekening (Split Payment).
+     *
+     * @param  array<int, array{account_id: int|string, amount: float|int|string}>  $payments
+     *
+     * @throws ValidationException
+     */
+    public function splitPayment(FinancialTransaction $transaction, User $actor, array $payments): FinancialTransaction
+    {
+        if ($transaction->isVoid()) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Transaksi yang telah dibatalkan (void) tidak dapat diubah rekening pembayarannya.',
+            ]);
+        }
+
+        if (! in_array($transaction->type, ['expense', 'income'], true)) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Hanya transaksi pengeluaran atau pemasukan yang dapat menggunakan split payment.',
+            ]);
+        }
+
+        $space = $transaction->space;
+        $totalAmount = (float) $transaction->totalAmount();
+
+        $preparedPayments = $this->validateAndPreparePayments($space, $totalAmount, $payments);
+
+        return DB::transaction(function () use ($transaction, $actor, $preparedPayments, $space, $totalAmount) {
+            $lockedTransaction = FinancialTransaction::where('id', $transaction->id)->lockForUpdate()->firstOrFail();
+
+            $beforeSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            $lockedTransaction->entries()->delete();
+
+            $isExpense = $lockedTransaction->isExpense();
+            foreach ($preparedPayments as $p) {
+                $lockedTransaction->entries()->create([
+                    'account_id' => $p['account']->id,
+                    'amount_signed' => $isExpense ? -$p['amount'] : $p['amount'],
+                ]);
+            }
+
+            $lockedTransaction->update([
+                'is_split_payment' => true,
+                'updated_by' => $actor->id,
+                'version' => $lockedTransaction->version + 1,
+            ]);
+
+            $afterSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            $accountNames = collect($preparedPayments)->map(fn ($p) => $p['account']->name)->implode(', ');
+
+            TransactionRevision::create([
+                'transaction_id' => $lockedTransaction->id,
+                'actor_id' => $actor->id,
+                'before_data' => $beforeSnapshot,
+                'after_data' => $afterSnapshot,
+                'reason' => 'Pemisahan sumber rekening pembayaran (split payment) ke '.count($preparedPayments)." rekening: {$accountNames}",
+                'created_at' => now(),
+            ]);
+
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'payment_split_created',
+                description: "Membagi sumber pembayaran transaksi #{$lockedTransaction->id} '{$lockedTransaction->description}' ke ".count($preparedPayments)." rekening ({$accountNames})",
+                space: $space,
+                actor: $actor,
+                subject: $lockedTransaction,
+                subjectLabel: "#{$lockedTransaction->id} {$lockedTransaction->description}",
+                properties: [
+                    'payments_count' => count($preparedPayments),
+                    'total_amount' => $totalAmount,
+                ]
+            );
+
+            return $lockedTransaction->fresh(['entries.account', 'category', 'member', 'splits.category', 'splits.member']);
+        });
+    }
+
+    /**
+     * Batalkan split payment, kembalikan pembayaran ke satu rekening tunggal.
+     *
+     * @throws ValidationException
+     */
+    public function unsplitPayment(FinancialTransaction $transaction, User $actor, int $targetAccountId): FinancialTransaction
+    {
+        if ($transaction->isVoid()) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Transaksi yang telah dibatalkan (void) tidak dapat diubah.',
+            ]);
+        }
+
+        if (! in_array($transaction->type, ['expense', 'income'], true)) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Hanya transaksi pengeluaran atau pemasukan yang dapat diubah rekening pembayarannya.',
+            ]);
+        }
+
+        $space = $transaction->space;
+
+        $targetAccount = Account::where('space_id', $space->id)
+            ->where('id', $targetAccountId)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $targetAccount) {
+            throw ValidationException::withMessages([
+                'target_account_id' => 'Rekening tujuan tidak valid atau bukan milik ruang aktif.',
+            ]);
+        }
+
+        if ($targetAccount->isArchived()) {
+            throw ValidationException::withMessages([
+                'target_account_id' => "Rekening '{$targetAccount->name}' telah diarsipkan dan tidak dapat digunakan.",
+            ]);
+        }
+
+        return DB::transaction(function () use ($transaction, $actor, $space, $targetAccount) {
+            $lockedTransaction = FinancialTransaction::where('id', $transaction->id)->lockForUpdate()->firstOrFail();
+
+            $beforeSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+            $totalAmount = (float) $lockedTransaction->totalAmount();
+
+            $lockedTransaction->entries()->delete();
+
+            $isExpense = $lockedTransaction->isExpense();
+            $lockedTransaction->entries()->create([
+                'account_id' => $targetAccount->id,
+                'amount_signed' => $isExpense ? -$totalAmount : $totalAmount,
+            ]);
+
+            $lockedTransaction->update([
+                'is_split_payment' => false,
+                'updated_by' => $actor->id,
+                'version' => $lockedTransaction->version + 1,
+            ]);
+
+            $afterSnapshot = $this->buildRevisionSnapshot($lockedTransaction);
+
+            TransactionRevision::create([
+                'transaction_id' => $lockedTransaction->id,
+                'actor_id' => $actor->id,
+                'before_data' => $beforeSnapshot,
+                'after_data' => $afterSnapshot,
+                'reason' => "Pengembalian split payment ke rekening tunggal: {$targetAccount->name}",
+                'created_at' => now(),
+            ]);
+
+            $this->activityLog->log(
+                module: 'transaction',
+                action: 'payment_split_removed',
+                description: "Mengembalikan sumber rekening transaksi #{$lockedTransaction->id} '{$lockedTransaction->description}' ke rekening tunggal {$targetAccount->name}",
+                space: $space,
+                actor: $actor,
+                subject: $lockedTransaction,
+                subjectLabel: "#{$lockedTransaction->id} {$lockedTransaction->description}",
+                properties: [
+                    'target_account' => $targetAccount->name,
+                    'total_amount' => $totalAmount,
+                ]
+            );
+
+            return $lockedTransaction->fresh(['entries.account', 'category', 'member', 'splits.category', 'splits.member']);
+        });
+    }
+
+    /**
+     * Validasi dan siapkan baris alokasi rekening pembayaran transaksi (Split Payment).
+     *
+     * @param  array<int, array{account_id?: int|string|null, amount?: float|int|string|null}>  $payments
+     * @return array<int, array{account: Account, amount: float}>
+     *
+     * @throws ValidationException
+     */
+    private function validateAndPreparePayments(Space $space, float $totalAmount, array $payments): array
+    {
+        if (count($payments) < 2) {
+            throw ValidationException::withMessages([
+                'payments' => 'Split payment (pembayaran multi-rekening) membutuhkan minimal 2 rekening pembayaran.',
+            ]);
+        }
+
+        $prepared = [];
+        $allocatedSum = 0.0;
+        $seenAccounts = [];
+
+        foreach ($payments as $index => $payment) {
+            $rowNum = $index + 1;
+            $accId = ! empty($payment['account_id']) ? (int) $payment['account_id'] : null;
+
+            if (! $accId) {
+                throw ValidationException::withMessages([
+                    "payments.{$index}.account_id" => "Rekening pada baris pembayaran #{$rowNum} wajib dipilih.",
+                ]);
+            }
+
+            if (in_array($accId, $seenAccounts, true)) {
+                throw ValidationException::withMessages([
+                    "payments.{$index}.account_id" => "Rekening pada baris pembayaran #{$rowNum} dipilih lebih dari satu kali. Gabungkan nominalnya ke satu baris.",
+                ]);
+            }
+            $seenAccounts[] = $accId;
+
+            $account = Account::where('space_id', $space->id)
+                ->where('id', $accId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $account) {
+                throw ValidationException::withMessages([
+                    "payments.{$index}.account_id" => "Rekening pada baris pembayaran #{$rowNum} tidak valid atau bukan milik ruang aktif.",
+                ]);
+            }
+
+            if ($account->isArchived()) {
+                throw ValidationException::withMessages([
+                    "payments.{$index}.account_id" => "Rekening '{$account->name}' telah diarsipkan dan tidak dapat digunakan untuk pembayaran.",
+                ]);
+            }
+
+            $amount = round((float) ($payment['amount'] ?? 0), 2);
+            if ($amount <= 0) {
+                throw ValidationException::withMessages([
+                    "payments.{$index}.amount" => "Nominal pembayaran pada baris #{$rowNum} harus lebih dari 0.",
+                ]);
+            }
+
+            $allocatedSum += $amount;
+            $prepared[] = [
+                'account' => $account,
+                'amount' => $amount,
+            ];
+        }
+
+        $allocatedSum = round($allocatedSum, 2);
+        $totalAmount = round($totalAmount, 2);
+        $diff = round(abs($allocatedSum - $totalAmount), 2);
+
+        if ($diff >= 0.01) {
+            $formattedAllocated = 'Rp '.number_format($allocatedSum, 0, ',', '.');
+            $formattedTotal = 'Rp '.number_format($totalAmount, 0, ',', '.');
+            $formattedDiff = 'Rp '.number_format($diff, 0, ',', '.');
+
+            $statusText = $allocatedSum > $totalAmount ? 'Kelebihan alokasi' : 'Kekurangan alokasi';
+
+            throw ValidationException::withMessages([
+                'payments' => "Total alokasi rekening pembayaran ({$formattedAllocated}) harus tepat sama dengan total nominal transaksi ({$formattedTotal}). {$statusText}: {$formattedDiff}.",
             ]);
         }
 

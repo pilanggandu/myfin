@@ -32,6 +32,15 @@ class StoreTransactionRequest extends FormRequest
             }
             $this->merge(['splits' => $splits]);
         }
+        if ($this->has('payments') && is_array($this->input('payments'))) {
+            $payments = $this->input('payments');
+            foreach ($payments as $key => $payment) {
+                if (isset($payment['amount'])) {
+                    $payments[$key]['amount'] = $this->normalizeMonetaryInput($payment['amount']);
+                }
+            }
+            $this->merge(['payments' => $payments]);
+        }
     }
 
     public function rules(): array
@@ -58,9 +67,12 @@ class StoreTransactionRequest extends FormRequest
         $isSplit = $this->boolean('is_split');
         $rules['is_split'] = ['nullable', 'boolean'];
 
+        $isSplitPayment = $this->boolean('is_split_payment');
+        $rules['is_split_payment'] = ['nullable', 'boolean'];
+
         if ($this->type === 'income' || $this->type === 'expense') {
             $rules['account_id'] = [
-                'required',
+                $isSplitPayment ? 'nullable' : 'required',
                 'integer',
                 Rule::exists('accounts', 'id')
                     ->where('space_id', $spaceId)
@@ -74,6 +86,19 @@ class StoreTransactionRequest extends FormRequest
                     ->where('type', $this->type)
                     ->whereNull('archived_at'),
             ];
+
+            if ($isSplitPayment) {
+                $rules['payments'] = ['required', 'array', 'min:2'];
+                $rules['payments.*.account_id'] = [
+                    'required',
+                    'integer',
+                    'distinct',
+                    Rule::exists('accounts', 'id')
+                        ->where('space_id', $spaceId)
+                        ->whereNull('archived_at'),
+                ];
+                $rules['payments.*.amount'] = ['required', 'numeric', 'min:0.01'];
+            }
 
             if ($isSplit) {
                 $rules['splits'] = ['required', 'array', 'min:2'];
@@ -125,6 +150,22 @@ class StoreTransactionRequest extends FormRequest
         return $rules;
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if ($this->boolean('is_split_payment') && in_array($this->input('type'), ['expense', 'income'], true)) {
+                $totalAmount = (float) $this->input('amount', 0);
+                $payments = $this->input('payments', []);
+                if (is_array($payments) && count($payments) >= 2) {
+                    $sum = round(array_sum(array_map(fn ($p) => (float) ($p['amount'] ?? 0), $payments)), 2);
+                    if (abs($sum - round($totalAmount, 2)) >= 0.01) {
+                        $validator->errors()->add('payments', 'Total alokasi rekening pembayaran (Rp '.number_format($sum, 0, ',', '.').') harus tepat sama dengan total nominal transaksi (Rp '.number_format($totalAmount, 0, ',', '.').').');
+                    }
+                }
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [
@@ -138,6 +179,15 @@ class StoreTransactionRequest extends FormRequest
             'amount.min' => 'Nominal transaksi minimal Rp 1.',
             'account_id.required' => 'Rekening transaksi wajib dipilih.',
             'account_id.exists' => 'Rekening yang dipilih tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
+            'payments.required' => 'Daftar alokasi rekening pembayaran wajib diisi.',
+            'payments.array' => 'Format alokasi rekening pembayaran tidak valid.',
+            'payments.min' => 'Split payment (multi-rekening) membutuhkan minimal 2 rekening pembayaran.',
+            'payments.*.account_id.required' => 'Rekening pada setiap baris pembayaran wajib dipilih.',
+            'payments.*.account_id.integer' => 'Rekening yang dipilih tidak valid.',
+            'payments.*.account_id.distinct' => 'Rekening pembayaran tidak boleh dipilih lebih dari sekali. Gabungkan ke satu baris.',
+            'payments.*.amount.required' => 'Nominal pada setiap baris pembayaran wajib diisi.',
+            'payments.*.amount.numeric' => 'Nominal pembayaran harus berupa angka.',
+            'payments.*.amount.min' => 'Nominal pembayaran minimal Rp 0,01.',
             'category_id.required' => 'Kategori transaksi wajib dipilih.',
             'category_id.exists' => 'Kategori yang dipilih tidak valid, bukan milik ruang aktif, atau telah diarsipkan.',
             'source_account_id.required' => 'Rekening asal transfer wajib dipilih.',

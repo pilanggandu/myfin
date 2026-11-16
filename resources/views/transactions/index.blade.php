@@ -787,6 +787,10 @@
                                 <span class="font-bold text-charcoal text-right">
                                     {{ $trx->sourceAccount()?->name }} &rarr; {{ $trx->destinationAccount()?->name }}
                                 </span>
+                            @elseif ($trx->isSplitPayment())
+                                <span class="font-bold text-purple-700 dark:text-purple-300 text-right inline-flex items-center gap-1">
+                                    <span>💳 {{ $trx->sourceAccount()?->name }} +{{ $trx->sourceAccounts()->count() - 1 }}</span>
+                                </span>
                             @elseif ($trx->isExpense())
                                 <span class="font-bold text-charcoal text-right">{{ $trx->sourceAccount()?->name }}</span>
                             @else
@@ -962,6 +966,10 @@
                                 <td class="py-4 px-4 whitespace-nowrap text-charcoal">
                                     @if ($trx->isTransfer())
                                         <span>{{ $trx->sourceAccount()?->name }} &rarr; {{ $trx->destinationAccount()?->name }}</span>
+                                    @elseif ($trx->isSplitPayment())
+                                        <span class="inline-flex items-center gap-1 font-semibold text-purple-700 dark:text-purple-300" title="{{ $trx->sourceAccounts()->map(fn($a) => $a->name)->implode(', ') }}">
+                                            <span>💳 {{ $trx->sourceAccount()?->name }} +{{ $trx->sourceAccounts()->count() - 1 }}</span>
+                                        </span>
                                     @elseif ($trx->isExpense())
                                         <span>{{ $trx->sourceAccount()?->name }}</span>
                                     @else

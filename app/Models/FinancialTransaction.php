@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class FinancialTransaction extends Model
 {
@@ -26,6 +27,7 @@ class FinancialTransaction extends Model
         'member_id',
         'status',
         'is_split',
+        'is_split_payment',
         'request_key',
         'created_by',
         'updated_by',
@@ -38,6 +40,7 @@ class FinancialTransaction extends Model
             'transaction_date' => 'date',
             'fee_amount' => 'decimal:2',
             'is_split' => 'boolean',
+            'is_split_payment' => 'boolean',
             'version' => 'integer',
         ];
     }
@@ -110,6 +113,29 @@ class FinancialTransaction extends Model
     public function isSplitBalanced(): bool
     {
         return abs($this->totalAmount() - $this->splitTotal()) < 0.01;
+    }
+
+    public function isSplitPayment(): bool
+    {
+        if ($this->is_split_payment) {
+            return true;
+        }
+
+        return $this->isExpense()
+            ? $this->sourceEntries()->count() > 1
+            : ($this->isIncome() ? $this->destinationEntries()->count() > 1 : false);
+    }
+
+    public function splitPaymentTotal(): float
+    {
+        return (float) ($this->isExpense()
+            ? abs($this->sourceEntries()->sum('amount_signed'))
+            : $this->destinationEntries()->sum('amount_signed'));
+    }
+
+    public function isSplitPaymentBalanced(): bool
+    {
+        return abs($this->totalAmount() - $this->splitPaymentTotal()) < 0.01;
     }
 
     public function revisions(): HasMany
@@ -277,14 +303,14 @@ class FinancialTransaction extends Model
     public function totalAmount(): int
     {
         if ($this->isExpense()) {
-            $entry = $this->entries->firstWhere('amount_signed', '<', 0);
+            $entries = $this->entries->where('amount_signed', '<', 0);
 
-            return $entry ? abs((int) $entry->amount_signed) : 0;
+            return $entries->isNotEmpty() ? abs((int) $entries->sum('amount_signed')) : 0;
         }
 
-        $entry = $this->entries->firstWhere('amount_signed', '>', 0);
+        $entries = $this->entries->where('amount_signed', '>', 0);
 
-        return $entry ? (int) $entry->amount_signed : 0;
+        return $entries->isNotEmpty() ? (int) $entries->sum('amount_signed') : 0;
     }
 
     public function totalDeductedFromSource(): int|float
@@ -301,9 +327,47 @@ class FinancialTransaction extends Model
         return $this->entries->firstWhere('amount_signed', '<', 0)?->account;
     }
 
+    /**
+     * @return Collection<int, Account>
+     */
+    public function sourceAccounts(): Collection
+    {
+        return $this->sourceEntries()
+            ->map(fn (TransactionEntry $entry): ?Account => $entry->account)
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, TransactionEntry>
+     */
+    public function sourceEntries(): Collection
+    {
+        return $this->entries->where('amount_signed', '<', 0)->values();
+    }
+
     public function destinationAccount(): ?Account
     {
         return $this->entries->firstWhere('amount_signed', '>', 0)?->account;
+    }
+
+    /**
+     * @return Collection<int, Account>
+     */
+    public function destinationAccounts(): Collection
+    {
+        return $this->destinationEntries()
+            ->map(fn (TransactionEntry $entry): ?Account => $entry->account)
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, TransactionEntry>
+     */
+    public function destinationEntries(): Collection
+    {
+        return $this->entries->where('amount_signed', '>', 0)->values();
     }
 
     public function getFormattedAmountAttribute(): string

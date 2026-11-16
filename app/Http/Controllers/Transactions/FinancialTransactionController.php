@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Transactions;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\BulkCorrectTransactionsRequest;
+use App\Http\Requests\Transaction\SplitPaymentRequest;
 use App\Http\Requests\Transaction\SplitTransactionRequest;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
@@ -340,13 +341,14 @@ class FinancialTransactionController extends Controller
         $anomalyData = $this->anomalyService->detectAnomaliesForSingleTransaction($transaction);
 
         $space = $transaction->space;
+        $accounts = $space->activeAccounts()->orderBy('name')->get();
         $categories = $space->activeCategories()
             ->where('type', $transaction->type === 'income' ? 'income' : 'expense')
             ->orderBy('name')
             ->get();
         $members = $space->customMembers()->active()->orderBy('name')->get();
 
-        return view('transactions.show', compact('transaction', 'anomalyData', 'categories', 'members'));
+        return view('transactions.show', compact('transaction', 'anomalyData', 'categories', 'members', 'accounts'));
     }
 
     public function edit(FinancialTransaction $transaction): View|RedirectResponse
@@ -472,6 +474,62 @@ class FinancialTransactionController extends Controller
         $updated = $this->transactionService->unsplitTransaction($transaction, $request->user(), $fallbackCategoryId);
 
         $message = 'Pemisahan transaksi berhasil dibatalkan.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'transaction' => $updated,
+            ]);
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('success', $message);
+    }
+
+    /**
+     * Pisahkan sumber rekening pembayaran (Split Payment).
+     */
+    public function splitPayment(SplitPaymentRequest $request, FinancialTransaction $transaction): RedirectResponse|JsonResponse
+    {
+        Gate::authorize('update', $transaction);
+
+        $validated = $request->validated();
+
+        $updated = $this->transactionService->splitPayment($transaction, $request->user(), $validated['payments']);
+
+        $message = 'Sumber rekening pembayaran transaksi berhasil dibagi ke '.$updated->sourceEntries()->count().' rekening.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'transaction' => $updated,
+            ]);
+        }
+
+        return redirect()->route('transactions.show', $transaction)
+            ->with('success', $message);
+    }
+
+    /**
+     * Batalkan split payment, kembalikan ke satu rekening pembayaran tunggal.
+     */
+    public function unsplitPayment(Request $request, FinancialTransaction $transaction): RedirectResponse|JsonResponse
+    {
+        Gate::authorize('update', $transaction);
+
+        $request->validate([
+            'target_account_id' => ['required', 'integer'],
+        ]);
+
+        $updated = $this->transactionService->unsplitPayment(
+            $transaction,
+            $request->user(),
+            (int) $request->input('target_account_id')
+        );
+
+        $message = 'Split payment berhasil dibatalkan dan dialihkan ke satu rekening.';
 
         if ($request->expectsJson()) {
             return response()->json([

@@ -377,6 +377,48 @@
                             </div>
                         </div>
 
+                        <!-- Opsi Pembayaran Multi-Rekening (Split Payment) -->
+                        <div id="splitPaymentSection" class="pt-3 border-t border-line/60 space-y-3">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input 
+                                    type="checkbox" 
+                                    name="is_split_payment" 
+                                    id="isSplitPaymentCheckbox" 
+                                    value="1" 
+                                    {{ old('is_split_payment') ? 'checked' : '' }}
+                                    onchange="toggleCreateSplitPayment(this.checked)"
+                                    class="w-4 h-4 rounded border-line text-forest focus-visible:outline-forest cursor-pointer"
+                                >
+                                <span class="text-xs font-bold text-charcoal flex items-center gap-1.5 flex-wrap">
+                                    <span>💳 Bayar dengan beberapa rekening (Split Payment / Multi-Account)</span>
+                                    <span class="text-[10px] font-normal text-muted">(Kombinasikan sumber dana, misal: Bank BCA + Kas Tunai/GoPay)</span>
+                                </span>
+                            </label>
+                            @error('payments')
+                                <div class="field-error text-xs text-red mt-1"><span>{{ $message }}</span></div>
+                            @enderror
+
+                            <div id="createSplitPaymentContainer" class="{{ old('is_split_payment') ? '' : 'hidden' }} space-y-3 p-4 rounded-xl border border-purple-500/20 bg-purple-500/5 dark:bg-purple-950/10">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-purple-700 dark:text-purple-300">Rincian Rekening Pembayaran</span>
+                                    <span class="text-[11px] text-muted">Minimal 2 rekening</span>
+                                </div>
+
+                                <div id="createSplitPaymentRows" class="space-y-2.5">
+                                    <!-- Diisi oleh JS -->
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-purple-500/10">
+                                    <button type="button" onclick="addCreateSplitPaymentRow()" class="btn-arus-secondary text-xs min-h-[34px] px-3 font-semibold cursor-pointer">
+                                        + Tambah Rekening Pembayaran
+                                    </button>
+                                    <div class="text-xs font-mono font-bold" id="createSplitPaymentStatus">
+                                        <!-- Live status -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Opsi Pemisahan Transaksi (Split Transaction) -->
                         <div id="splitTransactionSection" class="pt-3 border-t border-line/60 space-y-3">
                             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
@@ -697,11 +739,13 @@
                 const feeDisplay = document.getElementById('fee_amount_display');
                 const feeCatSelect = document.getElementById('fee_category_id');
                 const splitSection = document.getElementById('splitTransactionSection');
+                const splitPaymentSection = document.getElementById('splitPaymentSection');
 
                 if (type === 'transfer') {
                     singleBlock.classList.add('hidden');
                     transferBlock.classList.remove('hidden');
                     if (splitSection) splitSection.classList.add('hidden');
+                    if (splitPaymentSection) splitPaymentSection.classList.add('hidden');
 
                     accountSelect.disabled = true;
                     expenseCatSelect.disabled = true;
@@ -716,6 +760,7 @@
                     singleBlock.classList.remove('hidden');
                     transferBlock.classList.add('hidden');
                     if (splitSection) splitSection.classList.remove('hidden');
+                    if (splitPaymentSection) splitPaymentSection.classList.remove('hidden');
 
                     accountSelect.disabled = false;
                     sourceAccSelect.disabled = true;
@@ -878,6 +923,136 @@
                 } else {
                     statusEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400">Kelebihan Rp ${Math.round(Math.abs(diff)).toLocaleString('id-ID')}</span>`;
                 }
+            }
+
+            let createSplitPaymentIdx = 0;
+            const createAccounts = {!! json_encode($accounts->map(fn($a) => ['id' => $a->id, 'name' => $a->name, 'type' => $a->type, 'balance' => $a->currentBalance()])) !!};
+
+            function toggleCreateSplitPayment(active) {
+                const container = document.getElementById('createSplitPaymentContainer');
+                const accountSelect = document.getElementById('account_id');
+                const accountLabel = document.getElementById('accountLabel');
+
+                if (active) {
+                    container.classList.remove('hidden');
+                    if (accountSelect) {
+                        accountSelect.required = false;
+                        accountSelect.disabled = true;
+                    }
+                    if (accountLabel) {
+                        accountLabel.classList.add('opacity-40');
+                    }
+
+                    const rows = document.querySelectorAll('.create-split-payment-row');
+                    if (rows.length < 2) {
+                        const rowsContainer = document.getElementById('createSplitPaymentRows');
+                        rowsContainer.innerHTML = '';
+                        createSplitPaymentIdx = 0;
+                        const targetAmt = parseFloat(document.getElementById('amountInput')?.value) || 0;
+                        const currentAccId = accountSelect ? accountSelect.value : null;
+                        const acc1 = currentAccId || (createAccounts[0] ? createAccounts[0].id : null);
+                        const acc2 = createAccounts.find(a => Number(a.id) !== Number(acc1))?.id || (createAccounts[1] ? createAccounts[1].id : null);
+                        const half1 = targetAmt > 0 ? Math.round(targetAmt / 2) : '';
+                        const half2 = targetAmt > 0 ? Math.round(targetAmt - half1) : '';
+                        addCreateSplitPaymentRow(acc1, half1);
+                        addCreateSplitPaymentRow(acc2, half2);
+                    }
+                    recalculateCreateSplitPayment();
+                } else {
+                    container.classList.add('hidden');
+                    if (accountSelect) {
+                        accountSelect.required = true;
+                        accountSelect.disabled = false;
+                    }
+                    if (accountLabel) {
+                        accountLabel.classList.remove('opacity-40');
+                    }
+                }
+                updateReceipt();
+            }
+
+            function addCreateSplitPaymentRow(accId = null, amount = '') {
+                const container = document.getElementById('createSplitPaymentRows');
+                const idx = createSplitPaymentIdx++;
+
+                let accOpts = '<option value="">-- Pilih Rekening --</option>';
+                createAccounts.forEach(a => {
+                    const sel = accId && Number(accId) === Number(a.id) ? 'selected' : '';
+                    const bal = 'Rp ' + Math.round(a.balance).toLocaleString('id-ID');
+                    accOpts += `<option value="${a.id}" ${sel}>${a.name} (${bal})</option>`;
+                });
+
+                const div = document.createElement('div');
+                div.className = 'p-3 rounded-lg border border-line bg-panel space-y-2 create-split-payment-row';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-muted uppercase">Rekening Pembayaran #${idx + 1}</span>
+                        <button type="button" onclick="removeCreateSplitPaymentRow(this)" class="text-muted hover:text-red text-xs px-1 cursor-pointer" title="Hapus Baris">✕ Hapus</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <select name="payments[${idx}][account_id]" class="field-select w-full text-xs create-split-payment-acc" required onchange="recalculateCreateSplitPayment()">
+                                ${accOpts}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <input type="number" step="any" min="0.01" name="payments[${idx}][amount]" value="${amount}" placeholder="Nominal bayar (Rp)" class="field-input flex-1 text-xs font-mono font-bold create-split-payment-amt" required oninput="recalculateCreateSplitPayment()">
+                            <button type="button" onclick="fillRemainingSplitPayment(this)" class="btn-arus-secondary text-[11px] px-2.5 py-2 whitespace-nowrap cursor-pointer shrink-0" title="Isi sisa alokasi ke rekening ini">
+                                Isi Sisa
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(div);
+                recalculateCreateSplitPayment();
+            }
+
+            function removeCreateSplitPaymentRow(btn) {
+                const rows = document.querySelectorAll('.create-split-payment-row');
+                if (rows.length <= 2) {
+                    alert('Minimal 2 rekening pembayaran untuk split payment.');
+                    return;
+                }
+                btn.closest('.create-split-payment-row').remove();
+                recalculateCreateSplitPayment();
+            }
+
+            function fillRemainingSplitPayment(btn) {
+                const targetAmt = parseFloat(document.getElementById('amountInput')?.value) || 0;
+                const row = btn.closest('.create-split-payment-row');
+                const currentInput = row.querySelector('.create-split-payment-amt');
+                let otherSum = 0;
+                document.querySelectorAll('.create-split-payment-amt').forEach(inp => {
+                    if (inp !== currentInput) {
+                        otherSum += parseFloat(inp.value) || 0;
+                    }
+                });
+                const remaining = Math.max(0, Math.round((targetAmt - otherSum) * 100) / 100);
+                currentInput.value = remaining > 0 ? remaining : '';
+                recalculateCreateSplitPayment();
+            }
+
+            function recalculateCreateSplitPayment() {
+                const targetAmt = parseFloat(document.getElementById('amountInput')?.value) || 0;
+                const amtInputs = document.querySelectorAll('.create-split-payment-amt');
+                let sum = 0;
+                amtInputs.forEach(inp => {
+                    sum += parseFloat(inp.value) || 0;
+                });
+                sum = Math.round(sum * 100) / 100;
+                const diff = Math.round((targetAmt - sum) * 100) / 100;
+                const statusEl = document.getElementById('createSplitPaymentStatus');
+                if (!statusEl) return;
+
+                if (Math.abs(diff) < 0.01 && targetAmt > 0) {
+                    statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400">✓ Alokasi Pas (Rp ${Math.round(sum).toLocaleString('id-ID')})</span>`;
+                } else if (diff > 0) {
+                    statusEl.innerHTML = `<span class="text-amber-600 dark:text-amber-400">Kurang Rp ${Math.round(diff).toLocaleString('id-ID')} (Total: Rp ${Math.round(sum).toLocaleString('id-ID')} / Rp ${Math.round(targetAmt).toLocaleString('id-ID')})</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400">Kelebihan Rp ${Math.round(Math.abs(diff)).toLocaleString('id-ID')}</span>`;
+                }
+                updateReceipt();
             }
 
             function applyPagePreset(desc, amount, type, categoryKeyword) {
@@ -1173,27 +1348,33 @@
                     }
 
                     receiptAccountLabel.textContent = 'Rekening Sumber:';
-                    const accSelect = document.getElementById('account_id');
-                    const selectedAcc = accSelect.options[accSelect.selectedIndex];
-                    if (selectedAcc && selectedAcc.value) {
-                        const accName = selectedAcc.getAttribute('data-name');
-                        const balance = parseInt(selectedAcc.getAttribute('data-balance'), 10) || 0;
-                        const projected = balance - amountVal;
-                        receiptAccName.textContent = accName;
-                        balanceSimulation.classList.remove('hidden');
-                        balanceSimulation.innerHTML = `
-                            <div class="flex justify-between">
-                                <span>Saldo saat ini:</span>
-                                <span class="font-semibold">${formatRupiah(balance)}</span>
-                            </div>
-                            <div class="flex justify-between font-bold text-rose-500 pt-0.5">
-                                <span>Saldo setelah transaksi:</span>
-                                <span>${formatRupiah(projected)}</span>
-                            </div>
-                        `;
-                    } else {
-                        receiptAccName.textContent = '(Belum dipilih)';
+                    if (document.getElementById('isSplitPaymentCheckbox')?.checked) {
+                        const pRows = document.querySelectorAll('.create-split-payment-row');
+                        receiptAccName.textContent = `💳 Terbagi (${pRows.length} Rekening)`;
                         balanceSimulation.classList.add('hidden');
+                    } else {
+                        const accSelect = document.getElementById('account_id');
+                        const selectedAcc = accSelect.options[accSelect.selectedIndex];
+                        if (selectedAcc && selectedAcc.value) {
+                            const accName = selectedAcc.getAttribute('data-name');
+                            const balance = parseInt(selectedAcc.getAttribute('data-balance'), 10) || 0;
+                            const projected = balance - amountVal;
+                            receiptAccName.textContent = accName;
+                            balanceSimulation.classList.remove('hidden');
+                            balanceSimulation.innerHTML = `
+                                <div class="flex justify-between">
+                                    <span>Saldo saat ini:</span>
+                                    <span class="font-semibold">${formatRupiah(balance)}</span>
+                                </div>
+                                <div class="flex justify-between font-bold text-rose-500 pt-0.5">
+                                    <span>Saldo setelah transaksi:</span>
+                                    <span>${formatRupiah(projected)}</span>
+                                </div>
+                            `;
+                        } else {
+                            receiptAccName.textContent = '(Belum dipilih)';
+                            balanceSimulation.classList.add('hidden');
+                        }
                     }
                 } else if (currentType === 'income') {
                     receiptBadge.textContent = 'PEMASUKAN';
@@ -1212,27 +1393,33 @@
                     }
 
                     receiptAccountLabel.textContent = 'Rekening Tujuan:';
-                    const accSelect = document.getElementById('account_id');
-                    const selectedAcc = accSelect.options[accSelect.selectedIndex];
-                    if (selectedAcc && selectedAcc.value) {
-                        const accName = selectedAcc.getAttribute('data-name');
-                        const balance = parseInt(selectedAcc.getAttribute('data-balance'), 10) || 0;
-                        const projected = balance + amountVal;
-                        receiptAccName.textContent = accName;
-                        balanceSimulation.classList.remove('hidden');
-                        balanceSimulation.innerHTML = `
-                            <div class="flex justify-between">
-                                <span>Saldo saat ini:</span>
-                                <span class="font-semibold">${formatRupiah(balance)}</span>
-                            </div>
-                            <div class="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-0.5">
-                                <span>Saldo setelah transaksi:</span>
-                                <span>${formatRupiah(projected)}</span>
-                            </div>
-                        `;
-                    } else {
-                        receiptAccName.textContent = '(Belum dipilih)';
+                    if (document.getElementById('isSplitPaymentCheckbox')?.checked) {
+                        const pRows = document.querySelectorAll('.create-split-payment-row');
+                        receiptAccName.textContent = `💳 Terbagi (${pRows.length} Rekening)`;
                         balanceSimulation.classList.add('hidden');
+                    } else {
+                        const accSelect = document.getElementById('account_id');
+                        const selectedAcc = accSelect.options[accSelect.selectedIndex];
+                        if (selectedAcc && selectedAcc.value) {
+                            const accName = selectedAcc.getAttribute('data-name');
+                            const balance = parseInt(selectedAcc.getAttribute('data-balance'), 10) || 0;
+                            const projected = balance + amountVal;
+                            receiptAccName.textContent = accName;
+                            balanceSimulation.classList.remove('hidden');
+                            balanceSimulation.innerHTML = `
+                                <div class="flex justify-between">
+                                    <span>Saldo saat ini:</span>
+                                    <span class="font-semibold">${formatRupiah(balance)}</span>
+                                </div>
+                                <div class="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-0.5">
+                                    <span>Saldo setelah transaksi:</span>
+                                    <span>${formatRupiah(projected)}</span>
+                                </div>
+                            `;
+                        } else {
+                            receiptAccName.textContent = '(Belum dipilih)';
+                            balanceSimulation.classList.add('hidden');
+                        }
                     }
                 } else if (currentType === 'transfer') {
                     receiptBadge.textContent = 'TRANSFER';
@@ -1406,6 +1593,33 @@
                     onTypeChanged('expense');
                 }
                 syncFeePresetButtons();
+
+                const oldPayments = @json(old('payments', []));
+                if (@json((bool)old('is_split_payment')) || (Array.isArray(oldPayments) && oldPayments.length > 0)) {
+                    const rowsContainer = document.getElementById('createSplitPaymentRows');
+                    if (rowsContainer && oldPayments.length > 0) {
+                        rowsContainer.innerHTML = '';
+                        createSplitPaymentIdx = 0;
+                        oldPayments.forEach(p => {
+                            addCreateSplitPaymentRow(p.account_id, p.amount);
+                        });
+                    }
+                    toggleCreateSplitPayment(true);
+                }
+
+                const oldSplits = @json(old('splits', []));
+                if (@json((bool)old('is_split')) || (Array.isArray(oldSplits) && oldSplits.length > 0)) {
+                    const rowsContainer = document.getElementById('createSplitRows');
+                    if (rowsContainer && oldSplits.length > 0) {
+                        rowsContainer.innerHTML = '';
+                        createSplitIdx = 0;
+                        oldSplits.forEach(s => {
+                            addCreateSplitRow(s.category_id, s.member_id, s.amount, s.notes || '');
+                        });
+                    }
+                    toggleCreateSplit(true);
+                }
+
                 updateReceipt();
 
                 const txForm = document.getElementById('transactionForm');
