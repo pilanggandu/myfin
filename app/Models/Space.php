@@ -207,6 +207,11 @@ class Space extends Model
         return $this->hasMany(CreditAccount::class);
     }
 
+    public function creditFacilities(): HasMany
+    {
+        return $this->hasMany(CreditFacility::class);
+    }
+
     public function installmentPlans(): HasMany
     {
         return $this->hasMany(InstallmentPlan::class);
@@ -295,6 +300,18 @@ class Space extends Model
         }
 
         return $total;
+    }
+
+    public function totalCreditLimit(): float
+    {
+        $standaloneLimit = (float) $this->creditAccounts()
+            ->whereNull('archived_at')
+            ->whereNull('credit_facility_id')
+            ->sum('credit_limit');
+
+        $facilitiesLimit = (float) $this->creditFacilities()->sum('total_limit');
+
+        return round($standaloneLimit + $facilitiesLimit, 2);
     }
 
     public function createDefaultCategories(): void

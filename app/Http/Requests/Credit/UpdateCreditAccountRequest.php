@@ -16,7 +16,9 @@ class UpdateCreditAccountRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:credit_card,paylater,loan'],
-            'credit_limit' => ['required', 'integer', 'min:0'],
+            'credit_facility_id' => ['nullable', 'integer'],
+            'credit_limit' => ['nullable', 'numeric', 'min:0', 'required_without:credit_facility_id'],
+            'sub_limit' => ['nullable', 'numeric', 'min:0'],
             'billing_cycle_day' => ['nullable', 'integer', 'between:1,31'],
             'due_day' => ['nullable', 'integer', 'between:1,31'],
         ];
@@ -29,8 +31,11 @@ class UpdateCreditAccountRequest extends FormRequest
             'type.required' => 'Tipe kredit wajib dipilih.',
             'type.in' => 'Tipe kredit harus berupa Kartu Kredit, PayLater, atau Pinjaman.',
             'credit_limit.required' => 'Batas limit kredit wajib diisi.',
-            'credit_limit.integer' => 'Batas limit kredit harus berupa angka bulat dalam Rupiah.',
+            'credit_limit.required_without' => 'Batas limit kredit wajib diisi jika tidak menggunakan fasilitas limit gabungan.',
+            'credit_limit.numeric' => 'Batas limit kredit harus berupa angka.',
             'credit_limit.min' => 'Batas limit kredit tidak boleh negatif.',
+            'sub_limit.numeric' => 'Sub-limit kredit harus berupa angka.',
+            'sub_limit.min' => 'Sub-limit kredit tidak boleh negatif.',
             'billing_cycle_day.between' => 'Tanggal cetak tagihan harus antara 1 sampai 31.',
             'due_day.between' => 'Tanggal jatuh tempo harus antara 1 sampai 31.',
         ];

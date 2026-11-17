@@ -98,7 +98,7 @@ class DashboardController extends Controller
             ? $currentSpace->creditAccounts()->active()->with(['installmentPlans.installments'])->get()
             : collect();
 
-        $totalCreditLimit = (int) $creditAccounts->sum('credit_limit');
+        $totalCreditLimit = $currentSpace ? (int) $currentSpace->totalCreditLimit() : 0;
         $totalCreditLiability = $currentSpace ? (int) $currentSpace->creditLiabilities() : 0;
         $totalAvailableCredit = max(0, $totalCreditLimit - $totalCreditLiability);
 

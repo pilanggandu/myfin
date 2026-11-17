@@ -307,11 +307,10 @@ class AdvancedAnalyticsService
 
         $creditAccounts = $space->creditAccounts()->active()->with('ledgerAccount')->get();
         $creditLiabilities = 0;
-        $totalCreditLimit = 0;
         foreach ($creditAccounts as $ca) {
             $creditLiabilities += (int) round($ca->currentLiability());
-            $totalCreditLimit += (int) round((float) $ca->credit_limit);
         }
+        $totalCreditLimit = (int) round($space->totalCreditLimit());
 
         $netWorth = $grossAssets - $creditLiabilities;
         $creditUtilization = $totalCreditLimit > 0 ? round(($creditLiabilities / $totalCreditLimit) * 100, 1) : null;

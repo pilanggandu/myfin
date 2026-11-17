@@ -17,9 +17,11 @@ class CreditAccount extends Model
     protected $fillable = [
         'space_id',
         'account_id',
+        'credit_facility_id',
         'name',
         'type',
         'credit_limit',
+        'sub_limit',
         'billing_cycle_day',
         'due_day',
         'archived_at',
@@ -29,6 +31,7 @@ class CreditAccount extends Model
     {
         return [
             'credit_limit' => 'float',
+            'sub_limit' => 'float',
             'billing_cycle_day' => 'integer',
             'due_day' => 'integer',
             'archived_at' => 'datetime',
@@ -38,6 +41,29 @@ class CreditAccount extends Model
     public function space(): BelongsTo
     {
         return $this->belongsTo(Space::class);
+    }
+
+    public function creditFacility(): BelongsTo
+    {
+        return $this->belongsTo(CreditFacility::class, 'credit_facility_id');
+    }
+
+    public function isSharedFacility(): bool
+    {
+        return $this->credit_facility_id !== null;
+    }
+
+    public function effectiveLimit(): float
+    {
+        if ($this->isSharedFacility() && $this->creditFacility) {
+            if ($this->sub_limit !== null && $this->sub_limit > 0) {
+                return (float) $this->sub_limit;
+            }
+
+            return (float) $this->creditFacility->total_limit;
+        }
+
+        return (float) $this->credit_limit;
     }
 
     public function ledgerAccount(): BelongsTo
@@ -170,6 +196,17 @@ class CreditAccount extends Model
 
     public function availableLimit(): float
     {
+        if ($this->isSharedFacility() && $this->creditFacility) {
+            $facilityAvailable = $this->creditFacility->availableLimit();
+            if ($this->sub_limit !== null && $this->sub_limit > 0) {
+                $subAvailable = max(0.0, (float) $this->sub_limit - $this->currentLiability());
+
+                return min($subAvailable, $facilityAvailable);
+            }
+
+            return $facilityAvailable;
+        }
+
         $available = (float) $this->credit_limit - $this->currentLiability();
 
         return max(0.0, round($available, 2));
@@ -177,6 +214,14 @@ class CreditAccount extends Model
 
     public function utilizationRate(): float
     {
+        if ($this->isSharedFacility() && $this->creditFacility) {
+            if ($this->sub_limit !== null && $this->sub_limit > 0) {
+                return round(($this->currentLiability() / $this->sub_limit) * 100, 1);
+            }
+
+            return $this->creditFacility->utilizationRate();
+        }
+
         if ($this->credit_limit <= 0) {
             return 0.0;
         }
@@ -204,9 +249,21 @@ class CreditAccount extends Model
 
     public function getFormattedLimitAttribute(): string
     {
-        $decimals = fmod($this->credit_limit, 1.0) == 0.0 ? 0 : 2;
+        $limit = $this->effectiveLimit();
+        $decimals = fmod($limit, 1.0) == 0.0 ? 0 : 2;
 
-        return 'Rp '.number_format($this->credit_limit, $decimals, ',', '.');
+        return 'Rp '.number_format($limit, $decimals, ',', '.');
+    }
+
+    public function getFormattedSubLimitAttribute(): ?string
+    {
+        if ($this->sub_limit === null || $this->sub_limit <= 0) {
+            return null;
+        }
+
+        $decimals = fmod($this->sub_limit, 1.0) == 0.0 ? 0 : 2;
+
+        return 'Rp '.number_format($this->sub_limit, $decimals, ',', '.');
     }
 
     public function getFormattedLiabilityAttribute(): string

@@ -38,10 +38,16 @@ class CreditAccountController extends Controller
 
         $creditAccounts = $space->creditAccounts()
             ->with([
+                'creditFacility',
                 'installmentPlans.installments',
                 'recurringSchedules' => fn ($query) => $this->constrainVisibleRecurringSchedules($query),
             ])
             ->orderBy('archived_at', 'asc')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $creditFacilities = $space->creditFacilities()
+            ->with(['creditAccounts' => fn ($q) => $q->active()])
             ->orderBy('name', 'asc')
             ->get();
 
@@ -71,7 +77,7 @@ class CreditAccountController extends Controller
 
         $completedPlans = $completedPlansQuery->orderBy('start_date', 'desc')->get();
 
-        $totalCreditLimit = (int) $creditAccounts->whereNull('archived_at')->sum('credit_limit');
+        $totalCreditLimit = (int) $space->totalCreditLimit();
         $totalLiability = (int) $space->creditLiabilities();
         $totalAvailableLimit = max(0, $totalCreditLimit - $totalLiability);
         $totalUtilizationRate = $totalCreditLimit > 0 ? round(($totalLiability / $totalCreditLimit) * 100, 1) : 0.0;
@@ -128,6 +134,7 @@ class CreditAccountController extends Controller
 
         return view('credit.index', compact(
             'creditAccounts',
+            'creditFacilities',
             'activePlans',
             'completedPlans',
             'totalCreditLimit',

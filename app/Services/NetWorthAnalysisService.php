@@ -65,16 +65,15 @@ class NetWorthAnalysisService
         unset($item);
 
         // Kewajiban: Kartu Kredit & Paylater
-        $creditAccounts = $space->creditAccounts()->active()->with('ledgerAccount')->get();
+        $creditAccounts = $space->creditAccounts()->active()->with(['ledgerAccount', 'creditFacility'])->get();
         $creditCardDebt = 0.0;
-        $totalCreditLimit = 0.0;
+        $totalCreditLimit = (float) $space->totalCreditLimit();
         $creditCardComposition = [];
 
         foreach ($creditAccounts as $ca) {
             $liab = round((float) $ca->currentLiability(), 2);
-            $limit = round((float) $ca->credit_limit, 2);
+            $limit = round((float) $ca->effectiveLimit(), 2);
             $creditCardDebt += $liab;
-            $totalCreditLimit += $limit;
 
             $creditCardComposition[] = [
                 'id' => $ca->id,
@@ -82,7 +81,7 @@ class NetWorthAnalysisService
                 'type' => $ca->type,
                 'liability' => $liab,
                 'credit_limit' => $limit,
-                'utilization' => $limit > 0 ? round(($liab / $limit) * 100, 1) : 0.0,
+                'utilization' => $ca->utilizationRate(),
             ];
         }
 

@@ -458,7 +458,7 @@ class GlobalSearchService
                 'kind' => 'credit_account',
                 'kind_label' => $account->type === 'paylater' ? 'PayLater' : 'Kartu Kredit',
                 'name' => $account->name,
-                'meta' => 'Limit Rp '.number_format((float) $account->credit_limit, 0, ',', '.').' | Jatuh tempo tgl '.$account->due_day,
+                'meta' => 'Limit Rp '.number_format((float) $account->effectiveLimit(), 0, ',', '.').($account->isSharedFacility() ? ' (Gabungan)' : '').' | Jatuh tempo tgl '.$account->due_day,
                 'url' => route('credit.accounts.statement', $account),
             ]);
 

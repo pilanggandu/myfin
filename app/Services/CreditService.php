@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\CreditAccount;
 use App\Models\CreditDebitNote;
+use App\Models\CreditFacility;
 use App\Models\CreditPayment;
 use App\Models\FinancialTransaction;
 use App\Models\Installment;
@@ -23,9 +24,112 @@ class CreditService
         protected ActivityLogService $activityLog
     ) {}
 
+    public function createCreditFacility(Space $space, array $data): CreditFacility
+    {
+        return DB::transaction(function () use ($space, $data) {
+            $facility = CreditFacility::create([
+                'space_id' => $space->id,
+                'name' => $data['name'],
+                'total_limit' => (float) ($data['total_limit'] ?? 0),
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'created',
+                description: "Menambahkan fasilitas limit gabungan \"{$facility->name}\" (plafon ".$this->activityLog->formatCurrency($facility->total_limit).')',
+                space: $space,
+                subject: $facility,
+                subjectLabel: $facility->name,
+                properties: [
+                    'total_limit' => $facility->total_limit,
+                ],
+            );
+
+            return $facility;
+        });
+    }
+
+    public function updateCreditFacility(CreditFacility $facility, array $data): CreditFacility
+    {
+        return DB::transaction(function () use ($facility, $data) {
+            $before = [
+                'name' => $facility->name,
+                'total_limit' => $facility->total_limit,
+                'notes' => $facility->notes,
+            ];
+
+            $facility->update([
+                'name' => $data['name'],
+                'total_limit' => (float) ($data['total_limit'] ?? 0),
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $diff = $this->activityLog->buildDiff($before, [
+                'name' => $facility->name,
+                'total_limit' => $facility->total_limit,
+                'notes' => $facility->notes,
+            ], [
+                'name' => 'Nama Fasilitas',
+                'total_limit' => 'Total Plafon Limit',
+                'notes' => 'Catatan',
+            ]);
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'updated',
+                description: "Memperbarui fasilitas limit gabungan \"{$facility->name}\"",
+                space: $facility->space,
+                subject: $facility,
+                subjectLabel: $facility->name,
+                properties: $diff,
+            );
+
+            return $facility;
+        });
+    }
+
+    public function deleteCreditFacility(CreditFacility $facility): void
+    {
+        DB::transaction(function () use ($facility) {
+            foreach ($facility->creditAccounts as $account) {
+                $account->update([
+                    'credit_facility_id' => null,
+                    'credit_limit' => $account->sub_limit ?: $facility->total_limit,
+                    'sub_limit' => null,
+                ]);
+            }
+
+            $this->activityLog->log(
+                module: 'credit',
+                action: 'deleted',
+                description: "Menghapus fasilitas limit gabungan \"{$facility->name}\"",
+                space: $facility->space,
+                subject: $facility,
+                subjectLabel: $facility->name,
+            );
+
+            $facility->delete();
+        });
+    }
+
     public function createCreditAccount(Space $space, array $data): CreditAccount
     {
         return DB::transaction(function () use ($space, $data) {
+            $creditFacilityId = ! empty($data['credit_facility_id']) ? (int) $data['credit_facility_id'] : null;
+            if ($creditFacilityId) {
+                $facilityExists = CreditFacility::where('space_id', $space->id)->where('id', $creditFacilityId)->exists();
+                if (! $facilityExists) {
+                    throw ValidationException::withMessages([
+                        'credit_facility_id' => 'Fasilitas limit kredit tidak valid.',
+                    ]);
+                }
+            }
+
+            $subLimit = isset($data['sub_limit']) && $data['sub_limit'] !== '' && $data['sub_limit'] !== null
+                ? (float) $data['sub_limit']
+                : null;
+
             $ledgerAccount = Account::create([
                 'space_id' => $space->id,
                 'name' => $data['name'].' (Kewajiban)',
@@ -38,9 +142,11 @@ class CreditService
             $creditAccount = CreditAccount::create([
                 'space_id' => $space->id,
                 'account_id' => $ledgerAccount->id,
+                'credit_facility_id' => $creditFacilityId,
                 'name' => $data['name'],
                 'type' => $data['type'] ?? 'credit_card',
-                'credit_limit' => (int) ($data['credit_limit'] ?? 0),
+                'credit_limit' => (float) ($data['credit_limit'] ?? 0),
+                'sub_limit' => $subLimit,
                 'billing_cycle_day' => ! empty($data['billing_cycle_day']) ? (int) $data['billing_cycle_day'] : null,
                 'due_day' => ! empty($data['due_day']) ? (int) $data['due_day'] : null,
             ]);
@@ -48,13 +154,15 @@ class CreditService
             $this->activityLog->log(
                 module: 'credit',
                 action: 'created',
-                description: "Menambahkan akun kredit \"{$creditAccount->name}\" (limit ".$this->activityLog->formatCurrency($creditAccount->credit_limit).')',
+                description: "Menambahkan akun kredit \"{$creditAccount->name}\" (limit ".$this->activityLog->formatCurrency($creditAccount->effectiveLimit()).')',
                 space: $space,
                 subject: $creditAccount,
                 subjectLabel: $creditAccount->name,
                 properties: [
                     'type' => $creditAccount->type,
                     'credit_limit' => $creditAccount->credit_limit,
+                    'credit_facility_id' => $creditAccount->credit_facility_id,
+                    'sub_limit' => $creditAccount->sub_limit,
                 ],
             );
 
@@ -65,10 +173,29 @@ class CreditService
     public function updateCreditAccount(CreditAccount $creditAccount, array $data): CreditAccount
     {
         return DB::transaction(function () use ($creditAccount, $data) {
+            $creditFacilityId = array_key_exists('credit_facility_id', $data)
+                ? (! empty($data['credit_facility_id']) ? (int) $data['credit_facility_id'] : null)
+                : $creditAccount->credit_facility_id;
+
+            if ($creditFacilityId) {
+                $facilityExists = CreditFacility::where('space_id', $creditAccount->space_id)->where('id', $creditFacilityId)->exists();
+                if (! $facilityExists) {
+                    throw ValidationException::withMessages([
+                        'credit_facility_id' => 'Fasilitas limit kredit tidak valid.',
+                    ]);
+                }
+            }
+
+            $subLimit = array_key_exists('sub_limit', $data)
+                ? (isset($data['sub_limit']) && $data['sub_limit'] !== '' && $data['sub_limit'] !== null ? (float) $data['sub_limit'] : null)
+                : $creditAccount->sub_limit;
+
             $before = [
                 'name' => $creditAccount->name,
                 'type' => $creditAccount->type,
                 'credit_limit' => $creditAccount->credit_limit,
+                'credit_facility_id' => $creditAccount->credit_facility_id,
+                'sub_limit' => $creditAccount->sub_limit,
                 'billing_cycle_day' => $creditAccount->billing_cycle_day,
                 'due_day' => $creditAccount->due_day,
             ];
@@ -76,7 +203,9 @@ class CreditService
             $creditAccount->update([
                 'name' => $data['name'],
                 'type' => $data['type'] ?? $creditAccount->type,
-                'credit_limit' => (int) ($data['credit_limit'] ?? 0),
+                'credit_facility_id' => $creditFacilityId,
+                'credit_limit' => (float) ($data['credit_limit'] ?? 0),
+                'sub_limit' => $subLimit,
                 'billing_cycle_day' => ! empty($data['billing_cycle_day']) ? (int) $data['billing_cycle_day'] : null,
                 'due_day' => ! empty($data['due_day']) ? (int) $data['due_day'] : null,
             ]);
@@ -92,12 +221,16 @@ class CreditService
                 'name' => $creditAccount->name,
                 'type' => $creditAccount->type,
                 'credit_limit' => $creditAccount->credit_limit,
+                'credit_facility_id' => $creditAccount->credit_facility_id,
+                'sub_limit' => $creditAccount->sub_limit,
                 'billing_cycle_day' => $creditAccount->billing_cycle_day,
                 'due_day' => $creditAccount->due_day,
             ], [
                 'name' => 'Nama Akun',
                 'type' => 'Tipe',
                 'credit_limit' => 'Limit Kredit',
+                'credit_facility_id' => 'Fasilitas Limit Gabungan',
+                'sub_limit' => 'Sub-limit',
                 'billing_cycle_day' => 'Tanggal Cetak Tagihan',
                 'due_day' => 'Tanggal Jatuh Tempo',
             ]);
@@ -151,6 +284,9 @@ class CreditService
 
         return DB::transaction(function () use ($space, $actor, $creditAccount, $category, $data, $totalAmount, $tenor) {
             $lockedCreditAccount = CreditAccount::where('id', $creditAccount->id)->lockForUpdate()->first();
+            if ($lockedCreditAccount->credit_facility_id) {
+                CreditFacility::where('id', $lockedCreditAccount->credit_facility_id)->lockForUpdate()->first();
+            }
             $available = $lockedCreditAccount->availableLimit();
 
             if ($totalAmount > $available) {

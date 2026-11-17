@@ -22,6 +22,14 @@
             </button>
             <button 
                 type="button" 
+                onclick="openCreditFacilityModal()" 
+                class="min-h-[44px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
+                title="Kelola Fasilitas Limit Gabungan (Shared Limit)"
+            >
+                <span>🔗 Limit Gabungan</span>
+            </button>
+            <button 
+                type="button" 
                 onclick="openCreditAccountModal()" 
                 class="min-h-[44px] sm:min-h-[38px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2 border border-line rounded-lg text-xs font-bold text-charcoal bg-panel hover:bg-cream transition cursor-pointer shadow-xs"
             >
@@ -230,11 +238,109 @@
                 </button>
             </div>
         @else
+            @if ($creditFacilities->isNotEmpty())
+                <!-- Ringkasan Fasilitas Limit Gabungan (Shared Pool) -->
+                <div class="mb-6 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-charcoal uppercase tracking-wider">Fasilitas Limit Gabungan (Shared Pool)</span>
+                            <span class="text-[10px] bg-forest/10 text-forest font-bold px-2 py-0.5 rounded-full">{{ $creditFacilities->count() }} Fasilitas</span>
+                        </div>
+                        <button type="button" onclick="openCreditFacilityModal()" class="text-xs font-bold text-forest hover:text-forest-hover cursor-pointer inline-flex items-center gap-1">
+                            <span>+ Fasilitas Baru</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach ($creditFacilities as $fac)
+                            @php
+                                $facLiability = $fac->currentLiability();
+                                $facLimit = $fac->total_limit;
+                                $facAvailable = $fac->availableLimit();
+                                $facPercent = $facLimit > 0 ? min(100, round(($facLiability / $facLimit) * 100)) : 0;
+                            @endphp
+                            <div class="panel-card p-4.5 border border-line bg-panel hover:shadow-xs transition flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-start justify-between gap-2 mb-2">
+                                        <div>
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-sm">🔗</span>
+                                                <h4 class="font-bold text-sm text-charcoal">{{ $fac->name }}</h4>
+                                            </div>
+                                            <span class="text-[11px] text-muted">Fasilitas Plafon Bersama</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[11px] px-2 py-0.5 rounded font-bold {{ $facPercent > 80 ? 'bg-red/10 text-red' : 'bg-forest/10 text-forest' }}">
+                                                {{ $facPercent }}% Terpakai
+                                            </span>
+                                            <button 
+                                                type="button" 
+                                                onclick="openEditCreditFacilityModal({{ json_encode($fac) }})" 
+                                                class="w-6 h-6 rounded border border-line bg-panel text-muted hover:text-charcoal transition inline-flex items-center justify-center cursor-pointer text-xs" 
+                                                title="Edit Fasilitas"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <form method="POST" action="{{ route('credit.facilities.destroy', $fac) }}" onsubmit="return confirm('Hapus fasilitas limit bersama ini? Kartu anggotanya akan tetap ada dan dikembalikan ke limit mandiri.')" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="w-6 h-6 rounded border border-line bg-panel text-muted hover:text-red transition inline-flex items-center justify-center cursor-pointer text-xs" title="Hapus Fasilitas">
+                                                    🗑️
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Progress Bar Limit Gabungan -->
+                                    <div class="w-full bg-cream rounded-full h-2 mb-3 overflow-hidden border border-line/40">
+                                        <div class="h-full rounded-full transition-all duration-300 {{ $facPercent > 80 ? 'bg-red' : 'bg-forest' }}" style="width: {{ $facPercent }}%"></div>
+                                    </div>
+
+                                    <div class="grid grid-cols-3 gap-2 text-xs border-t border-line/50 pt-2.5 mb-3">
+                                        <div>
+                                            <span class="text-[10px] text-muted block">Total Plafon:</span>
+                                            <span class="font-bold text-charcoal privacy-balance" data-raw-value="{{ $fac->formatted_total_limit }}">{{ $fac->formatted_total_limit }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-muted block">Total Terpakai:</span>
+                                            <span class="font-semibold text-amber-600 dark:text-amber-400 privacy-balance" data-raw-value="{{ $fac->formatted_liability }}">{{ $fac->formatted_liability }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-muted block">Sisa Pool:</span>
+                                            <span class="font-bold text-forest privacy-balance" data-raw-value="{{ $fac->formatted_available_limit }}">{{ $fac->formatted_available_limit }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Kartu Anggota -->
+                                    <div class="border-t border-dashed border-line/60 pt-2">
+                                        <span class="text-[10px] text-muted block mb-1">Kartu Anggota ({{ $fac->creditAccounts->count() }}):</span>
+                                        @if ($fac->creditAccounts->isEmpty())
+                                            <span class="text-[11px] text-muted italic">Belum ada kartu terhubung ke fasilitas ini.</span>
+                                        @else
+                                            <div class="flex flex-wrap gap-1.5">
+                                                @foreach ($fac->creditAccounts as $memberCard)
+                                                    <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-cream/70 text-charcoal border border-line/60">
+                                                        <span>💳 {{ $memberCard->name }}</span>
+                                                        @if ($memberCard->sub_limit)
+                                                            <span class="text-[10px] text-muted font-mono">(sub: {{ $memberCard->formatted_sub_limit }})</span>
+                                                        @endif
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach ($creditAccounts as $account)
                     @php
                         $liability = $account->currentLiability();
-                        $limit = $account->credit_limit;
+                        $limit = $account->effectiveLimit();
                         $available = $account->availableLimit();
                         $usagePercent = $limit > 0 ? min(100, round(($liability / $limit) * 100)) : 0;
                     @endphp
@@ -251,6 +357,16 @@
                                     <span class="text-[11px] text-muted capitalize">
                                         {{ str_replace('_', ' ', $account->type) }}
                                     </span>
+                                    @if ($account->isSharedFacility())
+                                        <div class="mt-1">
+                                            <span class="inline-flex items-center gap-1 text-[10px] bg-forest/10 text-forest px-1.5 py-0.5 rounded font-bold">
+                                                🔗 Limit Gabungan: {{ $account->creditFacility?->name }}
+                                            </span>
+                                            @if ($account->sub_limit)
+                                                <span class="text-[10px] text-muted block mt-0.5">Sub-limit: {{ $account->formatted_sub_limit }}</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="flex items-center gap-1.5 flex-shrink-0">
                                     <span class="text-xs px-2 py-0.5 rounded font-bold {{ $usagePercent > 80 ? 'bg-red/10 text-red' : 'bg-forest/10 text-forest' }}">
@@ -275,7 +391,7 @@
                             <!-- Detail Angka -->
                             <div class="space-y-2 text-xs border-t border-line/60 pt-3">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-muted">Batas Limit:</span>
+                                    <span class="text-muted">{{ $account->isSharedFacility() ? ($account->sub_limit ? 'Sub-limit Kartu:' : 'Plafon Bersama:') : 'Batas Limit:' }}</span>
                                     <span class="font-semibold text-charcoal privacy-balance" data-raw-value="{{ $account->formatted_limit }}">{{ $account->formatted_limit }}</span>
                                 </div>
                                 <div class="flex justify-between items-center">
@@ -667,20 +783,82 @@
                     </select>
                 </div>
 
-                <div>
-                    <label for="credit_account_limit" class="block text-xs font-semibold text-charcoal mb-1">Batas Limit Kredit (Rp)</label>
-                    <input 
-                        type="number" 
-                        name="credit_limit" 
-                        id="credit_account_limit" 
-                        required 
-                        min="0"
-                        step="any"
-                        placeholder="Contoh: 15000000"
-                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
-                        onfocus="this.select()"
-                    >
-                    <span class="text-[10px] text-muted">Limit kredit yang diberikan oleh bank atau penyedia layanan.</span>
+                <!-- Model Plafon Limit: Mandiri vs Fasilitas Gabungan -->
+                <div class="p-3 rounded-xl border border-line bg-cream/30 space-y-2.5">
+                    <label class="block text-xs font-bold text-charcoal">Tipe Plafon Limit</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center gap-2 p-2.5 rounded-lg border border-line bg-panel cursor-pointer hover:border-forest transition">
+                            <input type="radio" name="limit_mode" value="standalone" id="limit_mode_standalone" checked onchange="toggleLimitMode(this.value)">
+                            <div>
+                                <span class="font-semibold block text-charcoal">Limit Mandiri</span>
+                                <span class="text-[10px] text-muted">Kartu terpisah</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 rounded-lg border border-line bg-panel cursor-pointer hover:border-forest transition">
+                            <input type="radio" name="limit_mode" value="facility" id="limit_mode_facility" onchange="toggleLimitMode(this.value)">
+                            <div>
+                                <span class="font-semibold block text-charcoal">Limit Gabungan</span>
+                                <span class="text-[10px] text-muted">Fasilitas bersama</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Input untuk Limit Mandiri -->
+                    <div id="standalone_limit_container">
+                        <label for="credit_account_limit" class="block text-xs font-semibold text-charcoal mb-1">Batas Limit Kredit (Rp)</label>
+                        <input 
+                            type="number" 
+                            name="credit_limit" 
+                            id="credit_account_limit" 
+                            required 
+                            min="0"
+                            step="any"
+                            placeholder="Contoh: 15000000"
+                            class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
+                            onfocus="this.select()"
+                        >
+                        <span class="text-[10px] text-muted">Limit mandiri kartu/paylater ini.</span>
+                    </div>
+
+                    <!-- Input untuk Limit Gabungan -->
+                    <div id="facility_limit_container" class="hidden space-y-2 pt-2 border-t border-line/60">
+                        <div>
+                            <label for="credit_account_facility_id" class="block text-xs font-semibold text-charcoal mb-1">
+                                Pilih Fasilitas Limit Bersama
+                            </label>
+                            <select 
+                                name="credit_facility_id" 
+                                id="credit_account_facility_id" 
+                                class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                            >
+                                <option value="">-- Pilih Fasilitas Limit --</option>
+                                @foreach ($creditFacilities as $fac)
+                                    <option value="{{ $fac->id }}">
+                                        {{ $fac->name }} (Plafon: {{ $fac->formatted_total_limit }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <span class="text-[10px] text-muted block mt-0.5">
+                                Belum ada fasilitas? Klik tombol "Limit Gabungan" di atas untuk membuatnya terlebih dahulu.
+                            </span>
+                        </div>
+
+                        <div>
+                            <label for="credit_account_sub_limit" class="block text-xs font-semibold text-charcoal mb-1">
+                                Sub-limit Kartu Ini (Opsional, Rp)
+                            </label>
+                            <input 
+                                type="number" 
+                                name="sub_limit" 
+                                id="credit_account_sub_limit" 
+                                min="0"
+                                step="any"
+                                placeholder="Kosongkan jika kartu memakai limit penuh fasilitas"
+                                class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
+                            >
+                            <span class="text-[10px] text-muted">Bisa diisi jika ini kartu suplemen dengan plafon maksimal terpisah.</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="p-3.5 rounded-xl border border-line bg-cream/30 space-y-2.5">
@@ -739,6 +917,78 @@
                         class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2"
                     >
                         <span id="btnSaveCreditAccountText">Simpan Akun Kredit</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Fasilitas Limit Gabungan -->
+    <div id="creditFacilityModal" onclick="if (event.target === this) closeCreditFacilityModal()" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-charcoal/60 backdrop-blur-xs">
+        <div class="panel-card bg-panel w-full max-w-md rounded-2xl border border-line shadow-2xl p-4 sm:p-6 relative my-3 sm:my-0 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-line mb-4">
+                <h3 id="facilityModalTitle" class="font-serif text-lg text-charcoal font-medium">Fasilitas Limit Gabungan</h3>
+                <button type="button" onclick="closeCreditFacilityModal()" class="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-muted hover:text-charcoal hover:bg-cream cursor-pointer shrink-0" aria-label="Tutup modal">✕</button>
+            </div>
+
+            <form id="creditFacilityForm" method="POST" action="{{ route('credit.facilities.store') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="_method" id="facilityFormMethod" value="POST">
+
+                <div>
+                    <label for="credit_facility_name" class="block text-xs font-semibold text-charcoal mb-1">Nama Fasilitas Kredit</label>
+                    <input 
+                        type="text" 
+                        name="name" 
+                        id="credit_facility_name" 
+                        required 
+                        placeholder="Contoh: BCA Combined Facility, Mandiri Shared Line"
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    >
+                    <span class="text-[10px] text-muted">Nama bank atau grup limit gabungan yang menaungi beberapa kartu.</span>
+                </div>
+
+                <div>
+                    <label for="credit_facility_limit" class="block text-xs font-semibold text-charcoal mb-1">Total Plafon Limit Gabungan (Rp)</label>
+                    <input 
+                        type="number" 
+                        name="total_limit" 
+                        id="credit_facility_limit" 
+                        required 
+                        min="0"
+                        step="any"
+                        placeholder="Contoh: 30000000"
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
+                        onfocus="this.select()"
+                    >
+                    <span class="text-[10px] text-muted">Total limit riil yang diberikan bank untuk seluruh kartu dalam fasilitas ini.</span>
+                </div>
+
+                <div>
+                    <label for="credit_facility_notes" class="block text-xs font-semibold text-charcoal mb-1">Catatan (Opsional)</label>
+                    <textarea 
+                        name="notes" 
+                        id="credit_facility_notes" 
+                        rows="2"
+                        placeholder="Catatan tambahan..."
+                        class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                    ></textarea>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-line">
+                    <button 
+                        type="button" 
+                        onclick="closeCreditFacilityModal()" 
+                        class="w-full sm:w-auto min-h-[44px] px-4 py-2 border border-line rounded-lg text-xs font-bold text-muted hover:text-charcoal bg-panel transition cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        id="btnSaveCreditFacility"
+                        class="w-full sm:w-auto min-h-[44px] px-5 py-2 border border-forest/30 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer flex items-center justify-center gap-2"
+                    >
+                        <span id="btnSaveCreditFacilityText">Simpan Fasilitas</span>
                     </button>
                 </div>
             </form>
@@ -923,13 +1173,38 @@
             document.getElementById('payBillModal').classList.add('hidden');
         }
 
+        function toggleLimitMode(mode) {
+            const standaloneBox = document.getElementById('standalone_limit_container');
+            const facilityBox = document.getElementById('facility_limit_container');
+            const limitInput = document.getElementById('credit_account_limit');
+            const facilitySelect = document.getElementById('credit_account_facility_id');
+
+            if (mode === 'facility') {
+                standaloneBox.classList.add('hidden');
+                facilityBox.classList.remove('hidden');
+                limitInput.removeAttribute('required');
+                facilitySelect.setAttribute('required', 'required');
+            } else {
+                facilityBox.classList.add('hidden');
+                standaloneBox.classList.remove('hidden');
+                limitInput.setAttribute('required', 'required');
+                facilitySelect.removeAttribute('required');
+                facilitySelect.value = '';
+                document.getElementById('credit_account_sub_limit').value = '';
+            }
+        }
+
         function openCreditAccountModal() {
             document.getElementById('modalTitle').textContent = 'Tambah Akun Kredit';
             document.getElementById('creditAccountForm').action = "{{ route('credit.accounts.store') }}";
             document.getElementById('formMethod').value = 'POST';
             document.getElementById('credit_account_name').value = '';
             document.getElementById('credit_account_type').value = 'credit_card';
+            document.getElementById('limit_mode_standalone').checked = true;
+            toggleLimitMode('standalone');
             document.getElementById('credit_account_limit').value = '';
+            document.getElementById('credit_account_facility_id').value = '';
+            document.getElementById('credit_account_sub_limit').value = '';
             document.getElementById('credit_account_billing_cycle').value = '';
             document.getElementById('credit_account_due_day').value = '';
             document.getElementById('btnSaveCreditAccountText').textContent = 'Simpan Akun Kredit';
@@ -943,7 +1218,21 @@
             document.getElementById('formMethod').value = 'PUT';
             document.getElementById('credit_account_name').value = account.name;
             document.getElementById('credit_account_type').value = account.type;
-            document.getElementById('credit_account_limit').value = account.credit_limit;
+
+            if (account.credit_facility_id) {
+                document.getElementById('limit_mode_facility').checked = true;
+                toggleLimitMode('facility');
+                document.getElementById('credit_account_facility_id').value = account.credit_facility_id;
+                document.getElementById('credit_account_sub_limit').value = account.sub_limit || '';
+                document.getElementById('credit_account_limit').value = account.credit_limit || '';
+            } else {
+                document.getElementById('limit_mode_standalone').checked = true;
+                toggleLimitMode('standalone');
+                document.getElementById('credit_account_limit').value = account.credit_limit;
+                document.getElementById('credit_account_facility_id').value = '';
+                document.getElementById('credit_account_sub_limit').value = '';
+            }
+
             document.getElementById('credit_account_billing_cycle').value = account.billing_cycle_day || '';
             document.getElementById('credit_account_due_day').value = account.due_day || '';
             document.getElementById('btnSaveCreditAccountText').textContent = 'Perbarui Akun Kredit';
@@ -954,6 +1243,42 @@
         function closeCreditAccountModal() {
             document.getElementById('creditAccountModal').classList.add('hidden');
         }
+
+        function openCreditFacilityModal() {
+            document.getElementById('facilityModalTitle').textContent = 'Tambah Fasilitas Limit Gabungan';
+            document.getElementById('creditFacilityForm').action = "{{ route('credit.facilities.store') }}";
+            document.getElementById('facilityFormMethod').value = 'POST';
+            document.getElementById('credit_facility_name').value = '';
+            document.getElementById('credit_facility_limit').value = '';
+            document.getElementById('credit_facility_notes').value = '';
+            document.getElementById('btnSaveCreditFacilityText').textContent = 'Simpan Fasilitas';
+            document.getElementById('creditFacilityModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('credit_facility_name').focus(), 50);
+        }
+
+        function openEditCreditFacilityModal(facility) {
+            document.getElementById('facilityModalTitle').textContent = 'Edit Fasilitas Limit Gabungan';
+            document.getElementById('creditFacilityForm').action = "/credit/facilities/" + facility.id;
+            document.getElementById('facilityFormMethod').value = 'PUT';
+            document.getElementById('credit_facility_name').value = facility.name;
+            document.getElementById('credit_facility_limit').value = facility.total_limit;
+            document.getElementById('credit_facility_notes').value = facility.notes || '';
+            document.getElementById('btnSaveCreditFacilityText').textContent = 'Perbarui Fasilitas';
+            document.getElementById('creditFacilityModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('credit_facility_name').focus(), 50);
+        }
+
+        function closeCreditFacilityModal() {
+            document.getElementById('creditFacilityModal').classList.add('hidden');
+        }
+
+        document.getElementById('creditFacilityForm')?.addEventListener('submit', function() {
+            const btn = document.getElementById('btnSaveCreditFacility');
+            const txt = document.getElementById('btnSaveCreditFacilityText');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            txt.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Menyimpan...';
+        });
 
         document.getElementById('creditAccountForm').addEventListener('submit', function() {
             const btn = document.getElementById('btnSaveCreditAccount');
@@ -975,6 +1300,9 @@
             if (e.key === 'Escape') {
                 if (!document.getElementById('creditAccountModal').classList.contains('hidden')) {
                     closeCreditAccountModal();
+                }
+                if (!document.getElementById('creditFacilityModal').classList.contains('hidden')) {
+                    closeCreditFacilityModal();
                 }
                 if (!document.getElementById('payBillModal').classList.contains('hidden')) {
                     closePayBillModal();

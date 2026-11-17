@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Budgets\BudgetController;
 use App\Http\Controllers\Categories\CategoryController;
 use App\Http\Controllers\Credit\CreditAccountController;
+use App\Http\Controllers\Credit\CreditFacilityController;
 use App\Http\Controllers\Credit\DebtPayoffController;
 use App\Http\Controllers\Credit\InstallmentController;
 use App\Http\Controllers\Currencies\CurrencyController;
@@ -208,6 +209,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/recurring/{recurring}/skip', [RecurringScheduleController::class, 'skip'])->name('recurring.skip');
 
     Route::get('/credit', [CreditAccountController::class, 'index'])->name('credit.index');
+    Route::post('/credit/facilities', [CreditFacilityController::class, 'store'])->name('credit.facilities.store');
+    Route::put('/credit/facilities/{facility}', [CreditFacilityController::class, 'update'])->name('credit.facilities.update');
+    Route::delete('/credit/facilities/{facility}', [CreditFacilityController::class, 'destroy'])->name('credit.facilities.destroy');
     Route::get('/credit/payoff-planner', [DebtPayoffController::class, 'index'])->name('credit.payoff.index');
     Route::post('/credit/payoff-planner/simulate', [DebtPayoffController::class, 'simulate'])->name('credit.payoff.simulate');
     Route::get('/credit/accounts/{creditAccount}/statement', [CreditAccountController::class, 'statement'])->name('credit.accounts.statement');
