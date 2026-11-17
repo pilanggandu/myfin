@@ -350,7 +350,7 @@ class CreditFacilityTest extends TestCase
             ->get(route('credit.purchases.create', ['credit_account_id' => $cardB->id]));
 
         $response->assertOk();
-        $response->assertSee('Fasilitas Bersama: BCA Combined Facility');
+        $response->assertSee('Limit Gabungan: BCA Combined Facility');
         $response->assertSee('BCA BLIBLI');
         $response->assertSee('BCA UnionPay');
         $response->assertSee('selected');

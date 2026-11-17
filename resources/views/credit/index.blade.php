@@ -239,15 +239,15 @@
             </div>
         @else
             @if ($creditFacilities->isNotEmpty())
-                <!-- Ringkasan Fasilitas Limit Gabungan (Shared Pool) -->
+                <!-- Ringkasan Limit Gabungan (Kartu Utama & Pendamping) -->
                 <div class="mb-6 space-y-3">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-charcoal uppercase tracking-wider">Fasilitas Limit Gabungan (Shared Pool)</span>
-                            <span class="text-[10px] bg-forest/10 text-forest font-bold px-2 py-0.5 rounded-full">{{ $creditFacilities->count() }} Fasilitas</span>
+                            <span class="text-xs font-bold text-charcoal uppercase tracking-wider">Limit Gabungan (Kartu Utama & Pendamping)</span>
+                            <span class="text-[10px] bg-forest/10 text-forest font-bold px-2 py-0.5 rounded-full">{{ $creditFacilities->count() }} Grup Limit</span>
                         </div>
                         <button type="button" onclick="openCreditFacilityModal()" class="text-xs font-bold text-forest hover:text-forest-hover cursor-pointer inline-flex items-center gap-1">
-                            <span>+ Fasilitas Baru</span>
+                            <span>+ Buat Grup Limit</span>
                         </button>
                     </div>
 
@@ -833,14 +833,14 @@
                     <div id="facility_limit_container" class="hidden space-y-2 pt-2 border-t border-line/60">
                         <div>
                             <label for="credit_account_facility_id" class="block text-xs font-semibold text-charcoal mb-1">
-                                Pilih Fasilitas Limit Bersama
+                                Pilih Grup Limit Gabungan
                             </label>
                             <select 
                                 name="credit_facility_id" 
                                 id="credit_account_facility_id" 
                                 class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
                             >
-                                <option value="">-- Pilih Fasilitas Limit --</option>
+                                <option value="">-- Pilih Grup Limit --</option>
                                 @foreach ($creditFacilities as $fac)
                                     <option value="{{ $fac->id }}">
                                         {{ $fac->name }} (Plafon: {{ $fac->formatted_total_limit }})
@@ -848,7 +848,7 @@
                                 @endforeach
                             </select>
                             <span class="text-[10px] text-muted block mt-0.5">
-                                Belum ada fasilitas? Klik tombol "Limit Gabungan" di atas untuk membuatnya terlebih dahulu.
+                                Belum ada grup limit? Klik tombol "Limit Gabungan" di kanan atas halaman untuk membuatnya terlebih dahulu.
                             </span>
                         </div>
 
@@ -862,10 +862,10 @@
                                 id="credit_account_sub_limit" 
                                 min="0"
                                 step="any"
-                                placeholder="Kosongkan jika kartu memakai limit penuh fasilitas"
+                                placeholder="Kosongkan jika kartu memakai limit penuh bersama"
                                 class="w-full px-3 py-2 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest font-mono"
                             >
-                            <span class="text-[10px] text-muted">Bisa diisi jika ini kartu suplemen dengan plafon maksimal terpisah.</span>
+                            <span class="text-[10px] text-muted">Bisa diisi jika ini kartu pendamping yang memiliki plafon maksimal terpisah.</span>
                         </div>
                     </div>
                 </div>

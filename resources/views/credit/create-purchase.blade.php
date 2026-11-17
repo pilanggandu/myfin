@@ -66,7 +66,7 @@
 
                                 @foreach ($groupedFacilities as $facilityName => $accounts)
                                     @if ($facilityName !== '')
-                                        <optgroup label="🔗 Fasilitas Bersama: {{ $facilityName }}">
+                                        <optgroup label="🔗 Limit Gabungan: {{ $facilityName }}">
                                             @foreach ($accounts as $acc)
                                                 <option 
                                                     value="{{ $acc->id }}" 
