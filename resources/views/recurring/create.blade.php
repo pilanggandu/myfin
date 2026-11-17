@@ -288,7 +288,7 @@
                                             data-liability="{{ $ca->formatted_liability }}"
                                             {{ (string)old('credit_account_id', $defaultCreditAccountId) === (string)$ca->id ? 'selected' : '' }}
                                         >
-                                            💳 {{ $ca->name }} (Kewajiban: {{ $ca->formatted_liability }})
+                                            💳 {{ $ca->name }}{{ $ca->isSharedFacility() ? ' [' . $ca->creditFacility?->name . ']' : '' }} (Kewajiban: {{ $ca->formatted_liability }})
                                         </option>
                                     @endforeach
                                 </select>

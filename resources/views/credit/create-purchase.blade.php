@@ -60,17 +60,50 @@
                                 class="w-full px-3 py-2.5 text-xs border border-line rounded-lg bg-panel text-charcoal focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
                             >
                                 <option value="">-- Pilih Kartu / Akun Kredit --</option>
-                                @foreach ($creditAccounts as $acc)
-                                    <option 
-                                        value="{{ $acc->id }}" 
-                                        data-available="{{ $acc->availableLimit() }}"
-                                        data-limit="{{ $acc->credit_limit }}"
-                                        data-billing-day="{{ $acc->billing_cycle_day ?? '' }}"
-                                        data-due-day="{{ $acc->due_day ?? '' }}"
-                                        {{ old('credit_account_id') == $acc->id ? 'selected' : '' }}
-                                    >
-                                        {{ $acc->name }} (Sisa Limit: {{ $acc->formatted_available_limit }})
-                                    </option>
+                                @php
+                                    $groupedFacilities = $creditAccounts->groupBy(fn ($acc) => $acc->creditFacility?->name ?? '');
+                                @endphp
+
+                                @foreach ($groupedFacilities as $facilityName => $accounts)
+                                    @if ($facilityName !== '')
+                                        <optgroup label="🔗 Fasilitas Bersama: {{ $facilityName }}">
+                                            @foreach ($accounts as $acc)
+                                                <option 
+                                                    value="{{ $acc->id }}" 
+                                                    data-available="{{ $acc->availableLimit() }}"
+                                                    data-limit="{{ $acc->effectiveLimit() }}"
+                                                    data-facility="{{ $facilityName }}"
+                                                    data-sub-limit="{{ $acc->sub_limit ?? '' }}"
+                                                    data-billing-day="{{ $acc->billing_cycle_day ?? '' }}"
+                                                    data-due-day="{{ $acc->due_day ?? '' }}"
+                                                    {{ (old('credit_account_id', request('credit_account_id')) == $acc->id) ? 'selected' : '' }}
+                                                >
+                                                    {{ $acc->name }} (Sisa Pool: {{ $acc->formatted_available_limit }}{{ $acc->sub_limit ? ' | Sub-limit: ' . $acc->formatted_sub_limit : '' }})
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @else
+                                        @if ($groupedFacilities->count() > 1)
+                                            <optgroup label="Kartu Mandiri (Limit Terpisah)">
+                                        @endif
+                                        @foreach ($accounts as $acc)
+                                            <option 
+                                                value="{{ $acc->id }}" 
+                                                data-available="{{ $acc->availableLimit() }}"
+                                                data-limit="{{ $acc->credit_limit }}"
+                                                data-facility=""
+                                                data-sub-limit=""
+                                                data-billing-day="{{ $acc->billing_cycle_day ?? '' }}"
+                                                data-due-day="{{ $acc->due_day ?? '' }}"
+                                                {{ (old('credit_account_id', request('credit_account_id')) == $acc->id) ? 'selected' : '' }}
+                                            >
+                                                {{ $acc->name }} (Sisa Limit: {{ $acc->formatted_available_limit }})
+                                            </option>
+                                        @endforeach
+                                        @if ($groupedFacilities->count() > 1)
+                                            </optgroup>
+                                        @endif
+                                    @endif
                                 @endforeach
                             </select>
                             <div id="creditLimitHint" class="text-[11px] text-muted mt-1"></div>
@@ -494,10 +527,18 @@
             }
 
             const available = parseInt(selected.getAttribute('data-available') || '0', 10);
+            const facility = selected.getAttribute('data-facility');
+            const subLimit = selected.getAttribute('data-sub-limit');
             const billingDay = selected.getAttribute('data-billing-day');
             const dueDay = selected.getAttribute('data-due-day');
 
-            let hintText = 'Sisa limit kartu tersedia: Rp ' + available.toLocaleString('id-ID');
+            let hintText = 'Sisa limit tersedia: Rp ' + available.toLocaleString('id-ID');
+            if (facility) {
+                hintText += ' (Limit Bersama: ' + facility + ')';
+            }
+            if (subLimit && parseInt(subLimit, 10) > 0) {
+                hintText += ' • Sub-limit kartu: Rp ' + parseInt(subLimit, 10).toLocaleString('id-ID');
+            }
             if (billingDay || dueDay) {
                 hintText += ' • Siklus: Cetak tgl ' + (billingDay || '-') + ', Jatuh tempo tgl ' + (dueDay || '-');
             }

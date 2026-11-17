@@ -324,4 +324,35 @@ class CreditFacilityTest extends TestCase
         $response->assertSee('BCA Everyday Card');
         $response->assertSee('Limit Gabungan: BCA Combined Facility');
     }
+
+    public function test_credit_purchase_create_page_renders_with_facilities_and_card_preselected(): void
+    {
+        $facility = $this->creditService->createCreditFacility($this->space, [
+            'name' => 'BCA Combined Facility',
+            'total_limit' => 30000000,
+        ]);
+
+        $cardA = $this->creditService->createCreditAccount($this->space, [
+            'name' => 'BCA UnionPay',
+            'type' => 'credit_card',
+            'credit_facility_id' => $facility->id,
+        ]);
+
+        $cardB = $this->creditService->createCreditAccount($this->space, [
+            'name' => 'BCA BLIBLI',
+            'type' => 'credit_card',
+            'credit_facility_id' => $facility->id,
+            'sub_limit' => 10000000,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession(['current_space_id' => $this->space->id])
+            ->get(route('credit.purchases.create', ['credit_account_id' => $cardB->id]));
+
+        $response->assertOk();
+        $response->assertSee('Fasilitas Bersama: BCA Combined Facility');
+        $response->assertSee('BCA BLIBLI');
+        $response->assertSee('BCA UnionPay');
+        $response->assertSee('selected');
+    }
 }

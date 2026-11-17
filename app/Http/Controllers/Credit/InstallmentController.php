@@ -29,7 +29,7 @@ class InstallmentController extends Controller
         $space = app('currentSpace');
         Gate::authorize('create', InstallmentPlan::class);
 
-        $creditAccounts = $space->creditAccounts()->active()->orderBy('name')->get();
+        $creditAccounts = $space->creditAccounts()->active()->with('creditFacility')->orderBy('name')->get();
         $categories = $space->categories()->expense()->active()->orderBy('name')->get();
         $members = $space->customMembers()->active()->orderBy('name')->get();
 

@@ -193,7 +193,7 @@
                                 <option value="">Pilih Kartu Kredit / PayLater...</option>
                                 @foreach ($creditAccounts as $ca)
                                     <option value="{{ $ca->id }}" {{ (string)old('credit_account_id', $recurring->credit_account_id) === (string)$ca->id ? 'selected' : '' }}>
-                                        💳 {{ $ca->name }}{{ $ca->archived_at ? ' (Diarsipkan)' : '' }} (Kewajiban: {{ $ca->formatted_liability }})
+                                        💳 {{ $ca->name }}{{ $ca->isSharedFacility() ? ' [' . $ca->creditFacility?->name . ']' : '' }}{{ $ca->archived_at ? ' (Diarsipkan)' : '' }} (Kewajiban: {{ $ca->formatted_liability }})
                                     </option>
                                 @endforeach
                             </select>

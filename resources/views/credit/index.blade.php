@@ -511,6 +511,15 @@
                                 >
                                     Edit
                                 </button>
+                                @if (!$account->isArchived())
+                                    <a 
+                                        href="{{ route('credit.purchases.create', ['credit_account_id' => $account->id]) }}" 
+                                        class="text-forest hover:text-forest-hover font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center"
+                                        title="Catat belanja transaksi menggunakan kartu ini"
+                                    >
+                                        + Belanja
+                                    </a>
+                                @endif
                                 @if (!$account->isArchived() && $liability > 0)
                                     <button 
                                         type="button" 
