@@ -502,67 +502,76 @@
                         </div>
 
                         <!-- Actions Bar -->
-                        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line mt-4 pt-3 text-xs">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <button 
-                                    type="button" 
-                                    onclick="openEditCreditAccountModal({{ json_encode($account) }})" 
-                                    class="text-muted hover:text-charcoal font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center cursor-pointer"
-                                >
-                                    Edit
-                                </button>
-                                @if (!$account->isArchived())
+                        <div class="mt-4 pt-3 border-t border-line space-y-2.5">
+                            @if (!$account->isArchived())
+                                <div class="grid {{ $liability > 0 ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
+                                    @if ($liability > 0)
+                                        <button 
+                                            type="button" 
+                                            onclick="openPayBillModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $statement['total_pending'] }}, '{{ $statement['formatted_total_pending'] }}', {{ $liability }}, '{{ $account->formatted_liability }}', {{ json_encode($statement['installments']->where('status', 'pending')->pluck('id')->values()) }})" 
+                                            class="w-full min-h-[40px] sm:min-h-[36px] px-3 py-1.5 bg-forest text-white rounded-lg text-xs font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs inline-flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-forest/50"
+                                        >
+                                            <span>Bayar Tagihan</span>
+                                        </button>
+                                    @endif
                                     <a 
                                         href="{{ route('credit.purchases.create', ['credit_account_id' => $account->id]) }}" 
-                                        class="text-forest hover:text-forest-hover font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center"
+                                        class="w-full min-h-[40px] sm:min-h-[36px] px-3 py-1.5 {{ $liability > 0 ? 'border border-line bg-panel text-charcoal hover:bg-cream' : 'bg-forest text-white hover:bg-forest-hover' }} rounded-lg text-xs font-bold transition inline-flex items-center justify-center gap-1.5 shadow-xs focus:outline-none focus:ring-2 focus:ring-forest/50"
                                         title="Catat belanja transaksi menggunakan kartu ini"
                                     >
-                                        + Belanja
+                                        <span>+ Belanja</span>
                                     </a>
-                                @endif
-                                @if (!$account->isArchived() && $liability > 0)
+                                </div>
+                            @endif
+
+                            <!-- Secondary Utilities (Edit, Jadwal, Arsip) -->
+                            <div class="flex items-center justify-between gap-2 text-xs pt-0.5">
+                                <div class="flex items-center gap-2.5 text-muted">
                                     <button 
                                         type="button" 
-                                        onclick="openPayBillModal({{ $account->id }}, '{{ addslashes($account->name) }}', {{ $statement['total_pending'] }}, '{{ $statement['formatted_total_pending'] }}', {{ $liability }}, '{{ $account->formatted_liability }}', {{ json_encode($statement['installments']->where('status', 'pending')->pluck('id')->values()) }})" 
-                                        class="min-h-[44px] sm:min-h-[34px] px-2.5 py-1 bg-forest text-white rounded-md text-[11px] font-bold hover:bg-forest-hover transition cursor-pointer shadow-xs"
+                                        onclick="openEditCreditAccountModal({{ json_encode($account) }})" 
+                                        class="hover:text-charcoal font-semibold py-1 min-h-[36px] inline-flex items-center cursor-pointer transition focus:outline-none focus:underline"
                                     >
-                                        Bayar Tagihan
+                                        Edit
                                     </button>
-                                @endif
-                                @if ($primaryPaymentSchedule)
-                                    <a 
-                                        href="{{ route('recurring.show', $primaryPaymentSchedule) }}" 
-                                        class="text-forest hover:underline font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center"
-                                        title="Lihat atau catat jadwal pembayaran tagihan kartu ini"
-                                    >
-                                        Lihat Jadwal
-                                    </a>
-                                @elseif (!$account->isArchived())
-                                    <a 
-                                        href="{{ route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $account->id]) }}" 
-                                        class="text-forest hover:underline font-bold py-1 px-1 min-h-[44px] sm:min-h-[36px] inline-flex items-center"
-                                        title="Buat jadwal rutin bulanan untuk membayar tagihan kartu ini"
-                                    >
-                                        Jadwalkan Bayar
-                                    </a>
+                                    @if ($primaryPaymentSchedule)
+                                        <span class="text-line select-none">•</span>
+                                        <a 
+                                            href="{{ route('recurring.show', $primaryPaymentSchedule) }}" 
+                                            class="text-forest hover:underline font-semibold py-1 min-h-[36px] inline-flex items-center transition focus:outline-none focus:underline"
+                                            title="Lihat atau catat jadwal pembayaran tagihan kartu ini"
+                                        >
+                                            Lihat Jadwal
+                                        </a>
+                                    @elseif (!$account->isArchived())
+                                        <span class="text-line select-none">•</span>
+                                        <a 
+                                            href="{{ route('recurring.create', ['type' => 'credit_payment', 'credit_account_id' => $account->id]) }}" 
+                                            class="text-forest hover:underline font-semibold py-1 min-h-[36px] inline-flex items-center transition focus:outline-none focus:underline"
+                                            title="Buat jadwal rutin bulanan untuk membayar tagihan kartu ini"
+                                        >
+                                            Jadwalkan Bayar
+                                        </a>
+                                    @endif
+                                </div>
+
+                                @if ($account->isArchived())
+                                    <form method="POST" action="{{ route('credit.accounts.unarchive', $account) }}">
+                                        @csrf
+                                        <button type="submit" class="text-forest hover:text-forest-hover font-semibold py-1 min-h-[36px] inline-flex items-center cursor-pointer transition focus:outline-none focus:underline">
+                                            Aktifkan Kembali
+                                        </button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('credit.accounts.destroy', $account) }}" onsubmit="return confirm('Arsipkan akun kredit ini? Data historis tetap tersimpan.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red hover:text-red/80 font-semibold py-1 min-h-[36px] inline-flex items-center cursor-pointer transition focus:outline-none focus:underline">
+                                            Arsipkan
+                                        </button>
+                                    </form>
                                 @endif
                             </div>
-                            @if ($account->isArchived())
-                                <form method="POST" action="{{ route('credit.accounts.unarchive', $account) }}">
-                                    @csrf
-                                    <button type="submit" class="text-forest hover:text-forest-hover font-bold py-1 min-h-[36px]">
-                                        Aktifkan Kembali
-                                    </button>
-                                </form>
-                            @else
-                                <form method="POST" action="{{ route('credit.accounts.destroy', $account) }}" onsubmit="return confirm('Arsipkan akun kredit ini? Data historis tetap tersimpan.')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red hover:text-red/80 font-bold py-1 min-h-[36px]">
-                                        Arsipkan
-                                    </button>
-                                </form>
-                            @endif
                         </div>
                     </div>
                 @endforeach
